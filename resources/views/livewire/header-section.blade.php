@@ -1,0 +1,1 @@
+<div class="h-28 flex bg-cover bg-center bg-gradient-to-r from-cyan-500 to-blue-500" style="background-image: url('/img/Department of Health Western Visayas.svg')"></div>

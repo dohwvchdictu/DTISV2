@@ -1,0 +1,173 @@
+<?php
+
+namespace App\Livewire\Status;
+
+use App\Models\Document;
+use App\Models\Log;
+use Illuminate\Support\Facades\Http;
+use Livewire\Attributes\Title;
+use Livewire\Component;
+
+class Closed extends Component
+{
+    #[Title('Closed Documents | Document Tracking Information System')]
+    /** Constant Variables */
+    public $user = [];
+    public $office;
+    public $responseEmployees;
+    public $responseOffices;
+    public $employees = [];
+    public $offices = [];
+    public $id;
+
+    /** Search & Filter Variables*/
+    public $search = '';
+
+    public function mount()
+    {
+        /** User Information */
+        $this->user = session('user');
+        $this->office = $this->user['office']['id'];
+        /** End User Information */
+        // Fetch API data with error handling
+        $this->checkApiConnection();
+
+        $this->responseEmployees = Http::get('http://192.168.100.162:8081/public/get-employees')->json();
+        $this->employees = $this->responseEmployees['employeesList'];
+    }
+
+    /**
+     * Check API server connection and fetch employee and office data
+     * Returns true if successful, false otherwise
+     */
+    private function checkApiConnection()
+    {
+        $employeeResponse = Http::get('http://192.168.100.162:8081/public/get-employees');
+        $officeResponse = Http::get('http://192.168.100.162:8081/public/get-offices');
+
+        if (!$employeeResponse->ok() || !$officeResponse->ok()) {
+            $this->employees = [];
+            $this->offices = [];
+            $this->responseEmployees = null;
+            $this->responseOffices = null;
+            return false;
+        }
+
+        $this->responseEmployees = $employeeResponse->json();
+        $this->responseOffices = $officeResponse->json();
+
+        $this->employees = collect($this->responseEmployees['employeesList'] ?? [])
+            ->sortBy('lastName')
+            ->values()
+            ->all();
+
+        $this->offices = collect($this->responseOffices['officeList'] ?? [])
+            ->sortBy('officeName')
+            ->values()
+            ->all();
+
+        return true;
+    }
+
+    /** Miscellanous Functions */
+    public function colorIndicator($status)
+    {
+        switch ($status) {
+            case 'Created':
+                return "bg-gray-50";
+                break;
+            case 'Closed':
+                return "bg-red-100";
+                break;
+            case 'On Process':
+                return "bg-yellow-100";
+                break;
+            case 'Returned':
+                return "bg-amber-100";
+            default:
+                return "bg-sky-100";
+        }
+    }
+
+    public function iconIndicator($status)
+    {
+        switch ($status) {
+            case 'Created':
+                return '<svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-pen-line"><path d="m18 5-2.414-2.414A2 2 0 0 0 14.172 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2"/><path d="M21.378 12.626a1 1 0 0 0-3.004-3.004l-4.01 4.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"/><path d="M8 18h1"/></svg>';
+                break;
+            case 'Closed':
+                return '<svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-x-2"><path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m8 12.5-5 5"/><path d="m3 12.5 5 5"/></svg>';
+                break;
+            case 'On Process':
+                return '<svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-refresh-ccw"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>';
+                break;
+            case 'Returned':
+                return '<svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-symlink"><path d="m10 18 3-3-3-3"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M4 11V4a2 2 0 0 1 2-2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h7"/></svg>';
+            default:
+                return '<svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-input"><path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M2 15h10"/><path d="m9 18 3-3-3-3"/></svg>';
+        }
+    }
+
+    public function filterLog($document)
+    {
+        // If $document is a Document model instance with loaded logs
+        if ($document instanceof Document && $document->relationLoaded('logs')) {
+            $log = $document->logs->first();
+            return $log ? $log->created_at : '';
+        }
+
+        // Fallback to querying if not eager-loaded (for backward compatibility)
+        $log = Log::where('document_id', is_object($document) ? $document->id : $document)
+            ->where('action_id', 5)
+            ->where('assigned_to', $this->office)
+            ->first();
+
+        return $log ? $log->created_at : '';
+    }
+
+    public function filterUser($document)
+    {
+        $this->id = Log::where('document_id', $document)->where('action_id', 5)->where('assigned_to', $this->office)->first()->user_id;
+
+        $result = array_filter($this->employees, function ($employee) {
+            return $employee['id'] == $this->id;
+        });
+
+        $userList = array_values($result);
+        $userInfo = $userList[0];
+        return $userInfo['firstName'] . ' ' . $userInfo['lastName'] . ' ' . $userInfo['suffix'];
+    }
+    /** End of Miscellanous Functions */
+
+    public function render()
+    {
+        $documents = Document::query()
+            ->whereNull('bundle_id')
+            ->when($this->search, function ($query) {
+                // Properly scope the OR conditions to avoid query issues
+                $query->where(function ($q) {
+                    $q->where('control_no', 'like', '%' . $this->search . '%')
+                        ->orWhere('subject', 'like', '%' . $this->search . '%');
+                });
+            })
+            ->whereHas('logs', function ($query) {
+                $query->where('assigned_to', $this->office)
+                    ->where('action_id', 5);
+            })
+            // Eager load logs to prevent N+1 queries
+            ->with(['logs' => function ($query) {
+                $query->where('assigned_to', $this->office)
+                    ->where('action_id', 5)
+                    ->orderBy('created_at', 'DESC');
+            }])
+            ->orderBy('created_at', 'DESC')
+            ->paginate(50);
+
+        return view(
+            'livewire.status.closed',
+            [
+                'documents' =>  $documents
+            ]
+        );
+    }
+}

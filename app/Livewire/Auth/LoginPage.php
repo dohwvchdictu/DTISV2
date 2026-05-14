@@ -45,6 +45,7 @@ class LoginPage extends Component
                 'jwt_token' => $data['token'],
                 'user' => $data['employee']
             ]);
+            $this->dispatch('save-login-email', email: $this->email);
             return redirect()->route('dashboard');
         }
 

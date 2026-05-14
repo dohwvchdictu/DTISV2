@@ -42,7 +42,7 @@ class Navbar extends Component
 
         try {
             // Define the API endpoint
-            $apiEndpoint = 'http://192.168.100.162:8081/employee/image/' . $this->user['photoUrl'];
+            $apiEndpoint = config('services.api.base_url') . 'employee/image/' . $this->user['photoUrl'];
             // Your JWT token (e.g., retrieved from a logged-in user or storage)
             $this->jwtToken = session('jwt_token');
 

@@ -32,7 +32,7 @@ class Closed extends Component
         // Fetch API data with error handling
         $this->checkApiConnection();
 
-        $this->responseEmployees = Http::get('http://192.168.100.162:8081/public/get-employees')->json();
+        $this->responseEmployees = Http::get(config('services.api.base_url') . 'public/get-employees')->json();
         $this->employees = $this->responseEmployees['employeesList'];
     }
 
@@ -42,8 +42,8 @@ class Closed extends Component
      */
     private function checkApiConnection()
     {
-        $employeeResponse = Http::get('http://192.168.100.162:8081/public/get-employees');
-        $officeResponse = Http::get('http://192.168.100.162:8081/public/get-offices');
+        $employeeResponse = Http::get(config('services.api.base_url') . 'public/get-employees');
+        $officeResponse = Http::get(config('services.api.base_url') . 'public/get-offices');
 
         if (!$employeeResponse->ok() || !$officeResponse->ok()) {
             $this->employees = [];

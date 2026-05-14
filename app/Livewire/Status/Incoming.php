@@ -77,6 +77,7 @@ class Incoming extends Component
         $this->modalTitle = 'Receive Document';
         $this->modalContent = 'Are you sure you want to receive the selected document(s)?';
         $this->modalAction = 'receive';
+
     }
 
     /**
@@ -85,8 +86,8 @@ class Incoming extends Component
      */
     private function checkApiConnection()
     {
-        $employeeResponse = Http::get('http://192.168.100.162:8081/public/get-employees');
-        $officeResponse = Http::get('http://192.168.100.162:8081/public/get-offices');
+        $employeeResponse = Http::get(config('services.api.base_url') . 'public/get-employees');
+        $officeResponse = Http::get(config('services.api.base_url') . 'public/get-offices');
 
         if (!$employeeResponse->ok() || !$officeResponse->ok()) {
             $this->employees = [];
@@ -94,7 +95,7 @@ class Incoming extends Component
             $this->filterOfficeEmployees = [];
             $this->responseEmployees = null;
             $this->responseOffices = null;
-            
+
             $this->alert('error', 'No response from API server. Check connection and try again.', [
                 'position' => 'center',
                 'toast' => true,
@@ -103,7 +104,7 @@ class Incoming extends Component
                 'confirmButtonText' => 'OK',
                 'confirmButtonColor' => '#dc2626',
             ]);
-            
+
             return false;
         }
 
@@ -193,7 +194,7 @@ class Incoming extends Component
                 'user_id' => $this->user['id'],
                 'office_id' => $this->office,
                 'assigned_to' => $this->office,
-                'description' =>  $doc_type . " (" . $document->control_no . ") has been received and being process by " . $lookUpOffice . "."
+                'description' => $doc_type . " (" . $document->control_no . ") has been received and being process by " . $lookUpOffice . "."
             ]);
 
             /** Loop Attachments */
@@ -208,11 +209,11 @@ class Incoming extends Component
                 Log::create([
                     'action_id' => Action::firstWhere('name', 'Received')->id,
                     'document_id' => $attachment->id,
-                    'bundle_id' =>  $document->id,
+                    'bundle_id' => $document->id,
                     'user_id' => $this->user['id'],
                     'office_id' => $attachment->office_id,
                     'assigned_to' => $this->office,
-                    'description' =>  $doc_type . " (" . $document->control_no . ") has been received and being process by " . $lookUpOffice . "."
+                    'description' => $doc_type . " (" . $document->control_no . ") has been received and being process by " . $lookUpOffice . "."
                 ]);
             }
         });
@@ -302,7 +303,7 @@ class Incoming extends Component
         if (!isset($id)) {
             return '';
         }
-        
+
         $this->id = $id;
 
         $result = array_filter($this->offices, function ($office) {
@@ -329,7 +330,7 @@ class Incoming extends Component
                 // Properly scope the OR conditions within a nested where
                 $query->where(function ($q) {
                     $q->where('control_no', 'like', '%' . $this->search . '%')
-                      ->orWhere('subject', 'like', '%' . $this->search . '%');
+                        ->orWhere('subject', 'like', '%' . $this->search . '%');
                 });
             })
             ->when($this->selectFilter, function ($query) {

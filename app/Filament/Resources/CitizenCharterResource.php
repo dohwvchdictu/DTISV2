@@ -30,7 +30,7 @@ class CitizenCharterResource extends Resource
                 Forms\Components\Select::make('office_id')
                     ->label('Owner')
                     ->options(function () {
-                        $response = Http::get('http://192.168.100.162:8081/public/get-offices');
+                        $response = Http::get(config('services.api.base_url') . 'public/get-offices');
                         return $response->collect('officeList')->mapWithKeys(function ($data) {
                             return [$data['id'] => $data['officeName']];
                         });
@@ -60,7 +60,7 @@ class CitizenCharterResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('office_id')
                     ->getStateUsing(function (CitizenCharter $cc) {
-                        $response = Http::get('http://192.168.100.162:8081/public/get-offices');
+                        $response = Http::get(config('services.api.base_url') . 'public/get-offices');
                         $data = $response->collect('officeList')->firstWhere('id', $cc->office_id);
                         return $data['officeName'];
                     })

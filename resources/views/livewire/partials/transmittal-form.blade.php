@@ -29,8 +29,12 @@
         <div class="text-center">
             <h4>DOCUMENT TRACKING FORM</h4>
         </div>
-        <div class="d-flex justify-content-center mb-2">
+        <div class="d-flex justify-content-between align-items-center mb-2 px-3">
             <span>{!! $barcodeImg !!}</span>
+            <div class="text-center">
+                {!! $qrCode !!}
+                <div style="font-size:8px; margin-top:2px; font-weight:600; letter-spacing:1px;">SCAN TO RECEIVE</div>
+            </div>
         </div>
         <table class="table table-lg table-auto table-bordered mx-auto" style="border:2px">
             <tbody>

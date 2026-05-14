@@ -50,7 +50,7 @@ class Employees extends Component
 
         /** API for Employees */
         try {
-            $this->responseEmployees = Http::get('http://192.168.100.162:8081/public/get-employees')->json();
+            $this->responseEmployees = Http::get(config('services.api.base_url') . 'public/get-employees')->json();
             
             // Check if API response is valid
             if (!isset($this->responseEmployees['employeesList']) || !is_array($this->responseEmployees['employeesList'])) {

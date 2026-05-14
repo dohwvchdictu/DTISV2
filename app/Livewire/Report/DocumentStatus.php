@@ -40,7 +40,7 @@ class DocumentStatus extends Component
     public function checkApiConnection()
     {
         /** API */
-        $officeResponse = Http::get('http://192.168.100.162:8081/public/get-offices');
+        $officeResponse = Http::get(config('services.api.base_url') . 'public/get-offices');
 
         if(!$officeResponse->ok())
         {

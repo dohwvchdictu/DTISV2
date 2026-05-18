@@ -10,7 +10,7 @@ class ApiController extends Controller
     public function fetchOfficeData()
     {
         // API URL
-        $url = 'http://192.168.100.162:8081/public/get-offices';
+        $url = config('services.api.base_url') . 'public/get-offices';
 
         try {
             // Send GET request

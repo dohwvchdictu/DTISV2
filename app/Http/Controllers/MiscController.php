@@ -6,6 +6,7 @@ use App\Models\Document;
 use App\Models\Log;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class MiscController extends Controller
 {
@@ -31,7 +32,7 @@ class MiscController extends Controller
     public function checkApiConnection()
     {
         /** API */
-        $officeResponse = Http::get('http://192.168.100.162:8081/public/get-offices');
+        $officeResponse = Http::get(config('services.api.base_url') . 'public/get-offices');
 
         if(!$officeResponse->ok())
         {
@@ -65,7 +66,7 @@ class MiscController extends Controller
 
         // Ensure responseOffices is loaded
         if (!$this->responseOffices) {
-            $this->responseOffices = Http::get('http://192.168.100.162:8081/public/get-offices')->json();
+            $this->responseOffices = Http::get(config('services.api.base_url') . 'public/get-offices')->json();
         }
 
         $result = array_filter($this->responseOffices['officeList'], function ($office) {
@@ -95,7 +96,9 @@ class MiscController extends Controller
         $renderer = new \Picqer\Barcode\Renderers\HtmlRenderer();
         $barcodeImg = $renderer->render($barcode);
 
-        return view('livewire.partials.transmittal-form', compact('user', 'office', 'destination', 'document', 'barcodeImg'));
+        $qrCode = QrCode::size(110)->generate(url('/document/qr-receive/' . $control_no));
+
+        return view('livewire.partials.transmittal-form', compact('user', 'office', 'destination', 'document', 'barcodeImg', 'qrCode'));
     }
 
     public function filterOffice($id)

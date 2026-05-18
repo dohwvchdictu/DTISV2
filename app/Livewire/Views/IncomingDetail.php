@@ -80,13 +80,13 @@ class IncomingDetail extends Component
         $this->control_no = $this->document->control_no;
         $this->type = $this->document->category->name;
 
-        $this->responseEmployees = Http::get('http://192.168.100.162:8081/public/get-employees')->json();
+        $this->responseEmployees = Http::get(config('services.api.base_url') . 'public/get-employees')->json();
         $this->employees = collect($this->responseEmployees['employeesList'])
             ->sortBy('lastName')
             ->values()
             ->all();
 
-        $this->responseOffices = Http::get('http://192.168.100.162:8081/public/get-offices')->json();
+        $this->responseOffices = Http::get(config('services.api.base_url') . 'public/get-offices')->json();
         $this->offices = collect($this->responseOffices['officeList'])
             ->sortBy('officeName')
             ->values()
@@ -94,6 +94,7 @@ class IncomingDetail extends Component
 
         $this->pendings = Document::where('assigned_to', $this->office)->where('status', 'On Process')->whereNull('bundle_id')->orderBy('created_at', 'DESC')->get();
         $this->documents_attached = Document::where('assigned_to', $this->office)->whereIn('status', ['For Receiving', 'Returned'])->where('bundle_id', $this->parent_bundle)->orderBy('created_at', 'DESC')->get();
+
     }
 
     /** Receive Document */

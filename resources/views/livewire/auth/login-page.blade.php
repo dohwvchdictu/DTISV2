@@ -111,6 +111,7 @@
                                         <label for="email" class="block text-sm mb-2 dark:text-white">Username</label>
                                         <div class="relative">
                                             <input type="email" id="email" wire:model="email"
+                                                autocomplete="off"
                                                 class="py-3 px-4 block w-full bg-gray-50 border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none"
                                                 required aria-describedby="email-error">
                                             <div class="hidden absolute inset-y-0 end-0 pointer-events-none pe-3">
@@ -133,11 +134,12 @@
                                         <div class="flex justify-between items-center">
                                             <label for="password"
                                                 class="block text-sm mb-2 dark:text-white">Password</label>
-                                            <a class="inline-flex items-center gap-x-1 text-sm text-blue-600 decoration-2 hover:underline focus:outline-none focus:underline font-medium dark:text-blue-500"
-                                                href="../examples/html/recover-account.html">Forgot password?</a>
                                         </div>
                                         <div class="relative">
                                             <input type="password" id="password" wire:model="password"
+                                                autocomplete="off"
+                                                readonly
+                                                onfocus="this.removeAttribute('readonly')"
                                                 class="py-3 px-4 block w-full bg-gray-50 border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
                                                 required aria-describedby="password-error">
                                             <div class="hidden absolute inset-y-0 end-0 pointer-events-none pe-3">
@@ -151,17 +153,6 @@
                                     </div>
                                     <!-- End Form Group -->
 
-                                    <!-- Checkbox -->
-                                    <div class="flex items-center">
-                                        <div class="flex">
-                                            <input id="remember-me" name="remember-me" type="checkbox"
-                                                class="shrink-0 mt-0.5 border-gray-200 rounded text-blue-600 focus:ring-blue-500 dark:bg-neutral-800 dark:border-neutral-700 dark:checked:bg-blue-500 dark:checked:border-blue-500 dark:focus:ring-offset-gray-800">
-                                        </div>
-                                        <div class="ms-3">
-                                            <label for="remember-me" class="text-sm dark:text-white">Remember me</label>
-                                        </div>
-                                    </div>
-                                    <!-- End Checkbox -->
 
                                     <button type="submit" wire:loading.class="opacity-50 disabled"
                                         class="w-full py-3 px-4 inline-flex justify-center items-center gap-x-2 text-sm font-medium rounded-lg border border-transparent bg-gradient-to-bl from-green-600 to-emerald-700 text-white hover:bg-emerald-700 focus:outline-none focus:bg-emerald-700 disabled:opacity-50 disabled:pointer-events-none">Sign
@@ -194,3 +185,23 @@
     <!-- End Clients Section -->
 </div>
 <!-- End Hero -->
+
+<script>
+    document.addEventListener('livewire:initialized', function () {
+        const saved = localStorage.getItem('lastLoginEmail');
+        if (saved) {
+            const input = document.getElementById('email');
+            if (input && !input.value) {
+                input.value = saved;
+                input.dispatchEvent(new Event('input'));
+                input.dispatchEvent(new Event('change'));
+            }
+        }
+    });
+
+    window.addEventListener('save-login-email', function (e) {
+        if (e.detail && e.detail.email) {
+            localStorage.setItem('lastLoginEmail', e.detail.email);
+        }
+    });
+</script>

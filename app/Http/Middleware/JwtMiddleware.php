@@ -19,6 +19,7 @@ class JwtMiddleware
         $user = session('user');
 
         if (!$token || !$user) {
+            session(['url.intended' => $request->url()]);
             return redirect()->route('login');
         }
 

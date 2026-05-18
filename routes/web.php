@@ -23,6 +23,7 @@ use App\Livewire\Status\Pending;
 use App\Livewire\Views\DocumentDetail;
 use App\Livewire\Views\IncomingDetail;
 use App\Livewire\Views\PendingDetail;
+use App\Livewire\Views\QrReceive;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -64,6 +65,7 @@ Route::middleware(['jwt.auth'])->group(function () {
     Route::get('/document/view/{control_no}', DocumentDetail::class);
     Route::get('/document/incoming/{control_no}', IncomingDetail::class);
     Route::get('/document/pending/{control_no}', PendingDetail::class);
+    Route::get('/document/qr-receive/{control_no}', QrReceive::class)->name('document.qr-receive');
 
     /** Reports */
     Route::get('/report-status-of-documents', DocumentStatus::class);

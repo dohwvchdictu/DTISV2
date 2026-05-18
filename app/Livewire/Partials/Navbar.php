@@ -68,7 +68,7 @@ class Navbar extends Component
         }
 
         // Define the API endpoint - fix the URL construction
-        $apiEndpoint = 'http://192.168.100.162:8081/employee/image/' . urlencode($this->photoUrl);
+        $apiEndpoint = config('services.api.base_url') . 'employee/image/' . urlencode($this->photoUrl);
 
         try {
             // Make the request with timeout

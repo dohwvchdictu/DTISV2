@@ -43,7 +43,7 @@ class Logbook extends Component
     public function loadOffices()
     {
         try {
-            $response = Http::get('http://192.168.100.162:8081/public/get-offices');
+            $response = Http::get(config('services.api.base_url') . 'public/get-offices');
             
             if ($response->ok()) {
                 $data = $response->json();

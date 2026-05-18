@@ -97,13 +97,13 @@ class PendingDetail extends Component
         $this->control_no = $this->document->control_no;
         $this->type = $this->document->category->name;
 
-        $this->responseEmployees = Http::get('http://192.168.100.162:8081/public/get-employees')->json();
+        $this->responseEmployees = Http::get(config('services.api.base_url') . 'public/get-employees')->json();
         $this->employees = collect($this->responseEmployees['employeesList'])
             ->sortBy('lastName')
             ->values()
             ->all();
 
-        $this->responseOffices = Http::get('http://192.168.100.162:8081/public/get-offices')->json();
+        $this->responseOffices = Http::get(config('services.api.base_url') . 'public/get-offices')->json();
         $this->offices = collect($this->responseOffices['officeList'])
             ->sortBy('officeName')
             ->values()

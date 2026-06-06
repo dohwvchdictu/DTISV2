@@ -1,8 +1,8 @@
 <!-- Hero -->
 <div class="relative bg-cover bg-center h-screen" style="background-image: url('/img/dohfacadev3.jpg')">
-    <div class="max-w-[85rem] px-4 pt-36 sm:px-6 lg:px-8 mx-auto">
+    <div class="max-w-[85rem] px-4 pt-10 md:pt-20 lg:pt-36 sm:px-6 lg:px-8 mx-auto">
         <!-- Grid -->
-        <div class="grid items-center md:grid-cols-2 gap-8 lg:gap-12">
+        <div class="grid items-center lg:grid-cols-2 gap-8 lg:gap-12">
             <div>
                 <svg class="w-80 h-auto" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
                     width="150" zoomAndPan="magnify" viewBox="0 0 112.5 30.000001" height="40"
@@ -96,7 +96,7 @@
 
             <div>
                 <div
-                    class="w-[28rem] mt-7 bg-white border border-gray-200 rounded-xl shadow-lg dark:bg-neutral-900 dark:border-neutral-700 mx-auto">
+                    class="w-full sm:w-[28rem] mt-7 bg-white border border-gray-200 rounded-xl shadow-lg dark:bg-neutral-900 dark:border-neutral-700 mx-auto">
                     <div class="p-4 sm:p-7">
                         <div class="text-center">
                             <h1 class="block text-2xl font-bold text-gray-800 dark:text-white">Login Account</h1>
@@ -108,10 +108,10 @@
                                 <div class="grid gap-y-4">
                                     <!-- Form Group -->
                                     <div>
-                                        <label for="email" class="block text-sm mb-2 dark:text-white">Username</label>
+                                        <label for="email"
+                                            class="block text-sm mb-2 dark:text-white">Username</label>
                                         <div class="relative">
-                                            <input type="email" id="email" wire:model="email"
-                                                autocomplete="off"
+                                            <input type="email" id="email" wire:model="email" autocomplete="off"
                                                 class="py-3 px-4 block w-full bg-gray-50 border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none"
                                                 required aria-describedby="email-error">
                                             <div class="hidden absolute inset-y-0 end-0 pointer-events-none pe-3">
@@ -122,9 +122,9 @@
                                                 </svg>
                                             </div>
                                         </div>
-                                        @if($errorMessage)
-                                        <p class="text-xs text-red-600 mt-2" id="email-error">{{
-                                            $errorMessage }}</p>
+                                        @if ($errorMessage)
+                                            <p class="text-xs text-red-600 mt-2" id="email-error">{{ $errorMessage }}
+                                            </p>
                                         @endif
                                     </div>
                                     <!-- End Form Group -->
@@ -137,9 +137,7 @@
                                         </div>
                                         <div class="relative">
                                             <input type="password" id="password" wire:model="password"
-                                                autocomplete="off"
-                                                readonly
-                                                onfocus="this.removeAttribute('readonly')"
+                                                autocomplete="off" readonly onfocus="this.removeAttribute('readonly')"
                                                 class="py-3 px-4 block w-full bg-gray-50 border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
                                                 required aria-describedby="password-error">
                                             <div class="hidden absolute inset-y-0 end-0 pointer-events-none pe-3">
@@ -159,8 +157,10 @@
                                         in</button>
 
                                     {{-- Modal Loading Overlay --}}
-                                    <div wire:loading class="fixed z-50 flex items-center justify-center top-1/2 start-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 py-4 max-w-full min-h-[8rem]">
-                                        <div class="bg-white rounded-xl shadow-lg  py-4 px-6 flex flex-col items-center">
+                                    <div wire:loading
+                                        class="fixed z-50 flex items-center justify-center top-1/2 start-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 py-4 max-w-full min-h-[8rem]">
+                                        <div
+                                            class="bg-white rounded-xl shadow-lg  py-4 px-6 flex flex-col items-center">
                                             <div class="flex items-center gap-4">
                                                 <div class="animate-spin inline-block size-8 border-[3px] border-current border-t-transparent text-xl text-emerald-600 rounded-full"
                                                     role="status" aria-label="loading">
@@ -187,7 +187,7 @@
 <!-- End Hero -->
 
 <script>
-    document.addEventListener('livewire:initialized', function () {
+    document.addEventListener('livewire:initialized', function() {
         const saved = localStorage.getItem('lastLoginEmail');
         if (saved) {
             const input = document.getElementById('email');
@@ -199,7 +199,7 @@
         }
     });
 
-    window.addEventListener('save-login-email', function (e) {
+    window.addEventListener('save-login-email', function(e) {
         if (e.detail && e.detail.email) {
             localStorage.setItem('lastLoginEmail', e.detail.email);
         }

@@ -1,3 +1,8 @@
+@php
+/** @var \Illuminate\Support\Collection|\Illuminate\Database\Eloquent\Collection $logs */
+/** @var \Illuminate\Database\Eloquent\Collection $docs */
+/** @var \Illuminate\Database\Eloquent\Collection $receivedLogs */
+@endphp
 <div class="w-full lg:ps-64">
     <div class="p-4 sm:p-6 space-y-4">
 

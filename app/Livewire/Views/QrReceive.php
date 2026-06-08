@@ -45,13 +45,13 @@ class QrReceive extends Component
             return;
         }
 
-        if (! in_array($doc->status, ['For Receiving', 'Returned'])) {
-            $this->state = 'already_received';
+        if ((int) $doc->assigned_to !== (int) $this->office) {
+            $this->state = 'wrong_office';
             return;
         }
 
-        if ((int) $doc->assigned_to !== (int) $this->office) {
-            $this->state = 'wrong_office';
+        if (! in_array($doc->status, ['For Receiving', 'Returned'])) {
+            $this->state = 'already_received';
             return;
         }
 

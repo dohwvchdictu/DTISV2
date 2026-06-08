@@ -26,12 +26,10 @@
             </div>
         </div>
         <hr>
-        <div class="text-center">
-            <h4>DOCUMENT TRACKING FORM</h4>
-        </div>
-        <div class="d-flex justify-content-between align-items-center mb-2 px-3">
-            <span>{!! $barcodeImg !!}</span>
-            <div class="text-center">
+        <div class="d-flex align-items-center mb-2 px-3">
+            <div style="width:110px; flex-shrink:0;"></div>
+            <h4 class="mb-0 flex-grow-1 text-center">DOCUMENT TRACKING FORM</h4>
+            <div class="text-center" style="width:110px; flex-shrink:0;">
                 {!! $qrCode !!}
                 <div style="font-size:8px; margin-top:2px; font-weight:600; letter-spacing:1px;">SCAN TO RECEIVE</div>
             </div>

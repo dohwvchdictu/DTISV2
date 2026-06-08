@@ -4,7 +4,7 @@
         <ol class="flex items-center whitespace-nowrap">
             <li class="inline-flex items-center">
                 <a class="flex items-center text-sm text-gray-500 hover:text-emerald-600 focus:outline-none focus:text-emerald-600 dark:text-neutral-500 dark:hover:text-emerald-500 dark:focus:text-emerald-500"
-                    href="/">
+                    href="{{ route('dashboard') }}">
                     Home
                 </a>
                 <svg class="shrink-0 mx-2 size-4 text-gray-400 dark:text-neutral-600" xmlns="http://www.w3.org/2000/svg"
@@ -312,7 +312,7 @@
                                         <td class="size-px whitespace-nowrap">
                                             <div class="py-2">
                                                 <a class="flex items-center gap-x-2 py-2 px-2 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700 dark:focus:text-neutral-300"
-                                                    href="{{ '/document/incoming/'. $document->control_no }}">
+                                                    href="{{ route('document.incoming', $document->control_no) }}">
                                                     <svg class="shrink-0 size-4"
                                                         xmlns="http://www.w3.org/2000/svg" width="24"
                                                         height="24" viewBox="0 0 24 24" fill="none"

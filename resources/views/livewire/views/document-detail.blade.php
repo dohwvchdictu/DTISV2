@@ -4,7 +4,7 @@
         <ol class="flex items-center whitespace-nowrap">
             <li class="inline-flex items-center">
                 <a class="flex items-center text-sm text-gray-500 hover:text-blue-600 focus:outline-none focus:text-blue-600 dark:text-neutral-500 dark:hover:text-blue-500 dark:focus:text-blue-500"
-                    href="/">
+                    href="{{ route('dashboard') }}">
                     Home
                 </a>
                 <svg class="shrink-0 mx-2 size-4 text-gray-400 dark:text-neutral-600" xmlns="http://www.w3.org/2000/svg"
@@ -133,7 +133,7 @@
                         @endif
                     </a>
                     @if($document->status == 'Forwarded' || $document->status == 'For Receiving')
-                    <a href="{{ '/print-transmittal-form/'. $document->control_no }}" target="_blank" class="py-2 px-3 inline-flex items-center gap-x-2 text-sm cursor-pointer font-medium rounded-lg border border-transparent bg-yellow-600 text-white hover:bg-yellow-700 focus:outline-none focus:bg-yellow-700 disabled:opacity-50 disabled:pointer-events-none">
+                    <a href="{{ route('print.transmittal.form', $document->control_no) }}" target="_blank" class="py-2 px-3 inline-flex items-center gap-x-2 text-sm cursor-pointer font-medium rounded-lg border border-transparent bg-yellow-600 text-white hover:bg-yellow-700 focus:outline-none focus:bg-yellow-700 disabled:opacity-50 disabled:pointer-events-none">
                         <div class="hs-tooltip inline-block">
                             <svg class="shrink-0 size-5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-printer-icon lucide-printer">
                                 <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />

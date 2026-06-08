@@ -457,7 +457,7 @@ class PendingDetail extends Component
             return redirect('/status-endorsed');
         } else {
             $this->showAlert($type = 'error', $message = 'unsuccessfully closed, enter the phrase correctly!');
-            return redirect('/document/pending/' . $this->document->control_no);
+            return redirect()->route('document.pending', $this->document->control_no);
         }
     }
     /** End of Close Document */
@@ -520,7 +520,7 @@ class PendingDetail extends Component
     #[On('closeModal')]
     public function closeModal()
     {
-        return redirect()->to('/document/pending/' . $this->document->control_no);
+        return redirect()->route('document.pending', $this->document->control_no);
     }
 
     public function showAlert($type, $message)

@@ -62,9 +62,9 @@ Route::middleware(['jwt.auth'])->group(function () {
     Route::get('/status-closed', Closed::class);
 
     /** View Document */
-    Route::get('/document/view/{control_no}', DocumentDetail::class);
-    Route::get('/document/incoming/{control_no}', IncomingDetail::class);
-    Route::get('/document/pending/{control_no}', PendingDetail::class);
+    Route::get('/document/view/{control_no}', DocumentDetail::class)->name('document.view');
+    Route::get('/document/incoming/{control_no}', IncomingDetail::class)->name('document.incoming');
+    Route::get('/document/pending/{control_no}', PendingDetail::class)->name('document.pending');
     Route::get('/document/qr-receive/{control_no}', QrReceive::class)->name('document.qr-receive');
 
     /** Reports */
@@ -78,15 +78,17 @@ Route::middleware(['jwt.auth'])->group(function () {
     Route::get('/print-external-documents-report', [MiscController::class, 'printExternalDocumentsReport'])->name('print.external.documents');
 
     /** Printing of Transmittal */
-    Route::get('/print-transmittal-form/{control_no}', [MiscController::class, 'printTransmittalForm']);
+    Route::get('/print-transmittal-form/{control_no}', [MiscController::class, 'printTransmittalForm'])->name('print.transmittal.form');
     Route::get('/inbox/generate-logbook', [MiscController::class, 'generateLogbook'])->name('inbox.generate-logbook');
 
     /** User Photo */
     Route::get('/employee/image/{filename}', [Navbar::class, 'getEmployeePhoto'])->name('employee.photo');
 
-});
+    /** Logout */
+    Route::post('/logout', function () {
+        session()->invalidate();
+        session()->regenerateToken();
+        return redirect()->route('login');
+    })->name('logout');
 
-Route::get('/logout', function () {
-    session()->forget('jwt_token');
-    return redirect()->route('login');
-})->name('logout');
+});

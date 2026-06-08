@@ -236,7 +236,7 @@ class DocumentDetail extends Component
 
         $this->dispatch('close-modal', class: '.document-modal');
         $this->showAlert($message = 'forwarded!');
-        return redirect()->to('/document/view/' . $this->document->control_no);
+        return redirect()->route('document.view', $this->document->control_no);
     }
     /** End of Forward Document */
 
@@ -346,7 +346,7 @@ class DocumentDetail extends Component
 
         $this->dispatch('close-modal', class: '.document-modal');
         $this->showAlert($message = 'added to bundle!');
-        return redirect()->to('/document/view/' . $this->document->control_no);
+        return redirect()->route('document.view', $this->document->control_no);
     }
     /** End of Add Documents */
 
@@ -391,7 +391,7 @@ class DocumentDetail extends Component
 
         $this->dispatch('close-modal', class: '.document-modal');
         $this->showAlert($message = 'removed to bundle!');
-        return redirect()->to('/document/view/' . $this->document->control_no);
+        return redirect()->route('document.view', $this->document->control_no);
     }
     /** End of Remove Attached Document */
 
@@ -444,7 +444,7 @@ class DocumentDetail extends Component
     #[On('closeModal')]
     public function closeModal()
     {
-        return redirect()->to('/document/view/' . $this->document->control_no);
+        return redirect()->route('document.view', $this->document->control_no);
     }
 
     public function showAlert($message)

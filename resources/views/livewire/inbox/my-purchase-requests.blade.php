@@ -4,7 +4,7 @@
         <ol class="flex items-center whitespace-nowrap">
             <li class="inline-flex items-center">
                 <a class="flex items-center text-sm text-gray-500 hover:text-blue-600 focus:outline-none focus:text-blue-600 dark:text-neutral-500 dark:hover:text-blue-500 dark:focus:text-blue-500"
-                    href="/">
+                    href="{{ route('dashboard') }}">
                     Home
                 </a>
                 <svg class="shrink-0 mx-2 size-4 text-gray-400 dark:text-neutral-600" xmlns="http://www.w3.org/2000/svg"
@@ -329,7 +329,7 @@
                                         <td class="size-px whitespace-nowrap">
                                             <div class="py-2 flex flex-row gap-x-2">
                                                 <a class="flex items-center gap-x-3 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700 dark:focus:text-neutral-300"
-                                                    href="{{ '/document/view/'. $document->control_no }}">
+                                                    href="{{ route('document.view', $document->control_no) }}">
                                                     <div class="hs-tooltip inline-block">
                                                         <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg"
                                                             width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -349,7 +349,7 @@
                                                 </a>
                                                 @if(in_array($document->status, ['Forwarded', 'On Process', 'For Receiving']))
                                                 <a class="flex items-center gap-x-3 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700 dark:focus:text-neutral-300"
-                                                    href="{{ '/print-transmittal-form/'. $document->control_no }}" target="_blank">
+                                                    href="{{ route('print.transmittal.form', $document->control_no) }}" target="_blank">
                                                     <div class="hs-tooltip inline-block">
                                                         <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-printer-icon lucide-printer">
                                                             <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />

@@ -3,6 +3,7 @@
 namespace App\Livewire\Partials;
 
 use App\Models\Document;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Livewire\Component;
 use Illuminate\Support\Facades\Storage;
@@ -112,6 +113,27 @@ class Navbar extends Component
                 'photo_url' => $this->photoUrl
             ]);
         }
+    }
+
+    public function getEmployeePhoto(Request $request, string $filename)
+    {
+        $filename = basename($filename);
+        $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+        $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+
+        if (!in_array($ext, $allowed)) {
+            abort(404);
+        }
+
+        $imagePath = 'photos/' . $filename;
+
+        if (!Storage::disk('public')->exists($imagePath)) {
+            abort(404);
+        }
+
+        return response(Storage::disk('public')->get($imagePath))
+            ->header('Content-Type', Storage::disk('public')->mimeType($imagePath))
+            ->header('Cache-Control', 'public, max-age=86400');
     }
 
     public function completeName()

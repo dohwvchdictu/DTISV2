@@ -23,10 +23,21 @@ class JwtMiddleware
             return redirect()->route('login');
         }
 
+        // Decode JWT payload and check expiry (no library required — payload is plain base64)
+        $parts = explode('.', $token);
+        if (count($parts) === 3) {
+            $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
+            if (isset($payload['exp']) && $payload['exp'] < time()) {
+                session()->invalidate();
+                session()->regenerateToken();
+                return redirect()->route('login')->with('error', 'Your session has expired. Please login again.');
+            }
+        }
+
         // Validate user office data
         if (!isset($user['office']['id'])) {
-            // Clear invalid session data
-            session()->forget(['jwt_token', 'user']);
+            session()->invalidate();
+            session()->regenerateToken();
             session()->flash('error', 'Invalid user session data. Please login again.');
             return redirect()->route('login');
         }

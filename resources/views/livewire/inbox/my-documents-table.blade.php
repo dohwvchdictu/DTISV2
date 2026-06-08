@@ -18,8 +18,8 @@
                         </div>
 
                         <div>
-                            <div class="inline-flex gap-x-2">
-                                <div class="sm:col-span-1">
+                            <div class="flex flex-wrap gap-2 items-center">
+                                <div class="flex-1 min-w-[150px]">
                                     <label for="search" class="sr-only">Search</label>
                                     <div class="relative">
                                         <input wire:model.blur="search" type="text" id="search" name="search"
@@ -36,7 +36,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="sm:col-span-1">
+                                <div class="min-w-[130px]">
                                     <label for="startDate" class="sr-only">Start Date</label>
                                     <div class="relative">
                                         <input type="date" wire:model.live.debounce.2500ms="startDate" name='startDate'
@@ -44,7 +44,7 @@
                                             placeholder="Select date">
                                     </div>
                                 </div>
-                                <div class="sm:col-span-1">
+                                <div class="min-w-[130px]">
                                     <label for="EndDate" class="sr-only">End Date</label>
                                     <div class="relative">
                                         <input type="date" wire:model.live.debounce.2500ms="endDate" name="endDate"
@@ -206,7 +206,7 @@
                                     </a>
                                 </th>
 
-                                <th scope="col" class="px-6 py-3 text-start">
+                                <th scope="col" class="hidden md:table-cell px-6 py-3 text-start">
                                     <a class="group inline-flex items-center gap-x-2 text-xs font-semibold uppercase text-gray-800 hover:text-gray-500 focus:outline-none focus:text-gray-500 dark:text-neutral-200 dark:hover:text-neutral-500 dark:focus:text-neutral-500"
                                         href="#">
                                         Destination
@@ -248,7 +248,7 @@
                                     </a>
                                 </th>
 
-                                <th scope="col" class="px-6 py-3 text-start">
+                                <th scope="col" class="hidden md:table-cell px-6 py-3 text-start">
                                     <a class="group inline-flex items-center gap-x-2 text-xs font-semibold uppercase text-gray-800 hover:text-gray-500 focus:outline-none focus:text-gray-500 dark:text-neutral-200 dark:hover:text-neutral-500 dark:focus:text-neutral-500"
                                         href="#">
                                         Encoded By
@@ -349,7 +349,7 @@
                                     </span>
                                 </td>
 
-                                <td class="size-px whitespace-nowrap">
+                                <td class="hidden md:table-cell size-px whitespace-nowrap">
                                     <a class="block relative z-10" href="#">
                                         <div class="px-6 py-2 flex -space-x-2 text-xs">
                                             {{ $this->filterOffice($document->assigned_to) }}
@@ -357,11 +357,11 @@
                                     </a>
                                 </td>
 
-                                <td class="h-px w-80 min-w-80 align-top">
+                                <td class="align-top max-w-xs">
                                     <span class="block p-6">
                                         <span class="block text-sm font-semibold text-gray-800 dark:text-neutral-200">{{
                                             $document->category->name }}</span>
-                                        <span class="block text-sm max-w-lg text-gray-500 dark:text-neutral-500">{{
+                                        <span class="block text-sm text-gray-500 dark:text-neutral-500 break-words">{{
                                             $document->subject }}</span>
                                         <div class="flex gap-x-1 my-2">
                                             <span
@@ -393,7 +393,7 @@
                                         </div>
                                     </span>
                                 </td>
-                                <td class="size-px whitespace-nowrap">
+                                <td class="hidden md:table-cell size-px whitespace-nowrap">
                                     <a class="block relative z-10" href="#">
                                         <div class="px-6 py-2 flex -space-x-2 text-xs">
                                             {{ $this->filterUser($document->user_id) }}

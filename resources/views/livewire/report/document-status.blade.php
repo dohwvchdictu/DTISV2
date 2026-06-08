@@ -287,8 +287,8 @@
                                     </p>
                                 </div>
                                 <div>
-                                    <div class="inline-flex gap-x-2">
-                                        <div class="sm:col-span-1">
+                                    <div class="flex flex-wrap gap-2 items-center">
+                                        <div class="min-w-[130px]">
                                             <label for="startDate" class="sr-only">Start Date</label>
                                             <div class="relative">
                                                 <input type="date" wire:model.live.debounce.2500ms="startDate"
@@ -297,7 +297,7 @@
                                                     placeholder="Select date">
                                             </div>
                                         </div>
-                                        <div class="sm:col-span-1">
+                                        <div class="min-w-[130px]">
                                             <label for="EndDate" class="sr-only">End Date</label>
                                             <div class="relative">
                                                 <input type="date" wire:model.live.debounce.2500ms="endDate"
@@ -306,7 +306,7 @@
                                                     placeholder="Select date">
                                             </div>
                                         </div>
-                                        <div class="sm:col-span-1">
+                                        <div class="min-w-[130px]">
                                             <a href="{{ route('print.document.status', ['startDate' => $startDate, 'endDate' => $endDate]) }}"
                                                 target="_blank"
                                                 class="py-2.5 px-4 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none">

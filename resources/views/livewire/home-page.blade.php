@@ -23,14 +23,14 @@
         <!-- Card Section -->
         <div class="max-w-[85rem] px-4 py-2 sm:px-6 lg:px-8 lg:py-2 mx-auto">
             <div class="flex flex-row items-center justify-end gap-1">
-                <div class="pb-4 inline-flex gap-x-2">
+                <div class="pb-4 flex flex-wrap gap-2 items-center">
                     <div class="sm:col-span-2">
                         <label for="filterDate"
                             class="inline-block text-gray-700 mt-2.5 font-semibold dark:text-neutral-200">
                             Filter by Date:
                         </label>
                     </div>
-                    <div class="sm:col-span-1">
+                    <div class="min-w-[130px]">
                         <label for="startDate" class="sr-only">Start Date</label>
                         <div class="relative">
                             <input type="date" wire:model.live.debounce.2500ms="startDate" name='startDate'
@@ -38,7 +38,7 @@
                                 placeholder="Select date">
                         </div>
                     </div>
-                    <div class="sm:col-span-1">
+                    <div class="min-w-[130px]">
                         <label for="EndDate" class="sr-only">End Date</label>
                         <div class="relative">
                             <input type="date" wire:model.live.debounce.2500ms="endDate" name="endDate"

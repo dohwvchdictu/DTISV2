@@ -49,6 +49,7 @@ class RoutingLogbook extends Component
     public function render()
     {
         $forReceivingActionId = Action::where('name', 'For Receiving')->value('id');
+        $receivedActionId     = Action::where('name', 'Received')->value('id');
 
         $logs = Log::where('office_id', $this->office)
             ->where('action_id', $forReceivingActionId)
@@ -59,14 +60,24 @@ class RoutingLogbook extends Component
             ->unique('document_id')
             ->values();
 
+        $documentIds   = $logs->pluck('document_id')->filter();
+        $assignedToMap = $logs->pluck('assigned_to', 'document_id');
+
         $docs = Document::with('category')
-            ->whereIn('id', $logs->pluck('document_id')->filter())
+            ->whereIn('id', $documentIds)
             ->get()
             ->keyBy('id');
 
+        $receivedLogs = Log::whereIn('document_id', $documentIds)
+            ->where('action_id', $receivedActionId)
+            ->get()
+            ->filter(fn($rl) => isset($assignedToMap[$rl->document_id]) && $rl->office_id == $assignedToMap[$rl->document_id])
+            ->keyBy('document_id');
+
         return view('livewire.views.routing-logbook', [
-            'logs' => $logs,
-            'docs' => $docs,
+            'logs'         => $logs,
+            'docs'         => $docs,
+            'receivedLogs' => $receivedLogs,
         ]);
     }
 }

@@ -21,6 +21,22 @@ class LoginPage extends Component
     #[Layout('components.layouts.login')]
     #[Title('DTIS | Document Tracking Information System')]
 
+    public function mount()
+    {
+        $token = session('jwt_token');
+        $user  = session('user');
+
+        if ($token && $user && isset($user['office']['id'])) {
+            $parts = explode('.', $token);
+            if (count($parts) === 3) {
+                $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
+                if (!isset($payload['exp']) || $payload['exp'] >= time()) {
+                    return redirect()->route('dashboard');
+                }
+            }
+        }
+    }
+
     public function authenticate(ApiService $apiService)
     {
         $this->validate();

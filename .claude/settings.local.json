@@ -33,7 +33,10 @@
       "PowerShell(\"done\")",
       "Bash(git -C \"c:\\\\Users\\\\DOH\\\\Herd\\\\DTISV2\" log --oneline -5)",
       "Bash(git -C \"c:\\\\Users\\\\DOH\\\\Herd\\\\DTISV2\" show HEAD:public/hot)",
-      "Bash(git -C \"c:\\\\Users\\\\DOH\\\\Herd\\\\DTISV2\" diff HEAD -- public/hot vite.config.js resources/)"
+      "Bash(git -C \"c:\\\\Users\\\\DOH\\\\Herd\\\\DTISV2\" diff HEAD -- public/hot vite.config.js resources/)",
+      "Bash(Get-Content \"C:\\\\Users\\\\DOH\\\\.config\\\\herd\\\\Log\\\\nginx-error.log\" -Tail 30)",
+      "Read(//c/Users/DOH/.config/herd/Log/**)",
+      "PowerShell(Get-Process -Name \"nginx\" -ErrorAction SilentlyContinue)"
     ],
     "additionalDirectories": [
       "C:\\Users\\DOH\\.config\\herd\\config\\nginx",

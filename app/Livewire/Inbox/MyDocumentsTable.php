@@ -212,7 +212,7 @@ class MyDocumentsTable extends Component
 
                     Document::find($attachment->id)->update([
                         'assigned_to' => $data['assignedTo'],
-                        'endosed_to' => $data['endorsedTo'],
+                        'endorsed_to' => $data['endorsedTo'],
                         'status' => 'For Receiving'
                     ]);
 

@@ -119,8 +119,8 @@
                                     @php
                                         $doc         = $docs[$log->document_id] ?? null;
                                         $status      = $doc->status ?? '—';
-                                        $received    = $status === 'On Process';
                                         $receivedLog = $receivedLogs[$log->document_id] ?? null;
+                                        $received    = $receivedLog !== null;
                                     @endphp
                                     <tr
                                         class="{{ $received ? 'bg-emerald-50 dark:bg-emerald-950/20' : 'bg-white dark:bg-neutral-900' }} transition-colors duration-500">
@@ -203,8 +203,7 @@
                         class="px-4 py-2.5 lg:px-6 lg:py-3 border-t border-gray-200 dark:border-neutral-700 flex items-center justify-between text-xs text-gray-500 dark:text-neutral-400">
                         <span>{{ $logs->count() }} document(s) forwarded</span>
                         <span>
-                            {{ $logs->filter(fn($l) => isset($docs[$l->document_id]) && $docs[$l->document_id]->status === 'On Process')->count() }}
-                            / {{ $logs->count() }} received
+                            {{ $receivedLogs->count() }} / {{ $logs->count() }} received
                         </span>
                     </div>
                 @endif

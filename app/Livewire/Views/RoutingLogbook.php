@@ -5,6 +5,7 @@ namespace App\Livewire\Views;
 use App\Models\Action;
 use App\Models\Document;
 use App\Models\Log;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -48,31 +49,29 @@ class RoutingLogbook extends Component
 
     public function render()
     {
-        $forReceivingActionId = Action::where('name', 'For Receiving')->value('id');
-        $receivedActionId     = Action::where('name', 'Received')->value('id');
+        $forReceivingActionId = Cache::rememberForever('action_id_for_receiving', fn() => Action::where('name', 'For Receiving')->value('id'));
+        $receivedActionId     = Cache::rememberForever('action_id_received', fn() => Action::where('name', 'Received')->value('id'));
 
         $logs = Log::where('office_id', $this->office)
             ->where('action_id', $forReceivingActionId)
             ->whereDate('created_at', '>=', $this->from)
             ->whereDate('created_at', '<=', $this->to)
             ->orderByDesc('created_at')
-            ->get()
-            ->unique('document_id')
-            ->values();
+            ->get();
 
-        $documentIds   = $logs->pluck('document_id')->filter();
-        $assignedToMap = $logs->pluck('assigned_to', 'document_id');
+        $documentIds = $logs->pluck('document_id')->filter()->unique();
 
         $docs = Document::with('category')
             ->whereIn('id', $documentIds)
             ->get()
             ->keyBy('id');
 
+        // Key by composite document_id + office_id so each forwarding event
+        // matches its own received log, even if a document was forwarded multiple times.
         $receivedLogs = Log::whereIn('document_id', $documentIds)
             ->where('action_id', $receivedActionId)
             ->get()
-            ->filter(fn($rl) => isset($assignedToMap[$rl->document_id]) && $rl->office_id == $assignedToMap[$rl->document_id])
-            ->keyBy('document_id');
+            ->keyBy(fn($rl) => $rl->document_id . '_' . $rl->office_id);
 
         return view('livewire.views.routing-logbook', [
             'logs'         => $logs,

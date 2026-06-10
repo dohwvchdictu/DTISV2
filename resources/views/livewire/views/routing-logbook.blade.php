@@ -119,7 +119,7 @@
                                     @php
                                         $doc         = $docs[$log->document_id] ?? null;
                                         $status      = $doc->status ?? '—';
-                                        $receivedLog = $receivedLogs[$log->document_id] ?? null;
+                                        $receivedLog = $receivedLogs[$log->document_id . '_' . $log->assigned_to] ?? null;
                                         $received    = $receivedLog !== null;
                                     @endphp
                                     <tr
@@ -203,7 +203,7 @@
                         class="px-4 py-2.5 lg:px-6 lg:py-3 border-t border-gray-200 dark:border-neutral-700 flex items-center justify-between text-xs text-gray-500 dark:text-neutral-400">
                         <span>{{ $logs->count() }} document(s) forwarded</span>
                         <span>
-                            {{ $receivedLogs->count() }} / {{ $logs->count() }} received
+                            {{ $logs->filter(fn($l) => isset($receivedLogs[$l->document_id . '_' . $l->assigned_to]))->count() }} / {{ $logs->count() }} received
                         </span>
                     </div>
                 @endif

@@ -8,6 +8,7 @@ use App\Models\Document;
 use App\Models\Log;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Jantinnerezo\LivewireAlert\LivewireAlert;
 use Livewire\Attributes\On;
@@ -178,44 +179,45 @@ class Incoming extends Component
 
         /** Loop Document item selected */
         Arr::map($this->selected_item, function ($item) {
-
-            Document::find($item)->update([
-                'assigned_to' => $this->office,
-                'status' => 'On Process'
-            ]);
-
-            $document = Document::find($item);
-            $doc_type = is_object($document) && $document->is_bundle ? 'Bundle' : 'Document';
-            $lookUpOffice = $this->lookUpOffice($document->assigned_to);
-
-            Log::create([
-                'action_id' => Action::firstWhere('name', 'Received')->id,
-                'document_id' => $document->id,
-                'user_id' => $this->user['id'],
-                'office_id' => $this->office,
-                'assigned_to' => $this->office,
-                'description' => $doc_type . " (" . $document->control_no . ") has been received and being process by " . $lookUpOffice . "."
-            ]);
-
-            /** Loop Attachments */
-            $this->attachments = Document::where('assigned_to', $this->office)->where('status', 'For Receiving')->where('bundle_id', $item)->orderBy('created_at', 'DESC')->get();
-            foreach ($this->attachments as $attachment) {
-
-                Document::find($attachment->id)->update([
+            DB::transaction(function () use ($item) {
+                Document::find($item)->update([
                     'assigned_to' => $this->office,
                     'status' => 'On Process'
                 ]);
 
+                $document = Document::find($item);
+                $doc_type = is_object($document) && $document->is_bundle ? 'Bundle' : 'Document';
+                $lookUpOffice = $this->lookUpOffice($document->assigned_to);
+
                 Log::create([
                     'action_id' => Action::firstWhere('name', 'Received')->id,
-                    'document_id' => $attachment->id,
-                    'bundle_id' => $document->id,
+                    'document_id' => $document->id,
                     'user_id' => $this->user['id'],
-                    'office_id' => $attachment->office_id,
+                    'office_id' => $this->office,
                     'assigned_to' => $this->office,
                     'description' => $doc_type . " (" . $document->control_no . ") has been received and being process by " . $lookUpOffice . "."
                 ]);
-            }
+
+                /** Loop Attachments */
+                $this->attachments = Document::where('assigned_to', $this->office)->where('status', 'For Receiving')->where('bundle_id', $item)->orderBy('created_at', 'DESC')->get();
+                foreach ($this->attachments as $attachment) {
+
+                    Document::find($attachment->id)->update([
+                        'assigned_to' => $this->office,
+                        'status' => 'On Process'
+                    ]);
+
+                    Log::create([
+                        'action_id' => Action::firstWhere('name', 'Received')->id,
+                        'document_id' => $attachment->id,
+                        'bundle_id' => $document->id,
+                        'user_id' => $this->user['id'],
+                        'office_id' => $attachment->office_id,
+                        'assigned_to' => $this->office,
+                        'description' => $doc_type . " (" . $document->control_no . ") has been received and being process by " . $lookUpOffice . "."
+                    ]);
+                }
+            });
         });
 
         $this->showAlert($message = 'received!');

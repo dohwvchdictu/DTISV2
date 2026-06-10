@@ -8,6 +8,7 @@ use App\Models\Document;
 use App\Models\Log;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Sleep;
 use Jantinnerezo\LivewireAlert\LivewireAlert;
@@ -239,63 +240,64 @@ class Pending extends Component
         if ($data['phrase'] === $data['passphrase']) {
 
             Arr::map($this->selected_item, function ($item) {
-                
-                Document::find($item)->update([
-                    'status' => 'Closed'
-                ]);
-
                 $data = $this->validate([
                     'remarks' => 'required'
                 ]);
 
-                $document = Document::find($item);
-                $doc_type = is_object($document) && $document->is_bundle ? 'Bundle' : 'Document';
-                $lookUpOffice = $this->lookUpOffice($document->assigned_to);
-
-                Log::create([
-                    'action_id' => Action::firstWhere('name', $document->status)->id,
-                    'document_id' => $document->id,
-                    'user_id' => $this->user['id'],
-                    'office_id' => $this->office,
-                    'assigned_to' => $this->office,
-                    'description' => $doc_type . " (" . $document->control_no . ") has been acted upon and closed by " . $lookUpOffice['name'],
-                    'remarks' => $data['remarks']
-                ]);
-
-                $this->attachments = Document::where('assigned_to', $this->office)->where('status', 'On Process')->where('bundle_id', $item)->orderBy('created_at', 'DESC')->get();
-
-                /** Calculate Turn Around Time */
-                $turnaroundTime = $this->calculateTurnaroundTime($document->id);
-
-                Document::find($document->id)->update([
-                    'turnaroundtime' => $turnaroundTime
-                ]);
-
-                foreach ($this->attachments as $attachment) {
-
-                    Document::find($attachment->id)->update([
+                DB::transaction(function () use ($item, $data) {
+                    Document::find($item)->update([
                         'status' => 'Closed'
                     ]);
 
-                    //Closed Log
+                    $document = Document::find($item);
+                    $doc_type = is_object($document) && $document->is_bundle ? 'Bundle' : 'Document';
+                    $lookUpOffice = $this->lookUpOffice($document->assigned_to);
+
                     Log::create([
-                        'action_id' => Action::firstWhere('name', 'Closed')->id,
-                        'document_id' => $attachment->id,
-                        'bundle_id' => $document->id,
+                        'action_id' => Action::firstWhere('name', $document->status)->id,
+                        'document_id' => $document->id,
                         'user_id' => $this->user['id'],
                         'office_id' => $this->office,
-                        'assigned_to' => $attachment->assigned_to,
-                        'description' => "Bundle (" . $document->control_no . ") has been acted upon and closed by " . $lookUpOffice['name'] . ".",
+                        'assigned_to' => $this->office,
+                        'description' => $doc_type . " (" . $document->control_no . ") has been acted upon and closed by " . $lookUpOffice['name'],
                         'remarks' => $data['remarks']
                     ]);
 
-                    /** Calculate Turn Around Time */
-                    $turnaroundTime = $this->calculateTurnaroundTime($attachment->id);
+                    $this->attachments = Document::where('assigned_to', $this->office)->where('status', 'On Process')->where('bundle_id', $item)->orderBy('created_at', 'DESC')->get();
 
-                    Document::find($attachment->id)->update([
+                    /** Calculate Turn Around Time */
+                    $turnaroundTime = $this->calculateTurnaroundTime($document->id);
+
+                    Document::find($document->id)->update([
                         'turnaroundtime' => $turnaroundTime
                     ]);
-                }
+
+                    foreach ($this->attachments as $attachment) {
+
+                        Document::find($attachment->id)->update([
+                            'status' => 'Closed'
+                        ]);
+
+                        //Closed Log
+                        Log::create([
+                            'action_id' => Action::firstWhere('name', 'Closed')->id,
+                            'document_id' => $attachment->id,
+                            'bundle_id' => $document->id,
+                            'user_id' => $this->user['id'],
+                            'office_id' => $this->office,
+                            'assigned_to' => $attachment->assigned_to,
+                            'description' => "Bundle (" . $document->control_no . ") has been acted upon and closed by " . $lookUpOffice['name'] . ".",
+                            'remarks' => $data['remarks']
+                        ]);
+
+                        /** Calculate Turn Around Time */
+                        $turnaroundTime = $this->calculateTurnaroundTime($attachment->id);
+
+                        Document::find($attachment->id)->update([
+                            'turnaroundtime' => $turnaroundTime
+                        ]);
+                    }
+                });
 
                 $this->redirect(Pending::class);
             });
@@ -388,80 +390,78 @@ class Pending extends Component
                 'remarks' => ''
             ]);
 
-            Document::find($item)->update([
-                'assigned_to' => $data['assignedTo'],
-                'endorsed_to' => $data['endorsedToOtherPersonnel'],
-                'status' => 'For Receiving'
-            ]);
-
-            $document = Document::find($item);
-            $doc_type = is_object($document) && $document->is_bundle ? 'Bundle' : 'Document';
-            $lookUpOffice = $this->lookUpOffice($document->assigned_to);
-
-            //Forwaded Log by the current office
-            Log::create([
-                'action_id' => Action::firstWhere('name', 'Forwarded')->id,
-                'document_id' => $document->id,
-                'user_id' => $this->user['id'],
-                'office_id' => $this->office,
-                'assigned_to' => $this->office,
-                'endorsed_to' => $data['endorsedToOtherPersonnel'],
-                'description' => $doc_type . " forwarded to " . $lookUpOffice['name'] . " for appropriate action.",
-                'remarks' => $data['remarks']
-            ]);
-
-            Sleep::for(2)->seconds();
-
-            // For Receiving Log for the next office
-            Log::create([
-                'action_id' => Action::firstWhere('name', 'For Receiving')->id,
-                'document_id' => $document->id,
-                'user_id' => $this->user['id'],
-                'office_id' => $this->office,
-                'assigned_to' => $data['assignedTo'],
-                'endorsed_to' => $data['endorsedToOtherPersonnel'],
-                'description' => $doc_type . " has been transferred and is to be received by " . $lookUpOffice['name'],
-                'remarks' => $data['remarks']
-            ]);
-
-            //Add log for Documents forwarded together with this bundle
-            $this->attachments = Document::where('assigned_to', $this->office)->where('status', 'On Process')->where('bundle_id', $item)->orderBy('created_at', 'DESC')->get();
-            foreach ($this->attachments as $attachment) {
-
-                Document::find($attachment->id)->update([
+            DB::transaction(function () use ($item, $data) {
+                Document::find($item)->update([
                     'assigned_to' => $data['assignedTo'],
                     'endorsed_to' => $data['endorsedToOtherPersonnel'],
                     'status' => 'For Receiving'
                 ]);
 
-                //Forward Log
+                $document = Document::find($item);
+                $doc_type = is_object($document) && $document->is_bundle ? 'Bundle' : 'Document';
+                $lookUpOffice = $this->lookUpOffice($document->assigned_to);
+
+                //Forwarded Log by the current office
                 Log::create([
                     'action_id' => Action::firstWhere('name', 'Forwarded')->id,
-                    'document_id' => $attachment->id,
-                    'bundle_id' => $document->id,
+                    'document_id' => $document->id,
                     'user_id' => $this->user['id'],
                     'office_id' => $this->office,
                     'assigned_to' => $this->office,
                     'endorsed_to' => $data['endorsedToOtherPersonnel'],
-                    'description' => "Bundle (" . $document->control_no . ") forwarded to " . $lookUpOffice['name'] . " for appropriate action.",
+                    'description' => $doc_type . " forwarded to " . $lookUpOffice['name'] . " for appropriate action.",
                     'remarks' => $data['remarks']
                 ]);
 
-                Sleep::for(2)->seconds();
-
-                // For Receiving Log
+                // For Receiving Log for the next office
                 Log::create([
                     'action_id' => Action::firstWhere('name', 'For Receiving')->id,
-                    'document_id' => $attachment->id,
-                    'bundle_id' => $document->id,
+                    'document_id' => $document->id,
                     'user_id' => $this->user['id'],
                     'office_id' => $this->office,
                     'assigned_to' => $data['assignedTo'],
                     'endorsed_to' => $data['endorsedToOtherPersonnel'],
-                    'description' => "Bundle (" . $document->control_no . ")" . " has been transferred and is to be received by " . $lookUpOffice['name'] . ".",
+                    'description' => $doc_type . " has been transferred and is to be received by " . $lookUpOffice['name'],
                     'remarks' => $data['remarks']
                 ]);
-            }
+
+                //Add log for Documents forwarded together with this bundle
+                $this->attachments = Document::where('assigned_to', $this->office)->where('status', 'On Process')->where('bundle_id', $item)->orderBy('created_at', 'DESC')->get();
+                foreach ($this->attachments as $attachment) {
+
+                    Document::find($attachment->id)->update([
+                        'assigned_to' => $data['assignedTo'],
+                        'endorsed_to' => $data['endorsedToOtherPersonnel'],
+                        'status' => 'For Receiving'
+                    ]);
+
+                    //Forward Log
+                    Log::create([
+                        'action_id' => Action::firstWhere('name', 'Forwarded')->id,
+                        'document_id' => $attachment->id,
+                        'bundle_id' => $document->id,
+                        'user_id' => $this->user['id'],
+                        'office_id' => $this->office,
+                        'assigned_to' => $this->office,
+                        'endorsed_to' => $data['endorsedToOtherPersonnel'],
+                        'description' => "Bundle (" . $document->control_no . ") forwarded to " . $lookUpOffice['name'] . " for appropriate action.",
+                        'remarks' => $data['remarks']
+                    ]);
+
+                    // For Receiving Log
+                    Log::create([
+                        'action_id' => Action::firstWhere('name', 'For Receiving')->id,
+                        'document_id' => $attachment->id,
+                        'bundle_id' => $document->id,
+                        'user_id' => $this->user['id'],
+                        'office_id' => $this->office,
+                        'assigned_to' => $data['assignedTo'],
+                        'endorsed_to' => $data['endorsedToOtherPersonnel'],
+                        'description' => "Bundle (" . $document->control_no . ")" . " has been transferred and is to be received by " . $lookUpOffice['name'] . ".",
+                        'remarks' => $data['remarks']
+                    ]);
+                }
+            });
 
             return $this->redirect(Pending::class);
         });

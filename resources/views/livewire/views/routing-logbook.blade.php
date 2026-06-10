@@ -111,6 +111,9 @@
                                         Date Received</th>
                                     <th
                                         class="px-3 py-2 lg:px-6 lg:py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide dark:text-neutral-400">
+                                        Received By</th>
+                                    <th
+                                        class="px-3 py-2 lg:px-6 lg:py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide dark:text-neutral-400">
                                         Receipt Status</th>
                                 </tr>
                             </thead>
@@ -152,6 +155,14 @@
                                                 <div class="text-xs text-gray-400 dark:text-neutral-500 mt-0.5">
                                                     {{ $receivedLog->created_at->format('h:i A') }}
                                                 </div>
+                                            @else
+                                                <span class="text-xs text-gray-400 dark:text-neutral-500">—</span>
+                                            @endif
+                                        </td>
+                                        <td
+                                            class="px-3 py-2 lg:px-6 lg:py-4 text-xs lg:text-sm text-gray-700 dark:text-neutral-300 whitespace-nowrap">
+                                            @if ($receivedLog)
+                                                {{ $this->getReceiverName($receivedLog->user_id) }}
                                             @else
                                                 <span class="text-xs text-gray-400 dark:text-neutral-500">—</span>
                                             @endif

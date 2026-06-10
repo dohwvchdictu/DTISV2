@@ -19,6 +19,7 @@ class RoutingLogbook extends Component
     public $user   = [];
     public $office;
     public $offices = [];
+    public $employees = [];
     public $from;
     public $to;
 
@@ -33,6 +34,13 @@ class RoutingLogbook extends Component
         if ($response->ok()) {
             $this->offices = $response->json()['officeList'] ?? [];
         }
+
+        $employeeResponse = Http::get(config('services.api.base_url') . 'public/get-employees');
+        if ($employeeResponse->ok()) {
+            $this->employees = collect($employeeResponse->json()['employeesList'] ?? [])
+                ->keyBy('id')
+                ->toArray();
+        }
     }
 
     public function resetDates(): void
@@ -45,6 +53,16 @@ class RoutingLogbook extends Component
     {
         $found = collect($this->offices)->firstWhere('id', $officeId);
         return $found['officeName'] ?? '—';
+    }
+
+    public function getReceiverName($userId): string
+    {
+        if (! $userId || ! isset($this->employees[$userId])) {
+            return '—';
+        }
+
+        $employee = $this->employees[$userId];
+        return trim(($employee['firstName'] ?? '') . ' ' . ($employee['lastName'] ?? '') . ' ' . ($employee['suffix'] ?? '')) ?: '—';
     }
 
     public function render()

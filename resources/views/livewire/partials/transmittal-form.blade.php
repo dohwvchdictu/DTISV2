@@ -147,19 +147,7 @@
         </div>
         <hr>
         <div class="text-center text-sm">
-            <small>Brgy. Bolong Oeste, Santa Barbara, Iloilo 5002 <svg xmlns="http://www.w3.org/2000/svg" width="24"
-                    height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-dot">
-                    <circle cx="12.1" cy="12.1" r="1" />
-                </svg> https://www.wv.doh.gov.ph <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                    stroke-linejoin="round" class="lucide lucide-dot">
-                    <circle cx="12.1" cy="12.1" r="1" />
-                </svg> records@dohwv.com <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                    stroke-linejoin="round" class="lucide lucide-dot">
-                    <circle cx="12.1" cy="12.1" r="1" />
-                </svg>(033) 500 - 1030</small>
+            <small>Brgy. Bolong Oeste, Santa Barbara, Iloilo 5002 &middot; https://www.wv.doh.gov.ph &middot; records@dohwv.com &middot; (033) 500 - 1030</small>
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"

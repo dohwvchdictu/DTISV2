@@ -9,6 +9,10 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <link rel="icon" href="{!! asset('/img/doh.ico') !!}" />
+    <style>
+        @page { size: A4 portrait; margin: 8mm 10mm; }
+        @media print { .container-fluid { padding: 0 4px; } }
+    </style>
 
 </head>
 
@@ -34,7 +38,7 @@
                 <div style="font-size:8px; margin-top:2px; font-weight:600; letter-spacing:1px;">SCAN TO RECEIVE</div>
             </div>
         </div>
-        <table class="table table-lg table-auto table-bordered mx-auto" style="border:2px">
+        <table class="table table-auto table-bordered mx-auto" style="border:2px">
             <tbody>
                 <tr>
                     <td>CONTROL NO</td>
@@ -75,8 +79,7 @@
 
             </tbody>
         </table>
-        <br>
-        <table class="table table-lg table-auto table-bordered mx-auto" style="border:2px">
+        <table class="table table-auto table-bordered mx-auto" style="border:2px">
             <thead class="text-center text-sm">
                 <tr>
                     <th rowspan="2">DATE</th>

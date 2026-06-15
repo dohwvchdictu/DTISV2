@@ -10,8 +10,16 @@
         integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <link rel="icon" href="{!! asset('/img/doh.ico') !!}" />
     <style>
-        @page { size: A4 portrait; margin: 8mm 10mm; }
-        @media print { .container-fluid { padding: 0 4px; } }
+        @page {
+            size: A4 portrait;
+            margin: 8mm 10mm;
+        }
+
+        @media print {
+            .container-fluid {
+                padding: 0 4px;
+            }
+        }
     </style>
 
 </head>
@@ -68,6 +76,10 @@
                     <th colspan="4">{{ $destination }}</th>
                 </tr>
                 <tr>
+                    <td>ACTION REQUESTED</td>
+                    <th colspan="4"></th>
+                </tr>
+                <tr>
                     <td>ENCODED BY</td>
                     <th colspan="4">{{ $user['lastName'] . ', ' . $user['firstName'] }}</th>
                 </tr>
@@ -82,9 +94,10 @@
         <table class="table table-auto table-bordered mx-auto" style="border:2px">
             <thead class="text-center text-sm">
                 <tr>
-                    <th rowspan="2">DATE</th>
+                    <th rowspan="2" style="vertical-align:middle;">DATE</th>
                     <th colspan="2">OFFICE</th>
-                    <th rowspan="2">COMMENT / REMARKS</th>
+                    <th rowspan="2" style="white-space:nowrap; width:140px; vertical-align:middle;">ACTION REQUESTED</th>
+                    <th rowspan="2" style="width:260px; vertical-align:middle;">COMMENT / REMARKS</th>
                 </tr>
                 <tr>
                     <th>FROM</th>
@@ -92,43 +105,50 @@
                 </tr>
             </thead>
             <tbody>
-                <tr style="height:60px;">
+                <tr style="height:48px;">
                     <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                </tr>
-                <tr style="height:60px;">
                     <td></td>
                     <td></td>
                     <td></td>
                     <td></td>
                 </tr>
-                <tr style="height:60px;">
+                <tr style="height:48px;">
                     <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                </tr>
-                <tr style="height:60px;">
                     <td></td>
                     <td></td>
                     <td></td>
                     <td></td>
                 </tr>
-                <tr style="height:60px;">
+                <tr style="height:48px;">
                     <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                </tr>
-                <tr style="height:60px;">
                     <td></td>
                     <td></td>
                     <td></td>
                     <td></td>
                 </tr>
-                <tr style="height:60px;">
+                <tr style="height:48px;">
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr style="height:48px;">
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr style="height:48px;">
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr style="height:48px;">
+                    <td></td>
                     <td></td>
                     <td></td>
                     <td></td>
@@ -147,7 +167,8 @@
         </div>
         <hr>
         <div class="text-center text-sm">
-            <small>Brgy. Bolong Oeste, Santa Barbara, Iloilo 5002 &middot; https://www.wv.doh.gov.ph &middot; records@dohwv.com &middot; (033) 500 - 1030</small>
+            <small>Brgy. Bolong Oeste, Santa Barbara, Iloilo 5002 &middot; https://www.wv.doh.gov.ph &middot;
+                records@dohwv.com &middot; (033) 500 - 1030</small>
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"

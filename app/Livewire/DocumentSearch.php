@@ -14,7 +14,7 @@ class DocumentSearch extends Component
     public $selectedDocument = null;
     public $showTrackingModal = false;
 
-    protected $listeners = ['clearSearch'];
+    protected $listeners = ['clearSearch', 'closeTracking'];
 
     public function updatedSearchQuery()
     {
@@ -65,6 +65,16 @@ class DocumentSearch extends Component
     }
 
     public function closeTrackingModal()
+    {
+        $this->showTrackingModal = false;
+        $this->selectedDocument = null;
+    }
+
+    /**
+     * Close only the tracking modal and return to the search modal,
+     * preserving the current search query and results.
+     */
+    public function closeTracking()
     {
         $this->showTrackingModal = false;
         $this->selectedDocument = null;

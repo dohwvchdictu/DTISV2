@@ -147,8 +147,15 @@
         if (modal && window.HSOverlay) {
             window.HSOverlay.close(modal);
         }
-        // Clear search in parent component
-        Livewire.dispatch('clearSearch');
+        // Close only the tracking modal; keep the search results so the
+        // user returns to the populated search modal underneath.
+        Livewire.dispatch('closeTracking');
+
+        // Make sure the search modal is visible again with the previous results.
+        const searchModal = document.getElementById('document-search-modal');
+        if (searchModal && window.HSOverlay) {
+            window.HSOverlay.open(searchModal);
+        }
     });
 
     // Listen for modal close/escape events
@@ -157,7 +164,7 @@
         if (modal) {
             // Triggered when modal is closed (button click, ESC, or backdrop click)
             modal.addEventListener('close.hs.overlay', function() {
-                Livewire.dispatch('clearSearch');
+                Livewire.dispatch('closeTracking');
             });
         }
     });

@@ -1,4 +1,4 @@
-<div>
+<div wire:poll.240s="refreshToken">
   <!-- ========== HEADER ========== -->
   <header
     class="sticky top-0 inset-x-0 flex flex-wrap md:justify-start md:flex-nowrap z-[48] w-full bg-emerald-600 border-b text-sm py-2 lg:ps-[260px] dark:bg-neutral-800 dark:border-neutral-700">

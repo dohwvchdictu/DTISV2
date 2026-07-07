@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\ApiService;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -28,9 +29,19 @@ class JwtMiddleware
         if (count($parts) === 3) {
             $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
             if (isset($payload['exp']) && $payload['exp'] < time()) {
-                session()->invalidate();
-                session()->regenerateToken();
-                return redirect()->route('login')->with('error', 'Your session has expired. Please login again.');
+                // Token expired — try to silently refresh it before forcing a re-login.
+                $email = session('auth_email');
+                $response = $email
+                    ? app(ApiService::class)->refreshToken(['email' => $email])
+                    : null;
+
+                if (isset($response['success']) && $response['success'] === true) {
+                    session(['jwt_token' => $response['data']['token']]);
+                } else {
+                    session()->invalidate();
+                    session()->regenerateToken();
+                    return redirect()->route('login')->with('error', 'Your session has expired. Please login again.');
+                }
             }
         }
 

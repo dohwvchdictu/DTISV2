@@ -143,6 +143,14 @@
     });
 
     $wire.on('close-tracking-modal', () => {
+        // Re-open the search modal FIRST so it is already visible underneath
+        // by the time the tracking modal finishes its close animation —
+        // this removes the visible gap/delay between the two modals.
+        const searchModal = document.getElementById('document-search-modal');
+        if (searchModal && window.HSOverlay) {
+            window.HSOverlay.open(searchModal);
+        }
+
         const modal = document.getElementById('document-tracking-modal');
         if (modal && window.HSOverlay) {
             window.HSOverlay.close(modal);
@@ -150,12 +158,6 @@
         // Close only the tracking modal; keep the search results so the
         // user returns to the populated search modal underneath.
         Livewire.dispatch('closeTracking');
-
-        // Make sure the search modal is visible again with the previous results.
-        const searchModal = document.getElementById('document-search-modal');
-        if (searchModal && window.HSOverlay) {
-            window.HSOverlay.open(searchModal);
-        }
     });
 
     // Listen for modal close/escape events

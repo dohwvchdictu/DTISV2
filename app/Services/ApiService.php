@@ -88,21 +88,27 @@ class ApiService
     public function refreshToken(array $credentials)
     {
         try {
-            $response = Http::post(config('services.api.base_url') . '/refresh-token', $credentials);
-            
-            if ($response->successful() && $response->json('token')) {
+            $response = $this->client->post('auth/refresh-token', [
+                'json' => $credentials,
+            ]);
+
+            $body = json_decode($response->getBody()->getContents(), true);
+
+            if ($response->getStatusCode() === 200 && isset($body['token'])) {
                 return [
                     'success' => true,
-                    'data' => $response->json(),
+                    'data' => $body,
                 ];
             }
-            
+
             return [
                 'success' => false,
                 'error' => 'token_refresh_failed',
                 'message' => 'Unable to refresh authentication token.',
             ];
         } catch (\Exception $e) {
+            \Log::warning('Token refresh failed', ['message' => $e->getMessage()]);
+
             return [
                 'success' => false,
                 'error' => 'token_refresh_error',

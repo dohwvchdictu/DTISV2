@@ -3,6 +3,7 @@
 namespace App\Livewire\Partials;
 
 use App\Models\Document;
+use App\Services\ApiService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Livewire\Component;
@@ -134,6 +135,26 @@ class Navbar extends Component
         return response(Storage::disk('public')->get($imagePath))
             ->header('Content-Type', Storage::disk('public')->mimeType($imagePath))
             ->header('Cache-Control', 'public, max-age=86400');
+    }
+
+    /**
+     * Called by wire:poll every 4 minutes — the API issues a new token
+     * every 5 minutes, so we refresh just before the current one expires.
+     */
+    public function refreshToken(ApiService $apiService)
+    {
+        $email = session('auth_email') ?? ($this->user['email'] ?? null);
+        if (!$email) {
+            return;
+        }
+
+        $response = $apiService->refreshToken(['email' => $email]);
+
+        if (isset($response['success']) && $response['success'] === true) {
+            session(['jwt_token' => $response['data']['token']]);
+        }
+        // Silent failure — JwtMiddleware retries the refresh on the next
+        // request and redirects to login only if that also fails.
     }
 
     public function completeName()

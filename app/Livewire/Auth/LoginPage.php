@@ -59,7 +59,8 @@ class LoginPage extends Component
             $data = $response['data'];
             session([
                 'jwt_token' => $data['token'],
-                'user' => $data['employee']
+                'user' => $data['employee'],
+                'auth_email' => $this->email,
             ]);
             $this->dispatch('save-login-email', email: $this->email);
             $intended = session()->pull('url.intended', route('dashboard'));
@@ -91,28 +92,8 @@ class LoginPage extends Component
         }
     }
 
-    /**
-     * Poll for a new JWT token every 4 minutes (240 seconds)
-     */
-    public function refreshToken(ApiService $apiService)
-    {
-        $user = session('user');
-        if (!$user) {
-            return;
-        }
-        
-        $response = $apiService->refreshToken(['email' => $user['email']]);
-        
-        if (isset($response['success']) && $response['success'] === true) {
-            session(['jwt_token' => $response['data']['token']]);
-        }
-        // Silent failure for token refresh - user will be redirected to login when token expires
-    }
-
     public function render()
     {
-        // Livewire polling: call refreshToken every 240 seconds (4 minutes)
-        $this->dispatch('start-token-refresh');
         return view('livewire.auth.login-page');
     }
 }

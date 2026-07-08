@@ -21,19 +21,13 @@ class LoginPage extends Component
     #[Layout('components.layouts.login')]
     #[Title('DTIS | Document Tracking Information System')]
 
-    public function mount()
+    public function mount(ApiService $apiService)
     {
         $token = session('jwt_token');
         $user  = session('user');
 
-        if ($token && $user && isset($user['office']['id'])) {
-            $parts = explode('.', $token);
-            if (count($parts) === 3) {
-                $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
-                if (!isset($payload['exp']) || $payload['exp'] >= time()) {
-                    return redirect()->route('dashboard');
-                }
-            }
+        if ($token && $user && isset($user['office']['id']) && $apiService->ensureTokenIsFresh()) {
+            return redirect()->route('dashboard');
         }
     }
 
@@ -61,6 +55,12 @@ class LoginPage extends Component
                 'jwt_token' => $data['token'],
                 'user' => $data['employee'],
                 'auth_email' => $this->email,
+                'token_created_at' => time(),
+                // Kept for silent re-login when the 5-minute token ages out
+                // (the API has no working refresh endpoint). Requires
+                // SESSION_ENCRYPT=true so the password never sits on disk
+                // in plain text.
+                'login_credentials' => $credentials,
             ]);
             $this->dispatch('save-login-email', email: $this->email);
             $intended = session()->pull('url.intended', route('dashboard'));

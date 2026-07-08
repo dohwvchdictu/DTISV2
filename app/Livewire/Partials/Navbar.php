@@ -42,7 +42,8 @@ class Navbar extends Component
 
     private function fetchAndStorePhoto()
     {
-        // Get JWT token
+        // Get a fresh JWT token before calling the API
+        app(ApiService::class)->ensureTokenIsFresh();
         $this->jwtToken = session('jwt_token');
 
     // Extract filename from photoUrl - handle both full URLs and just filenames
@@ -138,23 +139,15 @@ class Navbar extends Component
     }
 
     /**
-     * Called by wire:poll every 4 minutes — the API issues a new token
-     * every 5 minutes, so we refresh just before the current one expires.
+     * Called by wire:poll every 4 minutes as a belt-and-braces top-up while
+     * a tab stays open; ApiService::ensureTokenIsFresh() before each API
+     * call and JwtMiddleware on navigation are the real safety nets.
      */
     public function refreshToken(ApiService $apiService)
     {
-        $email = session('auth_email') ?? ($this->user['email'] ?? null);
-        if (!$email) {
-            return;
-        }
-
-        $response = $apiService->refreshToken(['email' => $email]);
-
-        if (isset($response['success']) && $response['success'] === true) {
-            session(['jwt_token' => $response['data']['token']]);
-        }
-        // Silent failure — JwtMiddleware retries the refresh on the next
-        // request and redirects to login only if that also fails.
+        $apiService->ensureTokenIsFresh();
+        // Silent failure — JwtMiddleware retries on the next request and
+        // redirects to login only once the token is truly expired.
     }
 
     public function completeName()

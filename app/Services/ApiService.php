@@ -8,9 +8,12 @@ use Illuminate\Support\Facades\Http;
 class ApiService
 {
     protected $client;
+    protected $refreshThreshold;
 
     public function __construct()
     {
+        $this->refreshThreshold = config('services.api.refresh_threshold', 240);
+
         $this->client = new Client([
             'base_uri' => config('services.api.base_url'),
             'timeout'  => 10.0,
@@ -85,35 +88,49 @@ class ApiService
         }
     }
 
-    public function refreshToken(array $credentials)
+    /**
+     * Make sure the session JWT is younger than the refresh threshold,
+     * silently re-authenticating with the stored credentials when it isn't.
+     * Call this before any request that sends the Bearer token.
+     */
+    public function ensureTokenIsFresh(): bool
     {
-        try {
-            $response = $this->client->post('auth/refresh-token', [
-                'json' => $credentials,
-            ]);
+        $token = session('jwt_token');
+        $tokenAge = time() - session('token_created_at', 0);
 
-            $body = json_decode($response->getBody()->getContents(), true);
-
-            if ($response->getStatusCode() === 200 && isset($body['token'])) {
-                return [
-                    'success' => true,
-                    'data' => $body,
-                ];
-            }
-
-            return [
-                'success' => false,
-                'error' => 'token_refresh_failed',
-                'message' => 'Unable to refresh authentication token.',
-            ];
-        } catch (\Exception $e) {
-            \Log::warning('Token refresh failed', ['message' => $e->getMessage()]);
-
-            return [
-                'success' => false,
-                'error' => 'token_refresh_error',
-                'message' => 'An error occurred while refreshing the token.',
-            ];
+        if ($token && $tokenAge < $this->refreshThreshold) {
+            return true;
         }
+
+        return $this->refreshWithStoredCredentials();
+    }
+
+    /**
+     * The API has no working token-refresh endpoint, so a "refresh" is a
+     * re-login with the credentials captured at sign-in.
+     */
+    protected function refreshWithStoredCredentials(): bool
+    {
+        $credentials = session('login_credentials');
+
+        if (!$credentials || empty($credentials['email'])) {
+            return false;
+        }
+
+        $response = $this->login($credentials);
+
+        if (isset($response['success']) && $response['success'] === true) {
+            session([
+                'jwt_token' => $response['data']['token'],
+                'token_created_at' => time(),
+            ]);
+            return true;
+        }
+
+        \Log::warning('Token refresh via re-login failed', [
+            'error' => $response['error'] ?? 'unknown',
+        ]);
+
+        return false;
     }
 }

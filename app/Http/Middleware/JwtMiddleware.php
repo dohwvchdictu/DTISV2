@@ -24,24 +24,21 @@ class JwtMiddleware
             return redirect()->route('login');
         }
 
-        // Decode JWT payload and check expiry (no library required — payload is plain base64)
-        $parts = explode('.', $token);
-        if (count($parts) === 3) {
-            $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
-            if (isset($payload['exp']) && $payload['exp'] < time()) {
-                // Token expired — try to silently refresh it before forcing a re-login.
-                $email = session('auth_email');
-                $response = $email
-                    ? app(ApiService::class)->refreshToken(['email' => $email])
-                    : null;
+        $tokenTtl = config('services.api.token_ttl', 300);
+        $refreshThreshold = config('services.api.refresh_threshold', 240);
+        $tokenAge = time() - session('token_created_at', 0);
 
-                if (isset($response['success']) && $response['success'] === true) {
-                    session(['jwt_token' => $response['data']['token']]);
-                } else {
-                    session()->invalidate();
-                    session()->regenerateToken();
-                    return redirect()->route('login')->with('error', 'Your session has expired. Please login again.');
-                }
+        if ($tokenAge >= $refreshThreshold) {
+            $refreshed = app(ApiService::class)->ensureTokenIsFresh();
+
+            // A failed refresh is only fatal once the token is truly past its
+            // lifetime — a proactive refresh that hits an API blip while the
+            // token is still valid should not log the user out.
+            if (!$refreshed && $tokenAge >= $tokenTtl) {
+                session(['url.intended' => $request->url()]);
+                session()->invalidate();
+                session()->regenerateToken();
+                return redirect()->route('login')->with('error', 'Your session has expired. Please login again.');
             }
         }
 

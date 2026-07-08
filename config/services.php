@@ -33,6 +33,9 @@ return [
 
     'api' => [
         'base_url' => env('API_BASE_URL'),
+        // API-issued JWTs live for 5 minutes; refresh once they pass 4.
+        'token_ttl' => env('API_TOKEN_TTL', 300),
+        'refresh_threshold' => env('API_TOKEN_REFRESH_THRESHOLD', 240),
     ],
 
 ];

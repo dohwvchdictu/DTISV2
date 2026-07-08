@@ -81,7 +81,7 @@ class MiscController extends Controller
     {
         /** User Information */
         $user = session('user');
-        $office = $user['office']['officeName'];
+        $office = $user['office']['officeName'] ?? '';
         /** End User Information */
 
         $document = Document::where('control_no', $control_no)->first();
@@ -128,7 +128,10 @@ class MiscController extends Controller
 
         $selectedItems = [];
         if (!empty($selectedItemsParam)) {
-            $selectedItems = explode(',', $selectedItemsParam);
+            $selectedItems = array_values(array_filter(
+                array_map('intval', explode(',', $selectedItemsParam)),
+                fn($v) => $v > 0
+            ));
         }
 
         $documentsData = [];

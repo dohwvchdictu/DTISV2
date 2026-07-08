@@ -8,6 +8,7 @@ use App\Models\Document;
 use App\Models\Log;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Sleep;
 use Jantinnerezo\LivewireAlert\LivewireAlert;
@@ -168,83 +169,81 @@ class MyDocumentsTable extends Component
                 'remarks' => ''
             ]);
 
-            Document::find($item)->update([
-                'assigned_to' => $data['assignedTo'],
-                'endorsed_to' => $data['endorsedTo'],
-                'status' => 'For Receiving'
-            ]);
+            DB::transaction(function () use ($item, $data) {
+                Document::find($item)->update([
+                    'assigned_to' => $data['assignedTo'],
+                    'endorsed_to' => $data['endorsedTo'],
+                    'status' => 'For Receiving'
+                ]);
 
-            $document = Document::find($item);
-            $doc_type = is_object($document) && $document->is_bundle ? 'Bundle' : 'Document';
-            $lookUpOffice = $this->lookUpOffice($document->assigned_to);
+                $document = Document::find($item);
+                $doc_type = is_object($document) && $document->is_bundle ? 'Bundle' : 'Document';
+                $lookUpOffice = $this->lookUpOffice($document->assigned_to);
 
-            // Forward Log
-            Log::create([
-                'action_id' => Action::firstWhere('name', 'Forwarded')->id,
-                'document_id' => $document->id,
-                'user_id' => $this->user['id'],
-                'office_id' => $this->office,
-                'assigned_to' => $this->office,
-                'endorsed_to' => $data['endorsedTo'],
-                'description' => $doc_type . " forwarded to " . $lookUpOffice['name'] . " for appropriate action.",
-                'remarks' => $data['remarks']
-            ]);
+                // Forward Log
+                Log::create([
+                    'action_id' => Action::firstWhere('name', 'Forwarded')->id,
+                    'document_id' => $document->id,
+                    'user_id' => $this->user['id'],
+                    'office_id' => $this->office,
+                    'assigned_to' => $this->office,
+                    'endorsed_to' => $data['endorsedTo'],
+                    'description' => $doc_type . " forwarded to " . $lookUpOffice['name'] . " for appropriate action.",
+                    'remarks' => $data['remarks']
+                ]);
 
-            Sleep::for(2)->seconds();
+                // For Receiving Log
+                Log::create([
+                    'action_id' => Action::firstWhere('name', 'For Receiving')->id,
+                    'document_id' => $document->id,
+                    'user_id' => $this->user['id'],
+                    'office_id' => $this->office,
+                    'assigned_to' => $data['assignedTo'],
+                    'endorsed_to' => $data['endorsedTo'],
+                    'description' => $doc_type . " has been transferred and is to be received by " . $lookUpOffice['name'],
+                    'remarks' => $data['remarks']
+                ]);
 
-            // For Receiving Log
-            Log::create([
-                'action_id' => Action::firstWhere('name', 'For Receiving')->id,
-                'document_id' => $document->id,
-                'user_id' => $this->user['id'],
-                'office_id' => $this->office,
-                'assigned_to' => $data['assignedTo'],
-                'endorsed_to' => $data['endorsedTo'],
-                'description' => $doc_type . " has been transferred and is to be received by " . $lookUpOffice['name'],
-                'remarks' => $data['remarks']
-            ]);
+                //Add log for Documents forwarded together with this bundle
+                $this->attachments = Document::where('assigned_to', $this->office)->where('status', 'On Process')->where('bundle_id', $item)->orderBy('created_at', 'DESC')->get();
 
-            //Add log for Documents forwarded together with this bundle
-            $this->attachments = Document::where('assigned_to', $this->office)->where('status', 'On Process')->where('bundle_id', $item)->orderBy('created_at', 'DESC')->get();
+                if ($this->attachments) {
+                    foreach ($this->attachments as $attachment) {
 
-            if ($this->attachments) {
-                foreach ($this->attachments as $attachment) {
+                        Document::find($attachment->id)->update([
+                            'assigned_to' => $data['assignedTo'],
+                            'endorsed_to' => $data['endorsedTo'],
+                            'status' => 'For Receiving'
+                        ]);
 
-                    Document::find($attachment->id)->update([
-                        'assigned_to' => $data['assignedTo'],
-                        'endosed_to' => $data['endorsedTo'],
-                        'status' => 'For Receiving'
-                    ]);
+                        // Forward Log
+                        Log::create([
+                            'action_id' => Action::firstWhere('name', 'Forwarded')->id,
+                            'document_id' => $attachment->id,
+                            'bundle_id' => $document->id,
+                            'user_id' => $this->user['id'],
+                            'office_id' => $this->office,
+                            'assigned_to' => $this->office,
+                            'endorsed_to' => $data['endorsedTo'],
+                            'description' => $doc_type . " forwarded to " . $lookUpOffice['name'] . " for appropriate action.",
+                            'remarks' => $data['remarks']
+                        ]);
 
-                    // Forward Log
-                    Log::create([
-                        'action_id' => Action::firstWhere('name', 'Forwarded')->id,
-                        'document_id' => $attachment->id,
-                        'bundle_id' => $document->id,
-                        'user_id' => $this->user['id'],
-                        'office_id' => $this->office,
-                        'assigned_to' => $this->office,
-                        'endorsed_to' => $data['endorsedTo'],
-                        'description' => $doc_type . " forwarded to " . $lookUpOffice['name'] . " for appropriate action.",
-                        'remarks' => $data['remarks']
-                    ]);
-
-                    Sleep::for(2)->seconds();
-
-                    // For Receiving Log
-                    Log::create([
-                        'action_id' => Action::firstWhere('name', 'For Receiving')->id,
-                        'document_id' => $attachment->id,
-                        'bundle_id' => $document->id,
-                        'user_id' => $this->user['id'],
-                        'office_id' => $this->office,
-                        'assigned_to' => $data['assignedTo'],
-                        'endorsed_to' => $data['endorsedTo'],
-                        'description' => "Bundle (" . $document->control_no . ")" . " has been transferred and is to be received by " . $lookUpOffice['name'] . ".",
-                        'remarks' => $data['remarks']
-                    ]);
+                        // For Receiving Log
+                        Log::create([
+                            'action_id' => Action::firstWhere('name', 'For Receiving')->id,
+                            'document_id' => $attachment->id,
+                            'bundle_id' => $document->id,
+                            'user_id' => $this->user['id'],
+                            'office_id' => $this->office,
+                            'assigned_to' => $data['assignedTo'],
+                            'endorsed_to' => $data['endorsedTo'],
+                            'description' => "Bundle (" . $document->control_no . ")" . " has been transferred and is to be received by " . $lookUpOffice['name'] . ".",
+                            'remarks' => $data['remarks']
+                        ]);
+                    }
                 }
-            }
+            });
 
             return $this->redirect(MyDocuments::class);
         });

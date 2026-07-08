@@ -3,6 +3,8 @@
 namespace App\Livewire\Partials;
 
 use App\Models\Document;
+use App\Services\ApiService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Livewire\Component;
 use Illuminate\Support\Facades\Storage;
@@ -40,7 +42,8 @@ class Navbar extends Component
 
     private function fetchAndStorePhoto()
     {
-        // Get JWT token
+        // Get a fresh JWT token before calling the API
+        app(ApiService::class)->ensureTokenIsFresh();
         $this->jwtToken = session('jwt_token');
 
     // Extract filename from photoUrl - handle both full URLs and just filenames
@@ -112,6 +115,39 @@ class Navbar extends Component
                 'photo_url' => $this->photoUrl
             ]);
         }
+    }
+
+    public function getEmployeePhoto(Request $request, string $filename)
+    {
+        $filename = basename($filename);
+        $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+        $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+
+        if (!in_array($ext, $allowed)) {
+            abort(404);
+        }
+
+        $imagePath = 'photos/' . $filename;
+
+        if (!Storage::disk('public')->exists($imagePath)) {
+            abort(404);
+        }
+
+        return response(Storage::disk('public')->get($imagePath))
+            ->header('Content-Type', Storage::disk('public')->mimeType($imagePath))
+            ->header('Cache-Control', 'public, max-age=86400');
+    }
+
+    /**
+     * Called by wire:poll every 4 minutes as a belt-and-braces top-up while
+     * a tab stays open; ApiService::ensureTokenIsFresh() before each API
+     * call and JwtMiddleware on navigation are the real safety nets.
+     */
+    public function refreshToken(ApiService $apiService)
+    {
+        $apiService->ensureTokenIsFresh();
+        // Silent failure — JwtMiddleware retries on the next request and
+        // redirects to login only once the token is truly expired.
     }
 
     public function completeName()

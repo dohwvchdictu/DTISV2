@@ -15,7 +15,34 @@
       "Bash(mv docs/generate-pptx.js docs/generate-pptx.cjs)",
       "Bash(node docs/generate-pptx.cjs)",
       "Bash(composer require *)",
-      "Bash(findstr /i \"api\")"
+      "Bash(findstr /i \"api\")",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":80 \")",
+      "Read(//c/Users/DOH/Herd/**)",
+      "PowerShell(Get-ChildItem \"$env:USERPROFILE\\\\.config\\\\herd\" -Recurse -ErrorAction SilentlyContinue | Select-Object FullName -First 30)",
+      "Read(//c/Users/DOH/.config/herd/config/**)",
+      "Read(//c/Users/DOH/.config/herd/bin/nginx/**)",
+      "Read(//c/Program Files/Herd/**)",
+      "PowerShell(& \"C:\\\\Program Files\\\\Herd\\\\resources\\\\app.asar.unpacked\\\\resources\\\\bin\\\\nginx\\\\nginx.exe\" -p \"C:\\\\Users\\\\DOH\\\\.config\\\\herd\\\\config\\\\nginx\" -s reload 2>&1)",
+      "PowerShell(& \"C:\\\\Program Files\\\\Herd\\\\resources\\\\app.asar.unpacked\\\\resources\\\\bin\\\\nginx\\\\nginx.exe\" -p \"C:\\\\Users\\\\DOH\\\\.config\\\\herd\\\\config\\\\nginx\" -c \"C:\\\\Users\\\\DOH\\\\.config\\\\herd\\\\config\\\\nginx\\\\nginx.conf\" -s reload 2>&1)",
+      "PowerShell(netstat -ano)",
+      "PowerShell(& \"C:\\\\Program Files\\\\Herd\\\\resources\\\\app.asar.unpacked\\\\resources\\\\bin\\\\nginx\\\\nginx.exe\" -p \"C:\\\\Users\\\\DOH\\\\.config\\\\herd\\\\config\\\\nginx\" -c \"C:\\\\Users\\\\DOH\\\\.config\\\\herd\\\\config\\\\nginx\\\\nginx.conf\" -t 2>&1)",
+      "Skill(code-review)",
+      "Skill(code-review:*)",
+      "Bash(findstr /i \"jwt firebase\")",
+      "PowerShell(\"done\")",
+      "Bash(git -C \"c:\\\\Users\\\\DOH\\\\Herd\\\\DTISV2\" log --oneline -5)",
+      "Bash(git -C \"c:\\\\Users\\\\DOH\\\\Herd\\\\DTISV2\" show HEAD:public/hot)",
+      "Bash(git -C \"c:\\\\Users\\\\DOH\\\\Herd\\\\DTISV2\" diff HEAD -- public/hot vite.config.js resources/)",
+      "Bash(Get-Content \"C:\\\\Users\\\\DOH\\\\.config\\\\herd\\\\Log\\\\nginx-error.log\" -Tail 30)",
+      "Read(//c/Users/DOH/.config/herd/Log/**)",
+      "PowerShell(Get-Process -Name \"nginx\" -ErrorAction SilentlyContinue)",
+      "Bash(php -l app/Http/Middleware/JwtMiddleware.php)",
+      "Bash(php -l app/Services/ApiService.php)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\DOH\\.config\\herd\\config\\nginx",
+      "C:\\Users\\DOH\\.config\\herd\\config\\valet\\Nginx"
     ]
   }
 }

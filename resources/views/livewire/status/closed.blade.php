@@ -4,7 +4,7 @@
         <ol class="flex items-center whitespace-nowrap">
             <li class="inline-flex items-center">
                 <a class="flex items-center text-sm text-gray-500 hover:text-blue-600 focus:outline-none focus:text-blue-600 dark:text-neutral-500 dark:hover:text-blue-500 dark:focus:text-blue-500"
-                    href="/">
+                    href="{{ route('dashboard') }}">
                     Home
                 </a>
                 <svg class="shrink-0 mx-2 size-4 text-gray-400 dark:text-neutral-600" xmlns="http://www.w3.org/2000/svg"
@@ -52,8 +52,8 @@
                                 </div>
 
                                 <div>
-                                    <div class="inline-flex gap-x-2">
-                                        <div class="sm:col-span-1">
+                                    <div class="flex flex-wrap gap-2 items-center">
+                                        <div class="flex-1 min-w-[150px]">
                                             <label for="search" class="sr-only">Search</label>
                                             <div class="relative">
                                                 <input wire:model.blur="search" type="text" id="search"
@@ -158,12 +158,12 @@
                                                     </div>
                                                 </span>
                                             </td>
-                                            <td class="h-px w-80 min-w-80 align-top">
+                                            <td class="align-top max-w-xs">
                                                 <span class="block p-6">
                                                     <span
                                                         class="block text-sm font-semibold text-gray-800 dark:text-neutral-200">{{ $document->category->name }}</span>
                                                     <span
-                                                        class="block text-sm text-gray-500 dark:text-neutral-500">{{ $document->subject }}</span>
+                                                        class="block text-sm text-gray-500 dark:text-neutral-500 break-words">{{ $document->subject }}</span>
                                                     <div class="flex gap-x-1 my-2">
                                                         <span
                                                             class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium {{ $document->source == 'internal' ? 'bg-emerald-100 text-gray-800' : 'bg-red-100 text-gray-800' }} ">

@@ -327,7 +327,7 @@ class IncomingDetail extends Component
     #[On('closeModal')]
     public function closeModal()
     {
-        return redirect()->to('/document/incoming/' . $this->document->control_no);
+        return redirect()->route('document.incoming', $this->document->control_no);
     }
 
     public function showAlert($message)

@@ -4,7 +4,7 @@
         <ol class="flex items-center whitespace-nowrap">
             <li class="inline-flex items-center">
                 <a class="flex items-center text-sm text-gray-500 hover:text-emerald-600 focus:outline-none focus:text-emerald-600 dark:text-neutral-500 dark:hover:text-emerald-500 dark:focus:text-emerald-500"
-                    href="/">
+                    href="{{ route('dashboard') }}">
                     Home
                 </a>
                 <svg class="shrink-0 mx-2 size-4 text-gray-400 dark:text-neutral-600" xmlns="http://www.w3.org/2000/svg"
@@ -51,8 +51,8 @@
                                     </p>
                                 </div>
                                 <div>
-                                    <div class="inline-flex gap-x-2">
-                                        <div class="sm:col-span-1">
+                                    <div class="flex flex-wrap gap-2 items-center">
+                                        <div class="flex-1 min-w-[150px]">
                                             <label for="search" class="sr-only">Search</label>
                                             <div class="relative">
                                                 <input wire:model.blur="search" type="text" id="search" name="search"
@@ -69,7 +69,7 @@
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="sm:col-span-1">
+                                        <div class="min-w-[130px]">
                                             <label for="startDate" class="sr-only">Start Date</label>
                                             <div class="relative">
                                                 <input type="date" wire:model.live.debounce.2500ms="startDate"
@@ -78,7 +78,7 @@
                                                     placeholder="Select date">
                                             </div>
                                         </div>
-                                        <div class="sm:col-span-1">
+                                        <div class="min-w-[130px]">
                                             <label for="EndDate" class="sr-only">End Date</label>
                                             <div class="relative">
                                                 <input type="date" wire:model.live.debounce.2500ms="endDate"
@@ -261,7 +261,7 @@
                                             </a>
                                         </th>
 
-                                        <th scope="col" class="px-6 py-3 text-start">
+                                        <th scope="col" class="hidden md:table-cell px-6 py-3 text-start">
                                             <a class="group inline-flex items-center gap-x-2 text-xs font-semibold uppercase text-gray-800 hover:text-gray-500 focus:outline-none focus:text-gray-500 dark:text-neutral-200 dark:hover:text-neutral-500 dark:focus:text-neutral-500"
                                                 href="#">
                                                 Length of Stay
@@ -275,7 +275,7 @@
                                             </a>
                                         </th>
 
-                                        <th scope="col" class="px-6 py-3 text-start">
+                                        <th scope="col" class="hidden md:table-cell px-6 py-3 text-start">
                                             <a class="group inline-flex items-center gap-x-2 text-xs font-semibold uppercase text-gray-800 hover:text-gray-500 focus:outline-none focus:text-gray-500 dark:text-neutral-200 dark:hover:text-neutral-500 dark:focus:text-neutral-500"
                                                 href="#">
                                                 Endorsed To
@@ -312,7 +312,7 @@
                                         <td class="size-px whitespace-nowrap">
                                             <div class="py-2">
                                                 <a class="flex items-center gap-x-2 py-2 px-2 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700 dark:focus:text-neutral-300"
-                                                    href="{{ '/document/incoming/'. $document->control_no }}">
+                                                    href="{{ route('document.incoming', $document->control_no) }}">
                                                     <svg class="shrink-0 size-4"
                                                         xmlns="http://www.w3.org/2000/svg" width="24"
                                                         height="24" viewBox="0 0 24 24" fill="none"
@@ -355,12 +355,12 @@
                                             </span>
                                         </td>
 
-                                        <td class="h-px w-80 min-w-80 align-top">
+                                        <td class="align-top max-w-xs">
                                             <span class="block p-6">
                                                 <span
                                                     class="block text-sm font-semibold text-gray-800 dark:text-neutral-200">{{
                                                     $document->category->name }}</span>
-                                                <span class="block text-sm text-gray-500 dark:text-neutral-500">{{
+                                                <span class="block text-sm text-gray-500 dark:text-neutral-500 break-words">{{
                                                     $document->subject }}</span>
                                                 <div class="flex gap-x-1 my-2">
                                                     <span
@@ -395,7 +395,7 @@
                                             </span>
                                         </td>
 
-                                        <td class="size-px whitespace-nowrap">
+                                        <td class="hidden md:table-cell size-px whitespace-nowrap">
                                             <span class="block relative z-10">
                                                 <div class="px-6 flex gap-x-1 text-sm">
                                                     {{
@@ -405,7 +405,7 @@
                                             </span>
                                         </td>
 
-                                        <td class="size-px whitespace-nowrap">
+                                        <td class="hidden md:table-cell size-px whitespace-nowrap">
                                             <span class="block relative z-10">
                                                 <div class="px-6 flex gap-x-1 text-sm">
                                                     {{

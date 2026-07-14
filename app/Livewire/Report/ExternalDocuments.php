@@ -2,20 +2,25 @@
 
 namespace App\Livewire\Report;
 
+use App\Models\Document;
 use Carbon\Carbon;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 class ExternalDocuments extends Component
 {
+    use WithPagination;
+
     #[Title('External Requests | Document Tracking Information System')]
 
     /** Constant Variables */
+    public $user = [];
+    public $office;
     public $offices = [];
+    public $employees = [];
     public $response;
-    public $percentage;
 
     /** Filter Date Variables */
     public $startDate;
@@ -23,6 +28,9 @@ class ExternalDocuments extends Component
 
     public function mount()
     {
+        $this->user = session('user');
+        $this->office = $this->user['office']['id'];
+
         /** Filter Records last 30 days */
         $this->startDate = Carbon::now()->subMonth(1)->format('Y-m-d');
         $this->endDate = Carbon::now()->format('Y-m-d');
@@ -48,7 +56,7 @@ class ExternalDocuments extends Component
                 'confirmButtonText' => 'OK',
                 'confirmButtonColor' => '#dc2626',
             ]);
-            
+
             return false;
         }
 
@@ -59,23 +67,133 @@ class ExternalDocuments extends Component
             ->values()
             ->all();
 
+        $employeeResponse = Http::get(config('services.api.base_url') . 'public/get-employees');
+        if ($employeeResponse->ok()) {
+            $this->employees = collect($employeeResponse->json()['employeesList'] ?? [])
+                ->keyBy('id')
+                ->toArray();
+        }
+
         return true;
     }
 
-    public function documentsPercentage($incoming, $pending, $processed)
+    public function updatedStartDate()
     {
-        $total = $incoming + $pending + $processed;
-        return $this->percentage = $processed ? ($processed / $total) * 100 : 0;
+        $this->resetPage();
+    }
+
+    public function updatedEndDate()
+    {
+        $this->resetPage();
+    }
+
+    public function getOfficeName($officeId): string
+    {
+        $found = collect($this->offices)->firstWhere('id', $officeId);
+        return $found['officeName'] ?? '—';
+    }
+
+    public function getEmployeeName($userId): string
+    {
+        if (! $userId || ! isset($this->employees[$userId])) {
+            return '—';
+        }
+
+        $employee = $this->employees[$userId];
+        return trim(($employee['firstName'] ?? '') . ' ' . ($employee['lastName'] ?? '') . ' ' . ($employee['suffix'] ?? '')) ?: '—';
+    }
+
+    /**
+     * Determine which Day column (3, 7, or 20) a document belongs to based on
+     * its citizen charter's required days, and its tracking state for the
+     * legend colors. Documents without a charter default to 20 days.
+     *
+     * Complete  = document is closed
+     * Due       = deadline is today or within the next 2 days
+     * Overdue   = past the deadline and not yet closed
+     * Pending   = still in process, deadline not yet near
+     */
+    public function trackingStatus(Document $document): array
+    {
+        $turnaround = $document->citizencharter->required_days ?? 20;
+
+        if ($turnaround <= 3) {
+            $column = 3;
+        } elseif ($turnaround <= 7) {
+            $column = 7;
+        } else {
+            $column = 20;
+        }
+
+        $dueDate = $document->created_at->copy()->startOfDay()->addDays($turnaround);
+        $today = Carbon::today();
+
+        if ($document->status === 'Closed') {
+            $state = 'complete';
+            $label = 'Complete';
+        } elseif ($dueDate->lt($today)) {
+            $state = 'overdue';
+            $label = 'Overdue';
+        } elseif ($dueDate->lte($today->copy()->addDays(2))) {
+            $state = 'due';
+            $daysLeft = $today->diffInDays($dueDate);
+            $label = $daysLeft === 0 ? 'Due today' : 'Due in ' . $daysLeft . ' ' . ($daysLeft === 1 ? 'day' : 'days');
+        } else {
+            $state = 'pending';
+            $label = 'Pending';
+        }
+
+        return [
+            'column' => $column,
+            'state' => $state,
+            'label' => $label,
+        ];
+    }
+
+    /**
+     * The first office the document was routed to after encoding.
+     */
+    public function firstDestination(Document $document): string
+    {
+        $log = $document->logs
+            ->whereNotNull('assigned_to')
+            ->sortBy('created_at')
+            ->first();
+
+        return $log ? $this->getOfficeName($log->assigned_to) : '—';
+    }
+
+    /**
+     * The office currently holding the document. Falls back to the
+     * originating office when it has not been forwarded yet.
+     */
+    public function currentLocation(Document $document): string
+    {
+        return $this->getOfficeName($document->assigned_to ?? $document->office_id);
+    }
+
+    public function latestRemarks(Document $document): string
+    {
+        $log = $document->logs
+            ->whereNotNull('remarks')
+            ->sortByDesc('created_at')
+            ->first();
+
+        return $log->remarks ?? '';
     }
 
     public function render()
     {
-        $this->offices = Arr::sort($this->offices, function (array $value) {
-            return $value['officeName'];
-        });
+        $documents = Document::with(['logs', 'citizencharter'])
+            ->where('source', 'external')
+            ->where('office_id', $this->office)
+            ->whereDate('created_at', '>=', $this->startDate)
+            ->whereDate('created_at', '<=', $this->endDate)
+            ->orderByDesc('created_at')
+            ->paginate(25);
 
         return view('livewire.report.external-documents', [
-            'offices' => $this->offices
+            'documents' => $documents
         ]);
     }
 }

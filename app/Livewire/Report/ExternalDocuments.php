@@ -2,8 +2,10 @@
 
 namespace App\Livewire\Report;
 
+use App\Models\Action;
 use App\Models\Document;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -151,11 +153,16 @@ class ExternalDocuments extends Component
     }
 
     /**
-     * The first office the document was routed to after encoding.
+     * The first office the document was routed to after encoding, taken from
+     * the earliest "For Receiving" log. The "Forwarded" log is skipped because
+     * its assigned_to points to the sending office, not the destination.
      */
     public function firstDestination(Document $document): string
     {
+        $forReceivingActionId = Cache::rememberForever('action_id_for_receiving', fn() => Action::where('name', 'For Receiving')->value('id'));
+
         $log = $document->logs
+            ->where('action_id', $forReceivingActionId)
             ->whereNotNull('assigned_to')
             ->sortBy('created_at')
             ->first();

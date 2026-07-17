@@ -48,7 +48,6 @@
                         </span>
                         Live
                     </span>
-                    <span class="text-xs text-gray-400 dark:text-neutral-500">every 3s</span>
                 </div>
             </div>
             {{-- End Card Header --}}
@@ -92,14 +91,11 @@
                             <thead class="bg-gray-50 dark:bg-neutral-800">
                                 <tr>
                                     <th
-                                        class="px-3 py-2 lg:px-6 lg:py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide dark:text-neutral-400">
+                                        class="hidden lg:table-cell px-3 py-2 lg:px-6 lg:py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide dark:text-neutral-400">
                                         #</th>
                                     <th
                                         class="px-3 py-2 lg:px-6 lg:py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide dark:text-neutral-400">
                                         Control No.</th>
-                                    <th
-                                        class="px-3 py-2 lg:px-6 lg:py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide dark:text-neutral-400">
-                                        Date Forwarded</th>
                                     <th
                                         class="px-3 py-2 lg:px-6 lg:py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide dark:text-neutral-400">
                                         Subject</th>
@@ -108,10 +104,7 @@
                                         Destination</th>
                                     <th
                                         class="px-3 py-2 lg:px-6 lg:py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide dark:text-neutral-400">
-                                        Date Received</th>
-                                    <th
-                                        class="px-3 py-2 lg:px-6 lg:py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide dark:text-neutral-400">
-                                        Received By</th>
+                                        Received</th>
                                     <th
                                         class="px-3 py-2 lg:px-6 lg:py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide dark:text-neutral-400">
                                         Receipt Status</th>
@@ -127,7 +120,7 @@
                                     @endphp
                                     <tr
                                         class="{{ $received ? 'bg-emerald-50 dark:bg-emerald-950/20' : 'bg-white dark:bg-neutral-900' }} transition-colors duration-500">
-                                        <td class="px-3 py-2 lg:px-6 lg:py-4 text-xs lg:text-sm text-gray-500 dark:text-neutral-400">
+                                        <td class="hidden lg:table-cell px-3 py-2 lg:px-6 lg:py-4 text-xs lg:text-sm text-gray-500 dark:text-neutral-400">
                                             {{ $index + 1 }}</td>
                                         <td class="px-3 py-2 lg:px-6 lg:py-4 whitespace-nowrap">
                                             <a href="/document/view/{{ $doc->control_no }}"
@@ -135,34 +128,30 @@
                                                 {{ $doc->control_no ?? '—' }}
                                             </a>
                                         </td>
-                                        <td
-                                            class="px-3 py-2 lg:px-6 lg:py-4 text-xs lg:text-sm text-gray-500 dark:text-neutral-400 whitespace-nowrap">
-                                            {{ $log->created_at->format('M d, Y') }}
-                                        </td>
                                         <td class="px-3 py-2 lg:px-6 lg:py-4 text-xs lg:text-sm text-gray-700 dark:text-neutral-300 max-w-[140px] lg:max-w-xs">
                                             <div class="font-medium text-xs text-gray-500 dark:text-neutral-400 truncate">{{ $doc->category->name ?? '—' }}</div>
                                             <div class="mt-0.5 line-clamp-2">{{ $doc->subject ?? '—' }}</div>
                                         </td>
-                                        <td
-                                            class="px-3 py-2 lg:px-6 lg:py-4 text-xs lg:text-sm text-gray-700 dark:text-neutral-300 whitespace-nowrap">
-                                            {{ $this->getOfficeName((int) $log->assigned_to) }}
+                                        <td class="px-3 py-2 lg:px-6 lg:py-4 text-xs lg:text-sm">
+                                            @php $destination = $this->getOffice((int) $log->assigned_to); @endphp
+                                            <div class="font-semibold text-gray-700 dark:text-neutral-300"
+                                                title="{{ $destination['name'] }}">
+                                                {{ $destination['code'] }}
+                                            </div>
+                                            <div class="hidden lg:block text-xs text-gray-400 dark:text-neutral-500 max-w-[12rem] break-words mt-0.5">
+                                                {{ $destination['name'] }}
+                                            </div>
                                         </td>
-                                        <td class="px-3 py-2 lg:px-6 lg:py-4 whitespace-nowrap">
+                                        <td class="px-3 py-2 lg:px-6 lg:py-4">
                                             @if ($receivedLog)
-                                                <span class="text-xs lg:text-sm text-gray-700 dark:text-neutral-300">
-                                                    {{ $receivedLog->created_at->format('M d, Y') }}
-                                                </span>
-                                                <div class="text-xs text-gray-400 dark:text-neutral-500 mt-0.5">
-                                                    {{ $receivedLog->created_at->format('h:i A') }}
+                                                <div class="text-xs lg:text-sm text-gray-700 dark:text-neutral-300 whitespace-nowrap">
+                                                    <span class="lg:hidden">{{ $receivedLog->created_at->format('M d') }}</span>
+                                                    <span class="hidden lg:inline">{{ $receivedLog->created_at->format('M d, Y') }}</span>
+                                                    <span class="text-gray-400 dark:text-neutral-500">· {{ $receivedLog->created_at->format('h:i A') }}</span>
                                                 </div>
-                                            @else
-                                                <span class="text-xs text-gray-400 dark:text-neutral-500">—</span>
-                                            @endif
-                                        </td>
-                                        <td
-                                            class="px-3 py-2 lg:px-6 lg:py-4 text-xs lg:text-sm text-gray-700 dark:text-neutral-300 whitespace-nowrap">
-                                            @if ($receivedLog)
-                                                {{ $this->getReceiverName($receivedLog->user_id) }}
+                                                <div class="text-xs text-gray-500 dark:text-neutral-400 max-w-[10rem] break-words mt-0.5">
+                                                    {{ $this->getReceiverName($receivedLog->user_id) }}
+                                                </div>
                                             @else
                                                 <span class="text-xs text-gray-400 dark:text-neutral-500">—</span>
                                             @endif

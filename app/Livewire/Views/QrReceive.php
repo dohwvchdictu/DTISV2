@@ -5,7 +5,7 @@ namespace App\Livewire\Views;
 use App\Models\Action;
 use App\Models\Document;
 use App\Models\Log;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
 use Jantinnerezo\LivewireAlert\LivewireAlert;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -78,50 +78,62 @@ class QrReceive extends Component
         // Re-validate state in case of concurrent actions
         $this->document->refresh();
 
+        if ($this->document->status === 'Closed') {
+            $this->state = 'closed';
+            return;
+        }
+
+        if ((int) $this->document->assigned_to !== (int) $this->office) {
+            $this->state = 'wrong_office';
+            return;
+        }
+
         if (! in_array($this->document->status, ['For Receiving', 'Returned'])) {
             $this->state = 'already_received';
             return;
         }
 
-        $this->document->update([
-            'assigned_to' => $this->office,
-            'status'      => 'On Process',
-        ]);
-
-        $docType = $this->document->is_bundle ? 'Bundle' : 'Document';
-
-        Log::create([
-            'action_id'   => Action::firstWhere('name', 'Received')->id,
-            'document_id' => $this->document->id,
-            'user_id'     => $this->user['id'],
-            'office_id'   => $this->office,
-            'assigned_to' => $this->office,
-            'endorsed_to' => $this->document->endorsed_to,
-            'description' => $docType . ' (' . $this->document->control_no . ') has been received via QR scan and is being processed by ' . $this->officeName . '.',
-        ]);
-
-        // Also receive any documents attached to this bundle
-        $attached = Document::where('bundle_id', $this->document->id)
-            ->whereIn('status', ['For Receiving', 'Returned'])
-            ->get();
-
-        foreach ($attached as $attachment) {
-            $attachment->update([
+        DB::transaction(function () {
+            $this->document->update([
                 'assigned_to' => $this->office,
                 'status'      => 'On Process',
             ]);
 
+            $docType = $this->document->is_bundle ? 'Bundle' : 'Document';
+
             Log::create([
                 'action_id'   => Action::firstWhere('name', 'Received')->id,
-                'document_id' => $attachment->id,
-                'bundle_id'   => $this->document->id,
+                'document_id' => $this->document->id,
                 'user_id'     => $this->user['id'],
-                'office_id'   => $attachment->office_id,
+                'office_id'   => $this->office,
                 'assigned_to' => $this->office,
                 'endorsed_to' => $this->document->endorsed_to,
                 'description' => $docType . ' (' . $this->document->control_no . ') has been received via QR scan and is being processed by ' . $this->officeName . '.',
             ]);
-        }
+
+            // Also receive any documents attached to this bundle
+            $attached = Document::where('bundle_id', $this->document->id)
+                ->whereIn('status', ['For Receiving', 'Returned'])
+                ->get();
+
+            foreach ($attached as $attachment) {
+                $attachment->update([
+                    'assigned_to' => $this->office,
+                    'status'      => 'On Process',
+                ]);
+
+                Log::create([
+                    'action_id'   => Action::firstWhere('name', 'Received')->id,
+                    'document_id' => $attachment->id,
+                    'bundle_id'   => $this->document->id,
+                    'user_id'     => $this->user['id'],
+                    'office_id'   => $this->office,
+                    'assigned_to' => $this->office,
+                    'endorsed_to' => $this->document->endorsed_to,
+                    'description' => $docType . ' (' . $this->document->control_no . ') has been received via QR scan and is being processed by ' . $this->officeName . '.',
+                ]);
+            }
+        });
 
         $this->state = 'done';
     }

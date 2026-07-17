@@ -49,10 +49,14 @@ class RoutingLogbook extends Component
         $this->to   = now()->toDateString();
     }
 
-    public function getOfficeName(int $officeId): string
+    public function getOffice(int $officeId): array
     {
         $found = collect($this->offices)->firstWhere('id', $officeId);
-        return $found['officeName'] ?? '—';
+
+        return [
+            'code' => $found['officeCode'] ?? '—',
+            'name' => $found['officeName'] ?? '—',
+        ];
     }
 
     public function getReceiverName($userId): string

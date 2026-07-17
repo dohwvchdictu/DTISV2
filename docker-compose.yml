@@ -4,7 +4,7 @@ services:
     image: dtisv2-app
     pull_policy: build
     restart: unless-stopped
-    # Not exposed to the host directly — the "proxy" service terminates
+    # Not exposed to the host directly - the "proxy" service terminates
     # HTTPS on 80/443 and forwards here over the internal network.
     env_file: .env.docker
     # Makes host.docker.internal resolve to the host on plain Linux Docker

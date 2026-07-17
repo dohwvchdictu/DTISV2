@@ -165,7 +165,7 @@ class IncomingDetail extends Component
                 'document_id' => $attachment->id,
                 'bundle_id' =>  $document->id,
                 'user_id' => $this->user['id'],
-                'office_id' => $attachment->office_id,
+                'office_id' => $this->office,
                 'assigned_to' => $this->office,
                 'endorsed_to' => $document->endorsed_to,
                 'description' =>  $doc_type . " (" . $document->control_no . ") has been received and being process by " . $lookUpOffice . "."

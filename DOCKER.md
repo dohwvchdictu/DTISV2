@@ -2,12 +2,13 @@
 
 ## Stack
 
-| Service      | Image             | Host port (default) | Purpose                              |
-|--------------|-------------------|---------------------|--------------------------------------|
-| `app`        | built from repo   | 80                  | PHP 8.3 + Apache serving the Laravel app |
-| `db`         | `mysql:8.0`       | 3307                | Application database                 |
-| `redis`      | `redis:7-alpine`  | —                   | Cache + sessions                     |
-| `phpmyadmin` | `phpmyadmin`      | 8085                | Database admin UI                    |
+| Service      | Image              | Host port (default) | Purpose                              |
+|--------------|--------------------|---------------------|--------------------------------------|
+| `proxy`      | `nginx:1.27-alpine`| 80, 443             | HTTPS termination for dtis.dohwv.net |
+| `app`        | built from repo    | — (internal only)   | PHP 8.3 + Apache serving the Laravel app |
+| `db`         | `mysql:8.0`        | 3307                | Application database                 |
+| `redis`      | `redis:7-alpine`   | —                   | Cache + sessions                     |
+| `phpmyadmin` | `phpmyadmin`       | 8085                | Database admin UI                    |
 
 The `db`, `redis`, and `phpmyadmin` images are downloaded once from Docker Hub
 and cached locally. The `app` image is **not** downloaded — it is built locally
@@ -42,7 +43,11 @@ dependencies.
    extensions, and runs `npm ci` and `composer install`. Later builds reuse
    the cache and are much faster.
 
-4. Open http://localhost (phpMyAdmin: http://localhost:8085).
+4. Place the TLS certificate for `dtis.dohwv.net` in `docker/nginx/certs/`
+   as `dtis.crt` and `dtis.key` (see **HTTPS** below).
+
+5. Open https://dtis.dohwv.net (phpMyAdmin: http://localhost:8085, only from
+   the server itself unless you expose it).
 
 On startup the app container waits for MySQL, creates the `storage` symlink,
 caches config/views, and runs `php artisan migrate --force` (disable by setting
@@ -62,6 +67,40 @@ docker compose logs -f app    # tail application logs
 docker compose exec app php artisan tinker
 docker compose up -d --build app   # rebuild after code changes
 ```
+
+## HTTPS
+
+The `proxy` (nginx) container terminates TLS for `https://dtis.dohwv.net`
+(internal DNS points the name at the server) and forwards traffic to the app
+container. It expects two files, which are **not** committed to git:
+
+```
+docker/nginx/certs/dtis.crt
+docker/nginx/certs/dtis.key
+```
+
+Preferred: use a certificate issued by your organization's CA (or a wildcard
+`*.dohwv.net` certificate) so browsers trust it automatically. If you have a
+`.pfx` file, convert it with openssl:
+
+```sh
+openssl pkcs12 -in dtis.pfx -clcerts -nokeys -out dtis.crt
+openssl pkcs12 -in dtis.pfx -nocerts -nodes -out dtis.key
+```
+
+Fallback: generate a self-signed certificate (browsers will show a warning
+unless the certificate is pushed to client machines, e.g. via GPO):
+
+```powershell
+docker run --rm -v ${PWD}/docker/nginx/certs:/certs alpine/openssl req -x509 -nodes -days 825 -newkey rsa:2048 -keyout /certs/dtis.key -out /certs/dtis.crt -subj "/CN=dtis.dohwv.net" -addext "subjectAltName=DNS:dtis.dohwv.net"
+```
+
+After changing certificates: `docker compose restart proxy`.
+
+Laravel is told to trust the proxy's `X-Forwarded-*` headers via
+`TRUSTED_PROXIES=*` in `.env.docker` (safe because the app container is not
+reachable from outside the Docker network). `SESSION_SECURE_COOKIE=true`
+ensures session cookies are HTTPS-only.
 
 ## Troubleshooting
 
@@ -85,15 +124,11 @@ docker compose up -d --build app   # rebuild after code changes
 
 ## Changing ports
 
-The host ports have defaults baked into `docker-compose.yml`
-(app `80`, MySQL `3307`, phpMyAdmin `8085`). Override them via shell
-environment variables when starting, e.g. in PowerShell:
-
-```powershell
-$env:APACHE_PORT = "8195"; docker compose up -d
-```
-
-Remember to keep `APP_URL` in `.env.docker` in sync with the app port.
+The proxy binds host ports `80` and `443`; MySQL is on `3307` and phpMyAdmin
+on `8085` (overridable via `MYSQL_PORT` / `PHPMYADMIN_PORT` shell variables).
+Ports 80/443 must be free on the server — stop IIS or any other web server
+that holds them. Keep `APP_URL` in `.env.docker` equal to the public URL
+(`https://dtis.dohwv.net`).
 
 ## Notes
 

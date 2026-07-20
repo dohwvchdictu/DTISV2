@@ -13,25 +13,23 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
 
-class PerUnit extends Component
+class TurnaroundTime extends Component
 {
     use LivewireAlert;
     use WithPagination;
 
-    #[Title('Per Unit | Document Tracking Information System')]
+    #[Title('Turnaround Time | Document Tracking Information System')]
 
     /** Constant Variables */
     public $offices = [];
     public $response;
     public $purchaseRequestCategoryIds = [];
     public $paymentCategoryIds = [];
-    public $statuses = ['Created', 'For Receiving', 'On Process', 'Returned', 'Closed'];
     public $perPage = 10;
 
     /** Filter form inputs — take effect only when Filter is clicked */
     public $officeFilter = '';
     public $source = '';
-    public $status = '';
     public $startDate;
     public $endDate;
 
@@ -57,7 +55,6 @@ class PerUnit extends Component
         $this->applied = [
             'office' => $this->officeFilter,
             'source' => $this->source,
-            'status' => $this->status,
             'startDate' => $this->startDate,
             'endDate' => $this->endDate,
         ];
@@ -95,7 +92,7 @@ class PerUnit extends Component
         return true;
     }
 
-    /** Documents matching the currently applied filters */
+    /** Documents matching the currently applied filters, any status */
     private function filteredDocuments()
     {
         return Document::query()
@@ -105,9 +102,6 @@ class PerUnit extends Component
             ->when($this->applied['source'] ?? '', function ($query, $source) {
                 $query->where('source', $source);
             })
-            ->when($this->applied['status'] ?? '', function ($query, $status) {
-                $query->where('status', $status);
-            })
             ->whereBetween('created_at', [
                 Carbon::parse($this->applied['startDate'] ?? $this->startDate),
                 Carbon::parse($this->applied['endDate'] ?? $this->endDate)->addDay(),
@@ -115,54 +109,100 @@ class PerUnit extends Component
     }
 
     /**
-     * Per-category document counts as a flat list ordered Purchase Request,
-     * then Payment, then General — highest count first within each group.
-     * Each entry carries its group so the view can put the count in the
-     * matching summary column.
+     * Closed documents only — turnaround time is computed and stored when a
+     * document is closed, so only these carry a measurable value.
      */
-    private function categoryBreakdown(): array
+    private function closedDocuments()
+    {
+        return $this->filteredDocuments()->where('status', 'Closed');
+    }
+
+    private function bucketFor($categoryId): string
+    {
+        if (in_array($categoryId, $this->purchaseRequestCategoryIds)) {
+            return 'purchase_requests';
+        }
+
+        if (in_array($categoryId, $this->paymentCategoryIds)) {
+            return 'payments';
+        }
+
+        return 'general';
+    }
+
+    /**
+     * Turnaround stats per category as a flat list ordered Purchase Request,
+     * then Payment, then General — most closed documents first within each
+     * group. AVG/MIN/MAX ignore NULL turnaround times, so documents closed
+     * before turnaround tracking existed don't distort the averages.
+     */
+    private function typeBreakdown(): array
     {
         $names = Category::pluck('name', 'id');
 
-        $buckets = ['purchase_requests' => [], 'payments' => [], 'general' => []];
-
-        $this->filteredDocuments()
+        /** Documents of any status, for the Closed vs Total context column */
+        $totals = $this->filteredDocuments()
             ->selectRaw('category_id, COUNT(*) as total')
             ->groupBy('category_id')
-            ->orderByDesc('total')
-            ->get()
-            ->each(function ($row) use ($names, &$buckets) {
-                if (in_array($row->category_id, $this->purchaseRequestCategoryIds)) {
-                    $bucket = 'purchase_requests';
-                } elseif (in_array($row->category_id, $this->paymentCategoryIds)) {
-                    $bucket = 'payments';
-                } else {
-                    $bucket = 'general';
-                }
+            ->pluck('total', 'category_id');
 
-                $buckets[$bucket][] = [
-                    'name' => $names[$row->category_id] ?? 'Uncategorized',
-                    'bucket' => $bucket,
-                    'count' => (int) $row->total,
-                ];
+        $stats = $this->closedDocuments()
+            ->selectRaw('category_id, COUNT(*) as closed')
+            ->selectRaw('AVG(turnaroundtime) as avg_tat')
+            ->selectRaw('MIN(turnaroundtime) as min_tat')
+            ->selectRaw('MAX(turnaroundtime) as max_tat')
+            ->groupBy('category_id')
+            ->get()
+            ->keyBy('category_id');
+
+        $buckets = ['purchase_requests' => [], 'payments' => [], 'general' => []];
+
+        foreach ($totals as $categoryId => $total) {
+            $stat = $stats->get($categoryId);
+            $closed = (int) ($stat->closed ?? 0);
+
+            $buckets[$this->bucketFor($categoryId)][] = [
+                'name' => $names[$categoryId] ?? 'Uncategorized',
+                'total' => (int) $total,
+                'closed' => $closed,
+                'avg' => $closed && $stat->avg_tat !== null ? round((float) $stat->avg_tat, 1) : null,
+                'min' => $closed && $stat->min_tat !== null ? (int) $stat->min_tat : null,
+                'max' => $closed && $stat->max_tat !== null ? (int) $stat->max_tat : null,
+            ];
+        }
+
+        foreach ($buckets as $bucket => $rows) {
+            usort($rows, function ($a, $b) {
+                return [$b['closed'], $b['total']] <=> [$a['closed'], $a['total']];
             });
+
+            $buckets[$bucket] = $rows;
+        }
 
         return array_merge($buckets['purchase_requests'], $buckets['payments'], $buckets['general']);
     }
 
     public function render()
     {
-        $allRows = collect($this->categoryBreakdown());
+        $allRows = collect($this->typeBreakdown());
 
-        $grouped = $allRows->groupBy('bucket');
+        /** Overall stats across every matching closed document, not just the current page */
+        $summary = $this->closedDocuments()
+            ->selectRaw('COUNT(*) as closed')
+            ->selectRaw('AVG(turnaroundtime) as avg_tat')
+            ->selectRaw('MIN(turnaroundtime) as min_tat')
+            ->selectRaw('MAX(turnaroundtime) as max_tat')
+            ->first();
 
-        /** Grand totals across every matching document, not just the current page */
+        $closed = (int) ($summary->closed ?? 0);
+
         $totals = [
-            'purchase_requests' => $grouped->get('purchase_requests', collect())->sum('count'),
-            'payments' => $grouped->get('payments', collect())->sum('count'),
-            'general' => $grouped->get('general', collect())->sum('count'),
+            'closed' => $closed,
+            'total' => $allRows->sum('total'),
+            'average' => $closed && $summary->avg_tat !== null ? round((float) $summary->avg_tat, 1) : null,
+            'fastest' => $closed && $summary->min_tat !== null ? (int) $summary->min_tat : null,
+            'slowest' => $closed && $summary->max_tat !== null ? (int) $summary->max_tat : null,
         ];
-        $totals['total'] = $totals['purchase_requests'] + $totals['payments'] + $totals['general'];
 
         $page = Paginator::resolveCurrentPage('page');
         $rows = new LengthAwarePaginator(
@@ -173,7 +213,7 @@ class PerUnit extends Component
             ['path' => Paginator::resolveCurrentPath(), 'pageName' => 'page']
         );
 
-        return view('livewire.report.per-unit', [
+        return view('livewire.report.turnaround-time', [
             'rows' => $rows,
             'totals' => $totals,
         ]);

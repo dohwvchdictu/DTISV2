@@ -705,6 +705,20 @@
                     Per Unit
                   </a>
                 </li>
+                <li>
+                  <a wire:navigate
+                    class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:bg-neutral-800 dark:text-neutral-200"
+                    href="/report-turnaround-time">
+                    <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                      viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                      stroke-linejoin="round" class="lucide lucide-timer">
+                      <line x1="10" x2="14" y1="2" y2="2" />
+                      <line x1="12" x2="15" y1="14" y2="11" />
+                      <circle cx="12" cy="14" r="8" />
+                    </svg>
+                    Turnaround Time
+                  </a>
+                </li>
               </ul>
             </div>
           </li>

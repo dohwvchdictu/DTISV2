@@ -158,7 +158,7 @@
         </div>
         {{-- End of Grand Total Cards --}}
 
-        {{-- Per Unit Table --}}
+        {{-- Documents Per Type Table --}}
         <div class="max-w-full px-2 sm:px-6 lg:px-2 mx-auto">
             <!-- Card -->
             <div class="flex flex-col">
@@ -171,7 +171,7 @@
                                 class="px-6 py-4 grid gap-3 md:flex md:justify-between md:items-center border-gray-200 dark:border-neutral-700">
                                 <div>
                                     <h2 class="text-xl font-bold text-emerald-700 dark:text-neutral-200">
-                                        Documents Per Unit
+                                        Documents Per Type
                                     </h2>
                                 </div>
                             </div>
@@ -184,25 +184,7 @@
                                         <th scope="col" class="px-6 py-3 text-start">
                                             <span
                                                 class="text-xs font-semibold uppercase text-gray-800 dark:text-neutral-200">
-                                                Unit / Office
-                                            </span>
-                                        </th>
-                                        <th scope="col" class="px-6 py-3 text-center">
-                                            <span
-                                                class="text-xs font-semibold uppercase text-sky-500 dark:text-neutral-200">
-                                                Purchase Request
-                                            </span>
-                                        </th>
-                                        <th scope="col" class="px-6 py-3 text-center">
-                                            <span
-                                                class="text-xs font-semibold uppercase text-amber-500 dark:text-neutral-200">
-                                                Payment
-                                            </span>
-                                        </th>
-                                        <th scope="col" class="px-6 py-3 text-center">
-                                            <span
-                                                class="text-xs font-semibold uppercase text-emerald-500 dark:text-neutral-200">
-                                                General
+                                                Document Type
                                             </span>
                                         </th>
                                         <th scope="col" class="px-6 py-3 text-center">
@@ -215,93 +197,23 @@
                                 </thead>
 
                                 <tbody class="divide-y divide-gray-200 dark:divide-neutral-700">
-                                    @forelse ($rows as $row)
-                                        <tr wire:key="unit-{{ $row['id'] }}"
+                                    @forelse ($rows as $index => $category)
+                                        <tr wire:key="category-{{ $index }}"
                                             class="bg-white hover:bg-gray-50 dark:bg-neutral-900 dark:hover:bg-neutral-800">
                                             <td class="size-px whitespace-nowrap">
-                                                <button type="button" wire:click="toggleUnit({{ $row['id'] }})"
-                                                    class="w-full flex items-center gap-x-2 px-6 py-4 text-start font-semibold text-emerald-900 dark:text-neutral-200 focus:outline-none">
-                                                    <svg class="shrink-0 size-4 text-gray-500 dark:text-neutral-400 transition-transform {{ in_array($row['id'], $expanded) ? 'rotate-90' : '' }}"
-                                                        xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                                                        viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                                        stroke-width="2" stroke-linecap="round"
-                                                        stroke-linejoin="round">
-                                                        <path d="m9 18 6-6-6-6" />
-                                                    </svg>
-                                                    {{ $row['name'] }}
-                                                </button>
-                                            </td>
-                                            <td class="size-px whitespace-nowrap text-center">
-                                                <div class="px-6 py-4 text-sky-600">
-                                                    {{ number_format($row['purchase_requests']) }}
+                                                <div class="px-6 py-4 font-semibold text-emerald-900 dark:text-neutral-200">
+                                                    {{ $category['name'] }}
                                                 </div>
                                             </td>
                                             <td class="size-px whitespace-nowrap text-center">
-                                                <div class="px-6 py-4 text-amber-600">
-                                                    {{ number_format($row['payments']) }}
-                                                </div>
-                                            </td>
-                                            <td class="size-px whitespace-nowrap text-center">
-                                                <div class="px-6 py-4 text-emerald-600">
-                                                    {{ number_format($row['general']) }}
-                                                </div>
-                                            </td>
-                                            <td class="size-px whitespace-nowrap text-center">
-                                                <div class="px-6 py-4 font-semibold text-gray-800 dark:text-neutral-200">
-                                                    {{ number_format($row['total']) }}
+                                                <div class="px-6 py-4 font-semibold text-gray-800 dark:text-neutral-200 tabular-nums">
+                                                    {{ number_format($category['count']) }}
                                                 </div>
                                             </td>
                                         </tr>
-
-                                        @if (in_array($row['id'], $expanded))
-                                            @forelse ($details[$row['id']] ?? [] as $index => $category)
-                                                <tr wire:key="unit-detail-{{ $row['id'] }}-{{ $index }}"
-                                                    class="bg-gray-50 dark:bg-neutral-800">
-                                                    <td class="size-px whitespace-nowrap">
-                                                        <div class="ps-12 pe-6 py-2 text-sm text-gray-600 dark:text-neutral-400">
-                                                            {{ $category['name'] }}
-                                                        </div>
-                                                    </td>
-                                                    <td class="size-px whitespace-nowrap text-center">
-                                                        @if ($category['bucket'] === 'purchase_requests')
-                                                            <div class="px-6 py-2 text-sm text-sky-600 tabular-nums">
-                                                                {{ number_format($category['count']) }}
-                                                            </div>
-                                                        @endif
-                                                    </td>
-                                                    <td class="size-px whitespace-nowrap text-center">
-                                                        @if ($category['bucket'] === 'payments')
-                                                            <div class="px-6 py-2 text-sm text-amber-600 tabular-nums">
-                                                                {{ number_format($category['count']) }}
-                                                            </div>
-                                                        @endif
-                                                    </td>
-                                                    <td class="size-px whitespace-nowrap text-center">
-                                                        @if ($category['bucket'] === 'general')
-                                                            <div class="px-6 py-2 text-sm text-emerald-600 tabular-nums">
-                                                                {{ number_format($category['count']) }}
-                                                            </div>
-                                                        @endif
-                                                    </td>
-                                                    <td class="size-px whitespace-nowrap text-center">
-                                                        <div class="px-6 py-2 text-sm font-medium text-gray-800 dark:text-neutral-200 tabular-nums">
-                                                            {{ number_format($category['count']) }}
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            @empty
-                                                <tr wire:key="unit-detail-{{ $row['id'] }}-empty"
-                                                    class="bg-gray-50 dark:bg-neutral-800">
-                                                    <td colspan="5"
-                                                        class="ps-12 pe-6 py-2 text-sm text-gray-400 dark:text-neutral-500">
-                                                        No documents
-                                                    </td>
-                                                </tr>
-                                            @endforelse
-                                        @endif
                                     @empty
                                         <tr>
-                                            <td class="text-center py-5 font-bold text-lg" colspan="5">
+                                            <td class="text-center py-5 font-bold text-lg" colspan="2">
                                                 No records found!
                                             </td>
                                         </tr>
@@ -314,7 +226,7 @@
                             {{-- Pagination --}}
                             @if ($rows->hasPages())
                                 <div class="px-6 py-4 border-t border-gray-200 dark:border-neutral-700">
-                                    {{ $rows->links() }}
+                                    {{ $rows->links('livewire.partials.pagination') }}
                                 </div>
                             @endif
                             {{-- End of Pagination --}}
@@ -323,6 +235,6 @@
                 </div>
             </div>
         </div>
-        {{-- End of Per Unit Table --}}
+        {{-- End of Documents Per Type Table --}}
     </div>
 </div>

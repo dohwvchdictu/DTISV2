@@ -38,9 +38,6 @@ class PerUnit extends Component
     /** Filters currently applied to the data */
     public $applied = [];
 
-    /** Office ids whose category breakdown is expanded */
-    public $expanded = [];
-
     public function mount()
     {
         /** Filter Records from the start of the current year to today */
@@ -65,17 +62,7 @@ class PerUnit extends Component
             'endDate' => $this->endDate,
         ];
 
-        $this->expanded = [];
         $this->resetPage();
-    }
-
-    public function toggleUnit($officeId)
-    {
-        if (in_array($officeId, $this->expanded)) {
-            $this->expanded = array_values(array_diff($this->expanded, [$officeId]));
-        } else {
-            $this->expanded[] = $officeId;
-        }
     }
 
     public function checkApiConnection()
@@ -112,6 +99,9 @@ class PerUnit extends Component
     private function filteredDocuments()
     {
         return Document::query()
+            ->when($this->applied['office'] ?? '', function ($query, $officeId) {
+                $query->where('office_id', $officeId);
+            })
             ->when($this->applied['source'] ?? '', function ($query, $source) {
                 $query->where('source', $source);
             })
@@ -125,34 +115,18 @@ class PerUnit extends Component
     }
 
     /**
-     * Conditional SUM over a set of category ids, with bindings. An empty
-     * set yields a constant 0 so the SQL stays valid.
+     * Per-category document counts as a flat list ordered Purchase Request,
+     * then Payment, then General — highest count first within each group.
+     * Each entry carries its group so the view can put the count in the
+     * matching summary column.
      */
-    private function categoryCountExpression(array $categoryIds, string $alias): array
-    {
-        if (empty($categoryIds)) {
-            return ['0 as ' . $alias, []];
-        }
-
-        $placeholders = implode(',', array_fill(0, count($categoryIds), '?'));
-
-        return ['SUM(CASE WHEN category_id IN (' . $placeholders . ') THEN 1 ELSE 0 END) as ' . $alias, $categoryIds];
-    }
-
-    /**
-     * Per-category document counts for one office as a flat list ordered
-     * Purchase Request, then Payment, then General — highest count first
-     * within each group. Each entry carries its group so the view can put
-     * the count in the matching summary column.
-     */
-    private function categoryBreakdown($officeId): array
+    private function categoryBreakdown(): array
     {
         $names = Category::pluck('name', 'id');
 
         $buckets = ['purchase_requests' => [], 'payments' => [], 'general' => []];
 
         $this->filteredDocuments()
-            ->where('office_id', $officeId)
             ->selectRaw('category_id, COUNT(*) as total')
             ->groupBy('category_id')
             ->orderByDesc('total')
@@ -178,50 +152,17 @@ class PerUnit extends Component
 
     public function render()
     {
-        [$purchaseSql, $purchaseBindings] = $this->categoryCountExpression($this->purchaseRequestCategoryIds, 'purchase_requests');
-        [$paymentSql, $paymentBindings] = $this->categoryCountExpression($this->paymentCategoryIds, 'payments');
+        $allRows = collect($this->categoryBreakdown());
 
-        /** Counts per originating office, aggregated in a single query */
-        $counts = $this->filteredDocuments()
-            ->select('office_id')
-            ->selectRaw('COUNT(*) as total')
-            ->selectRaw($purchaseSql, $purchaseBindings)
-            ->selectRaw($paymentSql, $paymentBindings)
-            ->groupBy('office_id')
-            ->get()
-            ->keyBy('office_id');
+        $grouped = $allRows->groupBy('bucket');
 
-        $allRows = collect($this->offices)
-            ->when($this->applied['office'] ?? '', function ($collection, $officeId) {
-                return $collection->filter(function ($office) use ($officeId) {
-                    return $office['id'] == $officeId;
-                });
-            })
-            ->map(function ($office) use ($counts) {
-                $count = $counts->get($office['id']);
-
-                $total = (int) ($count->total ?? 0);
-                $purchaseRequests = (int) ($count->purchase_requests ?? 0);
-                $payments = (int) ($count->payments ?? 0);
-
-                return [
-                    'id' => $office['id'],
-                    'name' => $office['officeName'] ?? '—',
-                    'purchase_requests' => $purchaseRequests,
-                    'payments' => $payments,
-                    'general' => $total - $purchaseRequests - $payments,
-                    'total' => $total,
-                ];
-            })
-            ->values();
-
-        /** Grand totals across every matching unit, not just the current page */
+        /** Grand totals across every matching document, not just the current page */
         $totals = [
-            'purchase_requests' => $allRows->sum('purchase_requests'),
-            'payments' => $allRows->sum('payments'),
-            'general' => $allRows->sum('general'),
-            'total' => $allRows->sum('total'),
+            'purchase_requests' => $grouped->get('purchase_requests', collect())->sum('count'),
+            'payments' => $grouped->get('payments', collect())->sum('count'),
+            'general' => $grouped->get('general', collect())->sum('count'),
         ];
+        $totals['total'] = $totals['purchase_requests'] + $totals['payments'] + $totals['general'];
 
         $page = Paginator::resolveCurrentPage('page');
         $rows = new LengthAwarePaginator(
@@ -232,18 +173,9 @@ class PerUnit extends Component
             ['path' => Paginator::resolveCurrentPath(), 'pageName' => 'page']
         );
 
-        /** Category breakdown only for expanded units on the current page */
-        $details = [];
-        foreach ($rows as $row) {
-            if (in_array($row['id'], $this->expanded)) {
-                $details[$row['id']] = $this->categoryBreakdown($row['id']);
-            }
-        }
-
         return view('livewire.report.per-unit', [
             'rows' => $rows,
             'totals' => $totals,
-            'details' => $details,
         ]);
     }
 }

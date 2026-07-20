@@ -16,6 +16,7 @@ use App\Livewire\Report\Employees;
 use App\Livewire\Report\ExternalDocuments;
 use App\Livewire\Report\InternalDocuments;
 use App\Livewire\Report\PerUnit;
+use App\Livewire\Report\TurnaroundTime;
 use App\Livewire\Status\Closed;
 use App\Livewire\Status\Endorsed;
 use App\Livewire\Status\Forwarded;
@@ -76,6 +77,7 @@ Route::middleware(['jwt.auth'])->group(function () {
     Route::get('/report-status-of-external-documents', ExternalDocuments::class);
     Route::get('/report-status-of-internal-documents', InternalDocuments::class);
     Route::get('/report-per-unit', PerUnit::class);
+    Route::get('/report-turnaround-time', TurnaroundTime::class);
 
     /** Printing of Report*/
     Route::get('/print-document-status-report', [MiscController::class, 'printDocumentStatusReport'])->name('print.document.status');

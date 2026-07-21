@@ -36,6 +36,13 @@ class CategoryResource extends Resource
                     ->disabled()
                     ->dehydrated()
                     ->required(),
+                Forms\Components\TextInput::make('required_days')
+                    ->label('Prescribed Timeline in Working Days')
+                    ->required()
+                    ->numeric(),
+                Forms\Components\Toggle::make('is_active')
+                    ->default(true)
+                    ->required(),
             ]);
     }
 
@@ -49,6 +56,11 @@ class CategoryResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('slug')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('required_days')
+                    ->numeric()
+                    ->sortable(),
+                Tables\Columns\IconColumn::make('is_active')
+                    ->boolean(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

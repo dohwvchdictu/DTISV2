@@ -129,6 +129,22 @@ class Incoming extends Component
         return true;
     }
 
+    /** Reset pagination whenever a filter changes so results never land on an out-of-range page */
+    public function updatedSearch()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedStartDate()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedEndDate()
+    {
+        $this->resetPage();
+    }
+
     /** Multiple Receive */
     public function updatedSelectAll($value)
     {
@@ -281,6 +297,8 @@ class Incoming extends Component
 
     public function documentTypeFilter($type)
     {
+        $this->resetPage();
+
         return $this->selectFilter = Category::where('name', 'like', '%' . $type . '%')->pluck('id')->toArray();
     }
 

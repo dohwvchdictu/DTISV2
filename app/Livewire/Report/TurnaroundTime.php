@@ -14,12 +14,11 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
 
+#[Title('Turnaround Time | Document Tracking Information System')]
 class TurnaroundTime extends Component
 {
     use LivewireAlert;
     use WithPagination;
-
-    #[Title('Turnaround Time | Document Tracking Information System')]
 
     /**
      * Action ids. A hop starts when an office receives a document and ends the

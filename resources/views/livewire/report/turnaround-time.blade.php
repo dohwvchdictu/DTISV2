@@ -88,24 +88,7 @@
 
         {{-- Overall Stat Cards --}}
         <div class="max-w-full px-2 sm:px-6 lg:px-2 mx-auto">
-            <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                <!-- Card -->
-                <div
-                    class="flex flex-col bg-white border shadow-sm rounded-xl dark:bg-neutral-900 dark:border-neutral-800">
-                    <div class="p-4 md:p-5">
-                        <p class="text-xs uppercase tracking-wide text-gray-800 dark:text-neutral-200">
-                            Closed Documents
-                        </p>
-                        <h3 class="mt-1 text-xl sm:text-2xl font-medium text-gray-800 dark:text-neutral-200 tabular-nums">
-                            {{ number_format($totals['closed']) }}
-                            <span class="text-sm text-gray-500 dark:text-neutral-400 font-normal">
-                                of {{ number_format($totals['total']) }}
-                            </span>
-                        </h3>
-                    </div>
-                </div>
-                <!-- End Card -->
-
+            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 <!-- Card -->
                 <div
                     class="flex flex-col bg-white border shadow-sm rounded-xl dark:bg-neutral-900 dark:border-neutral-800">
@@ -185,11 +168,8 @@
                                 class="px-6 py-4 grid gap-3 md:flex md:justify-between md:items-center border-gray-200 dark:border-neutral-700">
                                 <div>
                                     <h2 class="text-xl font-bold text-emerald-700 dark:text-neutral-200">
-                                        Turnaround Time Per Document Type
+                                        Turnaround Time Per Office
                                     </h2>
-                                    <p class="text-sm text-gray-600 dark:text-neutral-400">
-                                        Working days from creation to closure, weekends excluded. Closed documents only.
-                                    </p>
                                 </div>
                             </div>
                             {{-- End of Header --}}
@@ -201,80 +181,177 @@
                                         <th scope="col" class="px-6 py-3 text-start">
                                             <span
                                                 class="text-xs font-semibold uppercase text-gray-800 dark:text-neutral-200">
-                                                Document Type
+                                                Office
                                             </span>
                                         </th>
                                         <th scope="col" class="px-6 py-3 text-center">
-                                            <span
-                                                class="text-xs font-semibold uppercase text-gray-800 dark:text-neutral-200">
-                                                Closed
-                                            </span>
+                                            <button type="button" wire:click="sortBy('avg')"
+                                                class="inline-flex items-center gap-x-1 text-xs font-semibold uppercase text-sky-500 hover:text-sky-600">
+                                                Avg Dwell (Days)
+                                                @if ($sortColumn === 'avg')
+                                                    <span>{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>
+                                                @else
+                                                    <span class="text-gray-300 dark:text-neutral-600">↕</span>
+                                                @endif
+                                            </button>
                                         </th>
                                         <th scope="col" class="px-6 py-3 text-center">
-                                            <span
-                                                class="text-xs font-semibold uppercase text-gray-800 dark:text-neutral-200">
-                                                Total Docs
-                                            </span>
-                                        </th>
-                                        <th scope="col" class="px-6 py-3 text-center">
-                                            <span
-                                                class="text-xs font-semibold uppercase text-sky-500 dark:text-neutral-200">
-                                                Avg TAT (Days)
-                                            </span>
-                                        </th>
-                                        <th scope="col" class="px-6 py-3 text-center">
-                                            <span
-                                                class="text-xs font-semibold uppercase text-emerald-500 dark:text-neutral-200">
+                                            <button type="button" wire:click="sortBy('min')"
+                                                class="inline-flex items-center gap-x-1 text-xs font-semibold uppercase text-emerald-500 hover:text-emerald-600">
                                                 Min
-                                            </span>
+                                                @if ($sortColumn === 'min')
+                                                    <span>{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>
+                                                @else
+                                                    <span class="text-gray-300 dark:text-neutral-600">↕</span>
+                                                @endif
+                                            </button>
                                         </th>
                                         <th scope="col" class="px-6 py-3 text-center">
-                                            <span
-                                                class="text-xs font-semibold uppercase text-rose-500 dark:text-neutral-200">
+                                            <button type="button" wire:click="sortBy('max')"
+                                                class="inline-flex items-center gap-x-1 text-xs font-semibold uppercase text-rose-500 hover:text-rose-600">
                                                 Max
-                                            </span>
+                                                @if ($sortColumn === 'max')
+                                                    <span>{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>
+                                                @else
+                                                    <span class="text-gray-300 dark:text-neutral-600">↕</span>
+                                                @endif
+                                            </button>
                                         </th>
                                     </tr>
                                 </thead>
 
                                 <tbody class="divide-y divide-gray-200 dark:divide-neutral-700">
-                                    @forelse ($rows as $index => $category)
-                                        <tr wire:key="type-{{ $index }}"
+                                    @forelse ($rows as $index => $office)
+                                        <tr wire:key="office-{{ $office['office_id'] }}"
                                             class="bg-white hover:bg-gray-50 dark:bg-neutral-900 dark:hover:bg-neutral-800">
                                             <td class="size-px whitespace-nowrap">
-                                                <div class="px-6 py-4 font-semibold text-emerald-900 dark:text-neutral-200">
-                                                    {{ $category['name'] }}
-                                                </div>
-                                            </td>
-                                            <td class="size-px whitespace-nowrap text-center">
-                                                <div class="px-6 py-4 text-gray-800 dark:text-neutral-200 tabular-nums">
-                                                    {{ number_format($category['closed']) }}
-                                                </div>
-                                            </td>
-                                            <td class="size-px whitespace-nowrap text-center">
-                                                <div class="px-6 py-4 text-gray-600 dark:text-neutral-400 tabular-nums">
-                                                    {{ number_format($category['total']) }}
-                                                </div>
+                                                <button type="button" wire:click="toggleOffice({{ $office['office_id'] }})"
+                                                    class="w-full flex items-center gap-x-2 px-6 py-4 font-semibold text-start text-emerald-900 hover:text-emerald-600 dark:text-neutral-200 dark:hover:text-emerald-400">
+                                                    <svg class="shrink-0 size-4 text-gray-400 transition-transform duration-200 {{ $expandedOffice === $office['office_id'] ? 'rotate-90' : '' }}"
+                                                        xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                                        viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path d="m9 18 6-6-6-6" />
+                                                    </svg>
+                                                    {{ $office['name'] }}
+                                                </button>
                                             </td>
                                             <td class="size-px whitespace-nowrap text-center">
                                                 <div class="px-6 py-4 font-semibold text-sky-600 tabular-nums">
-                                                    {{ $category['avg'] !== null ? number_format($category['avg'], 1) : '—' }}
+                                                    {{ $office['avg'] !== null ? number_format($office['avg'], 1) : '—' }}
                                                 </div>
                                             </td>
                                             <td class="size-px whitespace-nowrap text-center">
                                                 <div class="px-6 py-4 text-emerald-600 tabular-nums">
-                                                    {{ $category['min'] !== null ? number_format($category['min']) : '—' }}
+                                                    {{ $office['min'] !== null ? number_format($office['min']) : '—' }}
                                                 </div>
                                             </td>
                                             <td class="size-px whitespace-nowrap text-center">
                                                 <div class="px-6 py-4 text-rose-600 tabular-nums">
-                                                    {{ $category['max'] !== null ? number_format($category['max']) : '—' }}
+                                                    {{ $office['max'] !== null ? number_format($office['max']) : '—' }}
                                                 </div>
                                             </td>
                                         </tr>
+
+                                        {{-- Expandable per-category breakdown --}}
+                                        @if ($expandedOffice === $office['office_id'])
+                                            <tr wire:key="detail-{{ $office['office_id'] }}" class="bg-gray-50 dark:bg-neutral-800/60">
+                                                <td colspan="4" class="p-0">
+                                                    <div class="px-6 py-4" wire:loading.class="opacity-50" wire:target="toggleOffice,docs">
+                                                        @if ($detail && $detail['office'] === $office['office_id'])
+                                                            <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mb-3 text-sm">
+                                                                <span class="font-semibold text-gray-800 dark:text-neutral-200">
+                                                                    {{ number_format($detail['completed']) }} completed
+                                                                    {{ Str::plural('hop', $detail['completed']) }}
+                                                                </span>
+                                                                @if ($detail['current'] > 0)
+                                                                    <span class="inline-flex items-center gap-1.5 py-0.5 px-2 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                                                                        {{ number_format($detail['current']) }} currently here
+                                                                    </span>
+                                                                @endif
+                                                            </div>
+
+                                                            @if ($detail['rows']->isEmpty())
+                                                                <p class="text-sm text-gray-500 dark:text-neutral-400">
+                                                                    No completed hops for this office.
+                                                                </p>
+                                                            @else
+                                                                <div class="overflow-x-auto border border-gray-200 rounded-lg dark:border-neutral-700">
+                                                                    <table class="min-w-full divide-y divide-gray-200 dark:divide-neutral-700">
+                                                                        <thead class="bg-white dark:bg-neutral-900">
+                                                                            <tr class="text-xs font-semibold uppercase text-gray-500 dark:text-neutral-400">
+                                                                                <th class="px-4 py-2 text-start">Document Type</th>
+                                                                                <th class="px-4 py-2 text-center">
+                                                                                    <button type="button" wire:click="sortDetailBy('avg')"
+                                                                                        class="inline-flex items-center gap-x-1 uppercase text-sky-500 hover:text-sky-600">
+                                                                                        Avg Dwell (Days)
+                                                                                        @if ($detailSortColumn === 'avg')
+                                                                                            <span>{{ $detailSortDirection === 'asc' ? '↑' : '↓' }}</span>
+                                                                                        @else
+                                                                                            <span class="text-gray-300 dark:text-neutral-600">↕</span>
+                                                                                        @endif
+                                                                                    </button>
+                                                                                </th>
+                                                                                <th class="px-4 py-2 text-center">
+                                                                                    <button type="button" wire:click="sortDetailBy('min')"
+                                                                                        class="inline-flex items-center gap-x-1 uppercase text-emerald-500 hover:text-emerald-600">
+                                                                                        Min
+                                                                                        @if ($detailSortColumn === 'min')
+                                                                                            <span>{{ $detailSortDirection === 'asc' ? '↑' : '↓' }}</span>
+                                                                                        @else
+                                                                                            <span class="text-gray-300 dark:text-neutral-600">↕</span>
+                                                                                        @endif
+                                                                                    </button>
+                                                                                </th>
+                                                                                <th class="px-4 py-2 text-center">
+                                                                                    <button type="button" wire:click="sortDetailBy('max')"
+                                                                                        class="inline-flex items-center gap-x-1 uppercase text-rose-500 hover:text-rose-600">
+                                                                                        Max
+                                                                                        @if ($detailSortColumn === 'max')
+                                                                                            <span>{{ $detailSortDirection === 'asc' ? '↑' : '↓' }}</span>
+                                                                                        @else
+                                                                                            <span class="text-gray-300 dark:text-neutral-600">↕</span>
+                                                                                        @endif
+                                                                                    </button>
+                                                                                </th>
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody class="divide-y divide-gray-200 dark:divide-neutral-700">
+                                                                            @foreach ($detail['rows'] as $catIndex => $cat)
+                                                                                <tr wire:key="cat-{{ $office['office_id'] }}-{{ $catIndex }}"
+                                                                                    class="bg-white text-sm dark:bg-neutral-900">
+                                                                                    <td class="px-4 py-2 whitespace-nowrap font-medium text-gray-800 dark:text-neutral-200">
+                                                                                        {{ $cat['name'] }}
+                                                                                    </td>
+                                                                                    <td class="px-4 py-2 whitespace-nowrap text-center font-semibold text-sky-600 tabular-nums">
+                                                                                        {{ $cat['avg'] !== null ? number_format($cat['avg'], 1) : '—' }}
+                                                                                    </td>
+                                                                                    <td class="px-4 py-2 whitespace-nowrap text-center text-emerald-600 tabular-nums">
+                                                                                        {{ $cat['min'] !== null ? number_format($cat['min']) : '—' }}
+                                                                                    </td>
+                                                                                    <td class="px-4 py-2 whitespace-nowrap text-center text-rose-600 tabular-nums">
+                                                                                        {{ $cat['max'] !== null ? number_format($cat['max']) : '—' }}
+                                                                                    </td>
+                                                                                </tr>
+                                                                            @endforeach
+                                                                        </tbody>
+                                                                    </table>
+                                                                </div>
+
+                                                                @if ($detail['rows']->hasPages())
+                                                                    <div class="pt-3">
+                                                                        {{ $detail['rows']->links('livewire.partials.pagination') }}
+                                                                    </div>
+                                                                @endif
+                                                            @endif
+                                                        @endif
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        @endif
                                     @empty
                                         <tr>
-                                            <td class="text-center py-5 font-bold text-lg" colspan="6">
+                                            <td class="text-center py-5 font-bold text-lg" colspan="4">
                                                 No records found!
                                             </td>
                                         </tr>

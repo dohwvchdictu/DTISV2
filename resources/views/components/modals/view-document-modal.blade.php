@@ -170,8 +170,8 @@
                                     Carbon\Carbon::parse($log['created_at'])->format('h:i A')}}</span>
                                 <div class="mt-1 my-1">
                                     <span
-                                        class="inline-flex items-center gap-1.5 py-1 px-3 rounded-lg text-xs {{ \App\Models\Action::find($log->action_id)->color }} font-medium text-gray-800">
-                                        {{ Str::title(\App\Models\Action::find($log->action_id)->name) }}
+                                        class="inline-flex items-center gap-1.5 py-1 px-3 rounded-lg text-xs {{ $log->action->color ?? '' }} font-medium text-gray-800">
+                                        {{ Str::title($log->action->name ?? '') }}
                                     </span>
                                 </div>
                             </div>
@@ -202,14 +202,27 @@
                                     {{ $log['remarks'] }}
                                 </em>
 
+                                @php
+                                    $actionName = $log->action->name ?? null;
+                                    // Make the forward direction explicit: a "Forwarded" entry shows the
+                                    // sending office (From); its paired "For Receiving" entry shows the
+                                    // destination office (To). Other actions show the acting office.
+                                    if ($actionName === 'For Receiving') {
+                                        $officeLabel = 'To';
+                                        $officeName = $this->lookUpOffice($log['assigned_to']);
+                                    } elseif ($actionName === 'Forwarded') {
+                                        $officeLabel = 'From';
+                                        $officeName = $this->lookUpOffice($log['office_id']);
+                                    } else {
+                                        $officeLabel = 'Office';
+                                        $officeName = $this->lookUpOffice($log['office_id']);
+                                    }
+                                @endphp
                                 <p class="mt-1 text-sm text-gray-600 dark:text-neutral-400">
-                                    {{ $this->lookUpOffice($log['office_id']) }}
+                                    <span class="font-medium">{{ $officeLabel }}:</span> {{ $officeName }}
                                 </p>
                                 <button type="button"
                                     class="mt-1 -ms-1 p-1 inline-flex items-center gap-x-2 text-xs rounded-lg border border-transparent text-gray-500 bg-gray-100 focus:outline-none focus:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:text-neutral-400 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700">
-                                    <img class="shrink-0 size-4 rounded-full"
-                                        src="https://images.unsplash.com/photo-1568602471122-7832951cc4c5?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=facearea&facepad=2&w=300&h=300&q=80"
-                                        alt="Avatar">
                                     {{ $this->filterUser($log['user_id']) }}
                                 </button>
                             </div>

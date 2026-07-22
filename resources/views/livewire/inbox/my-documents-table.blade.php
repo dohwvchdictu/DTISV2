@@ -22,7 +22,7 @@
                                 <div class="flex-1 min-w-[150px]">
                                     <label for="search" class="sr-only">Search</label>
                                     <div class="relative">
-                                        <input wire:model.blur="search" type="text" id="search" name="search"
+                                        <input wire:model.live.debounce.300ms="search" type="text" id="search" name="search"
                                             class="py-3 px-3 ps-11 block w-full border-gray-200 rounded-lg text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
                                             placeholder="Search">
                                         <div

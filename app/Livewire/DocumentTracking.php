@@ -84,7 +84,8 @@ class DocumentTracking extends Component
         try {
             $document = Document::with(['logs' => function ($query) {
                 $query->with(['user', 'action'])
-                    ->orderBy('created_at', 'desc');
+                    ->orderBy('created_at', 'desc')
+                    ->orderBy('id', 'desc'); // tiebreaker for entries sharing a timestamp (Forwarded + For Receiving)
             }])
                 ->where('id', $this->document['id'])
                 ->first();
@@ -140,13 +141,14 @@ class DocumentTracking extends Component
 
     public function filterUser($id)
     {
-        $this->id = $id;
+        $result = array_values(array_filter($this->employees, function ($employee) use ($id) {
+            return $employee['id'] == $id;
+        }));
 
-        $result = array_filter($this->employees, function ($employee) {
-            return $employee['id'] == $this->id;
-        });
+        if (!isset($result[0])) {
+            return '';
+        }
 
-        $result = array_values($result); // reindex array
         $findUser = $result[0];
         return $findUser['firstName'] . ' ' . $findUser['lastName'] . ' ' . $findUser['suffix'];
     }
@@ -157,17 +159,14 @@ class DocumentTracking extends Component
             return '';
         }
 
-        $this->id = $id;
-
-        $result = array_filter($this->offices, function ($office) {
-            return $office['id'] == $this->id;
-        });
-
-        $result = array_values($result); // reindex array
+        $result = array_values(array_filter($this->offices, function ($office) use ($id) {
+            return $office['id'] == $id;
+        }));
 
         if (!isset($result[0])) {
             return '';
         }
+
         $findOffice = $result[0];
         return $findOffice['officeName'] ?? '';
     }

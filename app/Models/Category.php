@@ -10,7 +10,7 @@ class Category extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['slug', 'name'];
+    protected $fillable = ['slug', 'name', 'required_days', 'is_active'];
 
     public function documents(): HasMany
     {

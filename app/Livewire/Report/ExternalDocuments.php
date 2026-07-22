@@ -95,6 +95,12 @@ class ExternalDocuments extends Component
         return $found['officeName'] ?? '—';
     }
 
+    public function getOfficeShortName($officeId): string
+    {
+        $found = collect($this->offices)->firstWhere('id', $officeId);
+        return $found['officeCode'] ?? ($found['officeName'] ?? '—');
+    }
+
     public function getEmployeeName($userId): string
     {
         if (! $userId || ! isset($this->employees[$userId])) {
@@ -106,47 +112,57 @@ class ExternalDocuments extends Component
     }
 
     /**
-     * Determine which Day column (3, 7, or 20) a document belongs to based on
-     * its citizen charter's required days, and its tracking state for the
-     * legend colors. Documents without a charter default to 20 days.
+     * Working-day countdown to a document's deadline, based on its category's
+     * required days. Documents without a category default to 20 days. The
+     * deadline is the created date plus that many working days (Mon–Fri;
+     * weekends excluded, holidays not accounted for).
+     *
+     * The signed `remaining` is the number of working days left (negative when
+     * overdue, null when already closed) and drives the state used for the
+     * legend colors:
      *
      * Complete  = document is closed
-     * Due       = deadline is today or within the next 2 days
+     * Due       = deadline is today or within the next 2 working days
      * Overdue   = past the deadline and not yet closed
      * Pending   = still in process, deadline not yet near
      */
     public function trackingStatus(Document $document): array
     {
-        $turnaround = $document->citizencharter->required_days ?? 20;
+        $requiredDays = (int) ($document->category->required_days ?? 20);
 
-        if ($turnaround <= 3) {
-            $column = 3;
-        } elseif ($turnaround <= 7) {
-            $column = 7;
-        } else {
-            $column = 20;
-        }
-
-        $dueDate = $document->created_at->copy()->startOfDay()->addDays($turnaround);
+        $dueDate = $document->created_at->copy()->startOfDay()->addWeekdays($requiredDays);
         $today = Carbon::today();
 
         if ($document->status === 'Closed') {
-            $state = 'complete';
-            $label = 'Complete';
-        } elseif ($dueDate->lt($today)) {
+            return [
+                'required_days' => $requiredDays,
+                'remaining' => null,
+                'state' => 'complete',
+                'label' => 'Completed',
+            ];
+        }
+
+        /** Signed working days between today and the deadline: >0 left, <0 overdue */
+        $remaining = (int) $today->diffInWeekdays($dueDate, false);
+
+        if ($remaining < 0) {
+            $overdue = abs($remaining);
             $state = 'overdue';
-            $label = 'Overdue';
-        } elseif ($dueDate->lte($today->copy()->addDays(2))) {
+            $label = $overdue . ' ' . ($overdue === 1 ? 'day' : 'days') . ' overdue';
+        } elseif ($remaining === 0) {
             $state = 'due';
-            $daysLeft = $today->diffInDays($dueDate);
-            $label = $daysLeft === 0 ? 'Due today' : 'Due in ' . $daysLeft . ' ' . ($daysLeft === 1 ? 'day' : 'days');
+            $label = 'Due today';
+        } elseif ($remaining <= 2) {
+            $state = 'due';
+            $label = 'Due in ' . $remaining . ' ' . ($remaining === 1 ? 'day' : 'days');
         } else {
             $state = 'pending';
-            $label = 'Pending';
+            $label = $remaining . ' days left';
         }
 
         return [
-            'column' => $column,
+            'required_days' => $requiredDays,
+            'remaining' => $remaining,
             'state' => $state,
             'label' => $label,
         ];
@@ -167,7 +183,7 @@ class ExternalDocuments extends Component
             ->sortBy('created_at')
             ->first();
 
-        return $log ? $this->getOfficeName($log->assigned_to) : '—';
+        return $log ? $this->getOfficeShortName($log->assigned_to) : '—';
     }
 
     /**
@@ -176,7 +192,7 @@ class ExternalDocuments extends Component
      */
     public function currentLocation(Document $document): string
     {
-        return $this->getOfficeName($document->assigned_to ?? $document->office_id);
+        return $this->getOfficeShortName($document->assigned_to ?? $document->office_id);
     }
 
     public function latestRemarks(Document $document): string
@@ -191,7 +207,7 @@ class ExternalDocuments extends Component
 
     public function render()
     {
-        $documents = Document::with(['logs', 'citizencharter'])
+        $documents = Document::with(['logs', 'category'])
             ->where('source', 'external')
             ->where('office_id', $this->office)
             ->whereDate('created_at', '>=', $this->startDate)

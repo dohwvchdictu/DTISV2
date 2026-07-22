@@ -18,7 +18,9 @@
                         </h3>
                         <p class="text-sm text-gray-600 dark:text-neutral-400">
                             {{ $document['control_no'] ?? 'N/A' }}
-                            {{ $document['turnaroundtime']}}
+                            @isset($document['turnaroundtime'])
+                                <span class="text-gray-400 dark:text-neutral-500">· {{ $document['turnaroundtime'] }}</span>
+                            @endisset
                         </p>
                     </div>
                     <button type="button" wire:click="closeModal"
@@ -86,7 +88,23 @@
                                         
                                         <div class="mt-1 text-sm {{ $loop->first ? 'text-emerald-700' : 'text-gray-600'}} dark:text-neutral-400">
                                             @if(isset($log['office_id']))
-                                                <p><span class="font-medium">Office:</span> {{ $log['action']['name'] === "For Receiving" ? $this->filterOffice($log['assigned_to']) : $this->filterOffice($log['office_id']) }}</p>
+                                                @php
+                                                    $actionName = $log['action']['name'] ?? null;
+                                                    // Make the forward direction explicit: a "Forwarded" entry
+                                                    // shows the sending office (From), while its paired
+                                                    // "For Receiving" entry shows the destination (To).
+                                                    if ($actionName === 'For Receiving') {
+                                                        $officeLabel = 'To';
+                                                        $officeName = $this->filterOffice($log['assigned_to']);
+                                                    } elseif ($actionName === 'Forwarded') {
+                                                        $officeLabel = 'From';
+                                                        $officeName = $this->filterOffice($log['office_id']);
+                                                    } else {
+                                                        $officeLabel = 'Office';
+                                                        $officeName = $this->filterOffice($log['office_id']);
+                                                    }
+                                                @endphp
+                                                <p><span class="font-medium">{{ $officeLabel }}:</span> {{ $officeName }}</p>
                                             @endif
                                             @if(isset($log['user']['name']))
                                                 <p><span class="font-medium">By:</span> {{ $log['user']['name'] }}</p>

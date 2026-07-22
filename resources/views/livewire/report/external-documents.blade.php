@@ -110,6 +110,10 @@
                                         </th>
                                         <th scope="col"
                                             class="px-4 py-3 text-start text-xs font-semibold uppercase text-gray-800 dark:text-neutral-200">
+                                            Document Type
+                                        </th>
+                                        <th scope="col"
+                                            class="px-4 py-3 text-start text-xs font-semibold uppercase text-gray-800 dark:text-neutral-200">
                                             Originating Office / Encoded By
                                         </th>
                                         <th scope="col"
@@ -122,15 +126,11 @@
                                         </th>
                                         <th scope="col"
                                             class="px-4 py-3 text-center text-xs font-semibold uppercase text-gray-800 dark:text-neutral-200">
-                                            Day 3
+                                            Required Days
                                         </th>
                                         <th scope="col"
                                             class="px-4 py-3 text-center text-xs font-semibold uppercase text-gray-800 dark:text-neutral-200">
-                                            Day 7
-                                        </th>
-                                        <th scope="col"
-                                            class="px-4 py-3 text-center text-xs font-semibold uppercase text-gray-800 dark:text-neutral-200">
-                                            Day 20
+                                            Days Remaining
                                         </th>
                                         <th scope="col"
                                             class="px-4 py-3 text-start text-xs font-semibold uppercase text-gray-800 dark:text-neutral-200">
@@ -147,13 +147,13 @@
                                     @forelse ($documents as $document)
                                         @php
                                             $tracking = $this->trackingStatus($document);
-                                            $cellColors = [
+                                            $badgeColors = [
                                                 'complete' => 'bg-green-500 text-white',
                                                 'due' => 'bg-yellow-300 text-gray-900',
                                                 'overdue' => 'bg-red-600 text-white',
                                                 'pending' => 'bg-sky-400 text-white',
                                             ];
-                                            $cellClass = $cellColors[$tracking['state']];
+                                            $badgeClass = $badgeColors[$tracking['state']];
                                         @endphp
                                         <tr wire:key="document-{{ $document->id }}"
                                             class="bg-white hover:bg-gray-50 dark:bg-neutral-900 dark:hover:bg-neutral-800">
@@ -169,7 +169,10 @@
                                                 {{ $document->subject }}
                                             </td>
                                             <td class="px-4 py-4 align-top text-gray-800 dark:text-neutral-200 min-w-[150px]">
-                                                {{ $this->getOfficeName($document->office_id) }} /
+                                                {{ $document->category->name ?? '—' }}
+                                            </td>
+                                            <td class="px-4 py-4 align-top text-gray-800 dark:text-neutral-200 min-w-[150px]">
+                                                {{ $this->getOfficeShortName($document->office_id) }} /
                                                 {{ $this->getEmployeeName($document->user_id) }}
                                             </td>
                                             <td class="px-4 py-4 align-top text-gray-800 dark:text-neutral-200 min-w-[150px]">
@@ -178,20 +181,13 @@
                                             <td class="px-4 py-4 align-top text-gray-800 dark:text-neutral-200 min-w-[150px]">
                                                 {{ $this->currentLocation($document) }}
                                             </td>
-                                            <td class="px-2 py-2 text-center align-middle whitespace-nowrap {{ $tracking['column'] === 3 ? $cellClass : '' }}">
-                                                @if ($tracking['column'] === 3)
-                                                    <span class="text-sm font-medium">{{ $tracking['label'] }}</span>
-                                                @endif
+                                            <td class="px-4 py-4 text-center align-middle whitespace-nowrap text-gray-800 dark:text-neutral-200">
+                                                <span class="text-sm font-medium">{{ $tracking['required_days'] }}</span>
                                             </td>
-                                            <td class="px-2 py-2 text-center align-middle whitespace-nowrap {{ $tracking['column'] === 7 ? $cellClass : '' }}">
-                                                @if ($tracking['column'] === 7)
-                                                    <span class="text-sm font-medium">{{ $tracking['label'] }}</span>
-                                                @endif
-                                            </td>
-                                            <td class="px-2 py-2 text-center align-middle whitespace-nowrap {{ $tracking['column'] === 20 ? $cellClass : '' }}">
-                                                @if ($tracking['column'] === 20)
-                                                    <span class="text-sm font-medium">{{ $tracking['label'] }}</span>
-                                                @endif
+                                            <td class="px-4 py-4 text-center align-middle whitespace-nowrap">
+                                                <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold {{ $badgeClass }}">
+                                                    {{ $tracking['label'] }}
+                                                </span>
                                             </td>
                                             <td class="px-4 py-4 align-top text-gray-800 dark:text-neutral-200 min-w-[130px]">
                                                 {{ $document->status }}

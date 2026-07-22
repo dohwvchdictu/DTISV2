@@ -139,14 +139,19 @@ class DocumentDetail extends Component
 
     public function lookUpOffice($assigned_to)
     {
-        $this->selected_office = $this->assignedTo ?? $assigned_to;
+        if (!isset($this->responseOffices['officeList']) || !is_array($this->responseOffices['officeList'])) {
+            return '';
+        }
 
-        $result = array_filter($this->responseOffices['officeList'], function ($office) {
-            return $office['id'] == $this->selected_office;
-        });
+        $result = array_values(array_filter($this->responseOffices['officeList'], function ($office) use ($assigned_to) {
+            return $office['id'] == $assigned_to;
+        }));
 
-        $findOffice = $result[$this->selected_office - 1];
-        return $findOffice['officeName'];
+        if (!isset($result[0])) {
+            return '';
+        }
+
+        return $result[0]['officeName'] ?? '';
     }
 
     public function forwardDocument()
@@ -244,7 +249,11 @@ class DocumentDetail extends Component
     public function trackDocument(int $id)
     {
         $document = Document::find($id);
-        $logs = Log::where('document_id', $document->id)->orderBy('created_at', 'DESC')->get();
+        $logs = Log::with(['action', 'user'])
+            ->where('document_id', $document->id)
+            ->orderBy('created_at', 'DESC')
+            ->orderBy('id', 'DESC') // tiebreaker for entries sharing a timestamp (Forwarded + For Receiving)
+            ->get();
 
         $this->calculateTurnaroundTime($document->id);
 

@@ -116,6 +116,27 @@ class MyDocumentsTable extends Component
         return true;
     }
 
+    /** Reset pagination whenever a filter changes so results never land on an out-of-range page */
+    public function updatedSearch()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedSelectedFilter()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedStartDate()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedEndDate()
+    {
+        $this->resetPage();
+    }
+
     public function updatedAssignedTo($value)
     {
         $this->selected_office = $value;

@@ -459,26 +459,27 @@
             <button type="button"
               class="hs-accordion-toggle w-full text-start flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:text-neutral-200"
               aria-expanded="true" aria-controls="status-accordion-child">
-              <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
-                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                class="lucide lucide-book-open-text">
-                <path d="M12 7v14" />
-                <path d="M16 12h2" />
-                <path d="M16 8h2" />
-                <path
-                  d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" />
-                <path d="M6 12h2" />
-                <path d="M6 8h2" />
-              </svg>
-              Status
-
-              @if($statusCount->whereNull('bundle_id')->count() > 0)
-              <span class="flex absolute right-0 -mt-5 me-2">
-                <span
-                  class="animate-ping absolute inline-flex size-full rounded-full bg-red-400 opacity-75 dark:bg-red-600"></span>
-                <span class="relative inline-flex rounded-full size-3 bg-red-500"></span>
+              <span class="relative flex shrink-0">
+                <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round" class="lucide lucide-book-open-text">
+                  <path d="M12 7v14" />
+                  <path d="M16 12h2" />
+                  <path d="M16 8h2" />
+                  <path
+                    d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" />
+                  <path d="M6 12h2" />
+                  <path d="M6 8h2" />
+                </svg>
+                @if($statusCount->whereNull('bundle_id')->count() > 0)
+                <span class="absolute top-0 start-0 flex size-3" style="transform: translate(-40%, -40%)">
+                  <span
+                    class="animate-ping absolute inline-flex size-full rounded-full bg-red-400 opacity-75 dark:bg-red-600"></span>
+                  <span class="relative inline-flex rounded-full size-3 bg-red-500"></span>
+                </span>
+                @endif
               </span>
-              @endif
+              Status
 
               <svg class="hs-accordion-active:block ms-auto hidden size-4" xmlns="http://www.w3.org/2000/svg" width="24"
                 height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"

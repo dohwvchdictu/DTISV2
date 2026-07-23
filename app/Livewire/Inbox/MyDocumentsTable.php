@@ -25,13 +25,19 @@ class MyDocumentsTable extends Component
     public $categories_array = [];
     public $user = [];
     public $office;
-    public $offices = [];
-    public $employees = [];
+    /**
+     * Large, rarely-changing directory data. Kept protected so it is NOT
+     * serialized into the Livewire snapshot on every request; reloaded from
+     * cache each request via boot().
+     */
+    protected $offices = [];
+    protected $employees = [];
+    /** Small per-office subset shown in a dropdown — must stay public for the Blade view. */
     public $subEmployees = [];
-    public $filterOfficeEmployees = [];
+    protected $filterOfficeEmployees = [];
     public $id = 0;
-    public $responseEmployees;
-    public $responseOffices;
+    protected $responseEmployees;
+    protected $responseOffices;
 
     /** Search & Filter Variables*/
     public $search = '';
@@ -73,8 +79,15 @@ class MyDocumentsTable extends Component
             $query->where('name', 'like', '%' . 'Payment' . '%')
                 ->orWhere('name', 'like', '%' . 'Purchase' . '%');
         })->pluck('id')->toArray();
+    }
 
-        /** API - Load with error handling */
+    /**
+     * Runs on every request (before mount and before public-prop hydration).
+     * Reloads the protected directory data from cache so it is available for
+     * render and action methods without bloating the Livewire snapshot.
+     */
+    public function boot()
+    {
         $this->checkApiConnection();
     }
 
@@ -106,8 +119,9 @@ class MyDocumentsTable extends Component
             ->values()
             ->all();
 
-        $this->filterOfficeEmployees = array_filter($this->employees, function ($office) {
-            return isset($office['office']['id']) && $office['office']['id'] == $this->user['office']['id'];
+        $sessionOfficeId = session('user')['office']['id'] ?? null;
+        $this->filterOfficeEmployees = array_filter($this->employees, function ($office) use ($sessionOfficeId) {
+            return isset($office['office']['id']) && $office['office']['id'] == $sessionOfficeId;
         });
 
         return true;
@@ -450,6 +464,7 @@ class MyDocumentsTable extends Component
     public function render()
     {
         $documents = Document::query()
+            ->with('category')
             ->where('office_id', $this->office)
             ->when($this->search, function ($query) {
                 // Properly scope the OR conditions within a nested where

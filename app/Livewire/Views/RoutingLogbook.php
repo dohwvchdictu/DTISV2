@@ -18,18 +18,23 @@ class RoutingLogbook extends Component
 
     public $user   = [];
     public $office;
-    public $offices = [];
-    public $employees = [];
+    /**
+     * Large, rarely-changing directory data. Kept protected so it is NOT
+     * serialized into the Livewire snapshot on every request; reloaded from
+     * cache each request via boot().
+     */
+    protected $offices = [];
+    protected $employees = [];
     public $from;
     public $to;
 
-    public function mount(): void
+    /**
+     * Runs on every request (before mount and before public-prop hydration).
+     * Reloads the protected directory data from cache so it is available for
+     * render and helper methods without bloating the Livewire snapshot.
+     */
+    public function boot(): void
     {
-        $this->user   = session('user');
-        $this->office = $this->user['office']['id'];
-        $this->from   = now()->subDay()->toDateString();
-        $this->to     = now()->toDateString();
-
         $officeData = app(ApiService::class)->getOfficesData();
         if ($officeData) {
             $this->offices = $officeData['officeList'] ?? [];
@@ -41,6 +46,14 @@ class RoutingLogbook extends Component
                 ->keyBy('id')
                 ->toArray();
         }
+    }
+
+    public function mount(): void
+    {
+        $this->user   = session('user');
+        $this->office = $this->user['office']['id'];
+        $this->from   = now()->subDay()->toDateString();
+        $this->to     = now()->toDateString();
     }
 
     public function resetDates(): void

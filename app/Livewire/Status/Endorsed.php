@@ -26,16 +26,22 @@ class Endorsed extends Component
 
     /** Constant Variables */
     public $response;
-    public $offices = [];
+    /**
+     * Large, rarely-changing directory data. Kept protected so it is NOT
+     * serialized into the Livewire snapshot on every request; reloaded from
+     * cache each request via boot().
+     */
+    protected $offices = [];
     public $user = [];
     public $office;
     public $phrase = '';
     public $passphrase = '';
-    public $responseOffices;
-    public $responseEmployees;
-    public $employees = [];
+    protected $responseOffices;
+    protected $responseEmployees;
+    protected $employees = [];
+    /** Small per-office subset shown in a dropdown — must stay public for the Blade view. */
     public $subEmployees = [];
-    public $filterOfficeEmployees = [];
+    protected $filterOfficeEmployees = [];
     public $endorsedID;
     public $statement = [
         'approved' => 'Document has been approved.',
@@ -74,6 +80,16 @@ class Endorsed extends Component
         'closeModal'
     ];
 
+    /**
+     * Runs on every request (before mount and before public-prop hydration).
+     * Reloads the protected directory data from cache so it is available for
+     * render and action methods without bloating the Livewire snapshot.
+     */
+    public function boot()
+    {
+        $this->checkApiConnection();
+    }
+
     public function mount()
     {
         /** User Information */
@@ -84,9 +100,6 @@ class Endorsed extends Component
         /** Filter Records last 1 Quarter */
         $this->startDate = Carbon::now()->subQuarter(1)->format('Y-m-d');
         $this->endDate = Carbon::now()->format('Y-m-d');
-
-        // Check API connection and load data
-        $this->checkApiConnection();
     }
 
     /**
@@ -127,8 +140,9 @@ class Endorsed extends Component
             ->values()
             ->all();
 
-        $this->filterOfficeEmployees = array_filter($this->employees, function ($office) {
-            return isset($office['office']['id']) && $office['office']['id'] == $this->user['office']['id'];
+        $sessionOfficeId = session('user')['office']['id'] ?? null;
+        $this->filterOfficeEmployees = array_filter($this->employees, function ($office) use ($sessionOfficeId) {
+            return isset($office['office']['id']) && $office['office']['id'] == $sessionOfficeId;
         });
 
         return true;
@@ -567,6 +581,7 @@ class Endorsed extends Component
     public function render()
     {
         $documents = Document::query()
+            ->with(['logs', 'category'])
             ->when($this->search, function ($query) {
                 $query->where('control_no', 'like', '%' . $this->search . '%')
                     ->where('status', 'On Process')

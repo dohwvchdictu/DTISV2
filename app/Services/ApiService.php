@@ -141,18 +141,21 @@ class ApiService
      * only the first request per window pays the network round-trip; a
      * failed lookup is not cached, so the next request retries automatically.
      */
+    /** Directory data changes rarely, so cache for hours to avoid frequent cold fetches. */
+    protected const DIRECTORY_CACHE_MINUTES = 360;
+
     public function getEmployeesData(): ?array
     {
-        return Cache::remember('api.employees', now()->addMinutes(5), function () {
-            $response = Http::get(config('services.api.base_url') . 'public/get-employees');
+        return Cache::remember('api.employees', now()->addMinutes(self::DIRECTORY_CACHE_MINUTES), function () {
+            $response = Http::timeout(10)->get(config('services.api.base_url') . 'public/get-employees');
             return $response->ok() ? $response->json() : null;
         });
     }
 
     public function getOfficesData(): ?array
     {
-        return Cache::remember('api.offices', now()->addMinutes(5), function () {
-            $response = Http::get(config('services.api.base_url') . 'public/get-offices');
+        return Cache::remember('api.offices', now()->addMinutes(self::DIRECTORY_CACHE_MINUTES), function () {
+            $response = Http::timeout(10)->get(config('services.api.base_url') . 'public/get-offices');
             return $response->ok() ? $response->json() : null;
         });
     }

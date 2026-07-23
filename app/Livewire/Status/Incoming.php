@@ -24,12 +24,18 @@ class Incoming extends Component
     #[Title('Incoming Documents | Document Tracking Information System')]
 
     /** Constant Variables */
-    public $offices = [];
+    /**
+     * Directory data (offices/employees) is large (~400 KB) and barely changes.
+     * Kept protected so Livewire does NOT serialize it into the wire snapshot on
+     * every request; it is reloaded cheaply from cache each request via boot().
+     */
+    protected $offices = [];
     public $user = [];
     public $endorsedID;
-    public $responseOffices;
-    public $responseEmployees;
-    public $employees = [];
+    protected $responseOffices;
+    protected $responseEmployees;
+    protected $employees = [];
+    protected $filterOfficeEmployees = [];
 
     /** Search & Filter Variables*/
     public $search = '';
@@ -61,6 +67,16 @@ class Incoming extends Component
     public $modalContent;
     public $modalAction;
 
+    /**
+     * Runs on every request (before mount and before public-prop hydration).
+     * Reloads the protected directory data from cache so it is available for
+     * render and action methods without bloating the Livewire snapshot.
+     */
+    public function boot()
+    {
+        $this->checkApiConnection();
+    }
+
     public function mount()
     {
         /** User Information */
@@ -71,9 +87,6 @@ class Incoming extends Component
         /** Filter Records last 30 days */
         $this->startDate = Carbon::now()->subQuarter(1)->format('Y-m-d');
         $this->endDate = Carbon::now()->format('Y-m-d');
-
-        // Check API connection and load data
-        $this->checkApiConnection();
 
         $this->modalTitle = 'Receive Document';
         $this->modalContent = 'Are you sure you want to receive the selected document(s)?';
@@ -119,8 +132,9 @@ class Incoming extends Component
             ->values()
             ->all();
 
-        $this->filterOfficeEmployees = array_filter($this->employees, function ($office) {
-            return isset($office['office']['id']) && $office['office']['id'] == $this->user['office']['id'];
+        $sessionOfficeId = session('user')['office']['id'] ?? null;
+        $this->filterOfficeEmployees = array_filter($this->employees, function ($office) use ($sessionOfficeId) {
+            return isset($office['office']['id']) && $office['office']['id'] == $sessionOfficeId;
         });
 
         return true;
@@ -340,6 +354,7 @@ class Incoming extends Component
     public function render()
     {
         $documents = Document::query()
+            ->with(['logs', 'category'])
             ->where('assigned_to', $this->office)
             ->whereIn('status', ['For Receiving', 'Returned'])
             ->whereNull('bundle_id')

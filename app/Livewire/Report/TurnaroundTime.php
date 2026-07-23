@@ -30,8 +30,9 @@ class TurnaroundTime extends Component
     private const EXIT_ACTIONS = [3, 10, 4, 5]; // Forwarded, Endorsed, Returned, Closed
 
     /** Constant Variables */
-    public $offices = [];
-    public $response;
+    /** Office directory kept protected so it is not serialized into the Livewire snapshot; reloaded from cache in boot(). */
+    protected $offices = [];
+    protected $response;
     public $perPage = 10;
     public $detailPerPage = 10;
 
@@ -65,7 +66,11 @@ class TurnaroundTime extends Component
         $this->endDate = Carbon::now()->format('Y-m-d');
 
         $this->applyFilters();
+    }
 
+    /** Reloads the cached office directory on every request without bloating the snapshot. */
+    public function boot()
+    {
         $this->checkApiConnection();
     }
 

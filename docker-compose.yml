@@ -21,11 +21,13 @@ services:
     # Only 2 vCPUs total on this VM. cpu_shares is a relative priority (not a
     # hard cap) that only kicks in once the CPU is saturated; cpus is a hard
     # ceiling so no single container can starve the rest even when idle.
+    # PHP-FPM workers are the second-heaviest service after MySQL for memory.
     cpu_shares: 1536
     deploy:
       resources:
         limits:
           cpus: "1.5"
+          memory: 4G
 
   proxy:
     image: nginx:1.27-alpine
@@ -43,6 +45,7 @@ services:
       resources:
         limits:
           cpus: "0.5"
+          memory: 256M
 
   db:
     image: mysql:8.0
@@ -50,6 +53,23 @@ services:
     # MYSQL_DATABASE / MYSQL_USER / MYSQL_PASSWORD / MYSQL_ROOT_PASSWORD
     # come from .env.docker and must match the DB_* values there.
     env_file: .env.docker
+    # --- MySQL tuning for a 16GB VM ---
+    # innodb-buffer-pool-size: keeps hot tables/indexes in RAM instead of
+    #   grinding the disk & CPU. Default is a tiny 128M. 4G is a safe share
+    #   of 16GB (raise toward 6G only if PHP isn't memory-hungry).
+    # innodb-log-file-size: larger redo log => fewer flushes under write load.
+    # innodb-flush-log-at-trx-commit=2: big I/O/CPU win; risks up to ~1s of
+    #   transactions on a host crash. Remove this line if you need strict
+    #   per-transaction durability.
+    # max-connections: headroom for PHP-FPM workers + phpMyAdmin.
+    command: >
+      --innodb-buffer-pool-size=4G
+      --innodb-log-file-size=1G
+      --innodb-flush-log-at-trx-commit=2
+      --max-connections=200
+      --slow-query-log=1
+      --slow-query-log-file=/var/lib/mysql/slow.log
+      --long-query-time=1
     ports:
       - "${MYSQL_PORT:-3307}:3306"
     volumes:
@@ -65,10 +85,17 @@ services:
       resources:
         limits:
           cpus: "1.5"
+          memory: 6G
 
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    # Cap Redis memory and evict least-recently-used keys when full, so it
+    # can safely absorb sessions/cache/queues moved off MySQL.
+    command: >
+      redis-server
+      --maxmemory 1gb
+      --maxmemory-policy allkeys-lru
     volumes:
       - redis-data:/data
     cpu_shares: 512
@@ -76,6 +103,7 @@ services:
       resources:
         limits:
           cpus: "0.5"
+          memory: 1G
 
   phpmyadmin:
     image: phpmyadmin:latest
@@ -95,6 +123,7 @@ services:
       resources:
         limits:
           cpus: "0.5"
+          memory: 512M
 
 volumes:
   app-storage:

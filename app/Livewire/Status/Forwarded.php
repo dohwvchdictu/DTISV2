@@ -18,10 +18,15 @@ class Forwarded extends Component
     /** Constant Variables */
     public $user = [];
     public $office;
-    public $responseEmployees;
-    public $responseOffices;
-    public $employees = [];
-    public $offices = [];
+    /**
+     * Large, rarely-changing directory data. Kept protected so it is NOT
+     * serialized into the Livewire snapshot on every request; reloaded from
+     * cache each request via boot().
+     */
+    protected $responseEmployees;
+    protected $responseOffices;
+    protected $employees = [];
+    protected $offices = [];
     public $id;
 
     /** Search & Filter Variables*/
@@ -62,8 +67,15 @@ class Forwarded extends Component
 
         $this->startTime = Carbon::now()->subDay(1)->format('h:i');
         $this->endTime = Carbon::now()->format('h:i');
+    }
 
-        // Fetch API data with error handling
+    /**
+     * Runs on every request (before mount and before public-prop hydration).
+     * Reloads the protected directory data from cache so it is available for
+     * render and action methods without bloating the Livewire snapshot.
+     */
+    public function boot()
+    {
         $this->checkApiConnection();
     }
 
@@ -346,7 +358,7 @@ class Forwarded extends Component
                       ->whereIn('action_id', [3, 5]);
             })
             // Eager load logs to prevent N+1 queries
-            ->with(['logs' => function ($query) {
+            ->with(['category', 'logs' => function ($query) {
                 $query->where('assigned_to', $this->office)
                       ->whereIn('action_id', [3, 5])
                       ->orderBy('created_at', 'DESC');

@@ -9,7 +9,6 @@ use App\Livewire\Inbox\MyBundles;
 use App\Livewire\Inbox\MyDocuments;
 use App\Livewire\Inbox\MyPayments;
 use App\Livewire\Inbox\MyPurchaseRequests;
-use App\Livewire\Partials\Logbook;
 use App\Livewire\Partials\Navbar;
 use App\Livewire\Report\DocumentStatus;
 use App\Livewire\Report\Employees;

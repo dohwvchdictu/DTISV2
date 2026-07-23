@@ -419,36 +419,21 @@
                                             <td class="size-px whitespace-nowrap">
                                                 <span class="block relative z-10">
                                                     <div class="px-6 text-amber-600 flex gap-x-1">
-                                                        {{ number_format(
-                                                            $incoming = \App\Models\Document::where('assigned_to', $office['id'])->whereIn('status', ['For Receiving', 'Returned'])->whereBetween('created_at', [
-                                                                    \Carbon\Carbon::parse($this->startDate)->addDay(1),
-                                                                    \Carbon\Carbon::parse($this->endDate)->addDay(1),
-                                                                ])->count(),
-                                                        ) }}
+                                                        {{ number_format($incoming = ($incomingByOffice[$office['id']] ?? 0)) }}
                                                     </div>
                                                 </span>
                                             </td>
                                             <td class="size-px whitespace-nowrap">
                                                 <span class="block relative z-10">
                                                     <div class="px-6 flex text-red-600 gap-x-1">
-                                                        {{ number_format(
-                                                            $pending = \App\Models\Document::where('assigned_to', $office['id'])->whereBetween('created_at', [
-                                                                    \Carbon\Carbon::parse($this->startDate)->addDay(1),
-                                                                    \Carbon\Carbon::parse($this->endDate)->addDay(1),
-                                                                ])->whereIn('status', ['On Process'])->count(),
-                                                        ) }}
+                                                        {{ number_format($pending = ($pendingByOffice[$office['id']] ?? 0)) }}
                                                     </div>
                                                 </span>
                                             </td>
                                             <td class="size-px whitespace-nowrap">
                                                 <span class="block relative z-10">
                                                     <div class="px-6 flex text-emerald-600 gap-x-1">
-                                                        {{ number_format(
-                                                            $processed = \App\Models\Log::where('assigned_to', $office)->whereIn('action_id', [3, 5])->whereBetween('created_at', [
-                                                                    \Carbon\Carbon::parse($this->startDate)->addDay(1),
-                                                                    \Carbon\Carbon::parse($this->endDate)->addDay(1),
-                                                                ])->count(),
-                                                        ) }}
+                                                        {{ number_format($processed = ($processedByOffice[$office['id']] ?? 0)) }}
                                                     </div>
                                                 </span>
                                             </td>

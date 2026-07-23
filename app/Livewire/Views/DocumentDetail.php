@@ -26,9 +26,15 @@ class DocumentDetail extends Component
     public Document $document;
     public $logs = [];
     public $type = '';
-    public $responseOffices;
-    public $responseEmployees;
-    public $employees = [];
+    /**
+     * Large, rarely-changing directory data. Kept protected so it is NOT
+     * serialized into the Livewire snapshot on every request; reloaded from
+     * cache each request via boot().
+     */
+    protected $responseOffices;
+    protected $responseEmployees;
+    protected $employees = [];
+    /** Small per-office subset shown in a dropdown — must stay public for the Blade view. */
     public $subEmployees = [];
     public $document_to_edit;
     public $isReadOnly = true;
@@ -41,7 +47,7 @@ class DocumentDetail extends Component
     public $office;
     public $user = [];
     public $control_no = '';
-    public $offices = [];
+    protected $offices = [];
     public $selected_office;
     public $selected_personnel;
     public $remarks;
@@ -74,6 +80,26 @@ class DocumentDetail extends Component
         'closeModal',
     ];
 
+    /**
+     * Runs on every request (before mount and before public-prop hydration).
+     * Reloads the protected directory data from cache so it is available for
+     * render and action methods without bloating the Livewire snapshot.
+     */
+    public function boot()
+    {
+        $this->responseEmployees = app(ApiService::class)->getEmployeesData();
+        $this->employees = collect($this->responseEmployees['employeesList'] ?? [])
+            ->sortBy('lastName')
+            ->values()
+            ->all();
+
+        $this->responseOffices = app(ApiService::class)->getOfficesData();
+        $this->offices = collect($this->responseOffices['officeList'] ?? [])
+            ->sortBy('officeName')
+            ->values()
+            ->all();
+    }
+
     public function mount($control_no)
     {
         /** User Information */
@@ -86,18 +112,6 @@ class DocumentDetail extends Component
         $this->control_no = $this->document->control_no;
         $this->type = $this->document->category->name;
         $this->subject = $this->document->subject;
-
-        $this->responseEmployees = app(ApiService::class)->getEmployeesData();
-        $this->employees = collect($this->responseEmployees['employeesList'] ?? [])
-            ->sortBy('lastName')
-            ->values()
-            ->all();
-
-        $this->responseOffices = app(ApiService::class)->getOfficesData();
-        $this->offices = collect($this->responseOffices['officeList'] ?? [])
-            ->sortBy('officeName')
-            ->values()
-            ->all();
 
         $this->pendings = Document::where('assigned_to', $this->office)->where('status', 'On Process')->whereNull('bundle_id')->orderBy('created_at', 'DESC')->get();
         $this->documents_attached = Document::where('assigned_to', $this->office)->where('status', 'On Process')->where('bundle_id', $this->id)->orderBy('created_at', 'DESC')->get();

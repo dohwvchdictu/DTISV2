@@ -19,7 +19,12 @@ class Employees extends Component
     #[Title('Status per Employee | Document Tracking Information System')]
 
     /** Constant Variables */
-    public $responseEmployees;
+    /**
+     * Full employee list (~400 KB) is only used inside mount() to derive the
+     * small per-office $employees subset below. Kept protected so it is never
+     * serialized into the Livewire snapshot.
+     */
+    protected $responseEmployees;
     public $employees = [];
     public $sortedEmployees = [];
     public $response;
@@ -80,8 +85,43 @@ class Employees extends Component
             return $value['lastName'];
         });
 
+        $start = Carbon::parse($this->startDate)->subDay();
+        $end = Carbon::parse($this->endDate)->addDay();
+
+        /**
+         * Pre-aggregate per-employee counts in three grouped queries instead of
+         * the blade running 3 count queries per employee. The blade looks each
+         * employee up by id from these keyed collections.
+         */
+        $incomingByEmployee = Document::query()
+            ->whereIn('status', ['For Receiving', 'Returned'])
+            ->whereBetween('created_at', [$start, $end])
+            ->selectRaw('endorsed_to, COUNT(*) as aggregate')
+            ->groupBy('endorsed_to')
+            ->pluck('aggregate', 'endorsed_to');
+
+        $pendingByEmployee = Document::query()
+            ->whereIn('status', ['On Process', 'Endorsed'])
+            ->whereBetween('created_at', [$start, $end])
+            ->selectRaw('endorsed_to, COUNT(*) as aggregate')
+            ->groupBy('endorsed_to')
+            ->pluck('aggregate', 'endorsed_to');
+
+        // Documents this office acted on (Forwarded/Closed), grouped by the acting employee.
+        $processedByEmployee = Document::query()
+            ->join('logs', 'logs.document_id', '=', 'documents.id')
+            ->where('logs.assigned_to', $this->office)
+            ->whereIn('logs.action_id', [3, 5])
+            ->whereBetween('documents.created_at', [$start, $end])
+            ->selectRaw('logs.user_id, COUNT(DISTINCT documents.id) as aggregate')
+            ->groupBy('logs.user_id')
+            ->pluck('aggregate', 'logs.user_id');
+
         return view('livewire.report.employees', [
-            'employees' => $this->sortedEmployees
+            'employees' => $this->sortedEmployees,
+            'incomingByEmployee' => $incomingByEmployee,
+            'pendingByEmployee' => $pendingByEmployee,
+            'processedByEmployee' => $processedByEmployee,
         ]);
     }
 }

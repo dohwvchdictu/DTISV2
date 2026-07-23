@@ -12,7 +12,7 @@
     role="dialog" tabindex="-1" aria-label="Sidebar">
     <div class="relative flex flex-col h-full max-h-full">
         <!-- Collapse Toggle (desktop) -->
-        <div class="hidden lg:block border-b border-gray-200 dark:border-transparent">
+        <div class="hidden lg:block">
             <button type="button" id="sidebar-collapse-toggle" onclick="toggleSidebar()" aria-label="Toggle sidebar"
                 class="w-full flex items-center justify-end gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 hover:bg-gray-100 dark:hover:bg-neutral-700 focus:outline-none focus:bg-gray-100 dark:focus:bg-neutral-700 dark:text-neutral-200">
                 <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
@@ -27,13 +27,14 @@
 
         <!-- Content -->
         <div
+            id="sidebar-scroll"
             style="min-height: 0"
             class="flex-1 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-track]:bg-neutral-700 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500">
             <nav class="hs-accordion-group p-3 w-full flex flex-col flex-wrap" data-hs-accordion-always-open>
                 <ul class="flex flex-col space-y-1">
                     <li>
                         <a wire:navigate
-                            class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm {{ request()->is('/') ? 'text-gray-100 bg-emerald-600' : '' }} rounded-lg  hover:bg-gray-100 dark:hover:bg-neutral-700 hover:text-neutral-800 focus:outline-none focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-700 dark:text-white"
+                            class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm rounded-lg focus:outline-none {{ request()->is('dashboard') ? 'text-gray-100 bg-emerald-600 dark:bg-emerald-600 dark:text-white' : 'text-gray-800 hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:text-neutral-200' }}"
                             href="/dashboard">
                             <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24"
                                 height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -81,7 +82,7 @@
                             <ul class="ps-8 pt-1 space-y-1">
                                 <li>
                                     <a wire:navigate
-                                        class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-700 focus:outline-none focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
+                                        class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm rounded-lg focus:outline-none {{ request()->is('new-document') ? 'text-gray-100 bg-emerald-600 dark:bg-emerald-600 dark:text-white' : 'text-gray-800 hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:text-neutral-200' }}"
                                         href="/new-document">
                                         <svg class="shrink-0 mt-0.5 size-4" xmlns="http://www.w3.org/2000/svg"
                                             width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -132,7 +133,7 @@
                             <ul class="ps-8 pt-1 space-y-1">
                                 <li>
                                     <a wire:navigate
-                                        class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-700 focus:outline-none focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
+                                        class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm rounded-lg focus:outline-none {{ request()->is('my-documents') ? 'text-gray-100 bg-emerald-600 dark:bg-emerald-600 dark:text-white' : 'text-gray-800 hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:text-neutral-200' }}"
                                         href="/my-documents">
                                         <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg"
                                             width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -146,7 +147,7 @@
                                 </li>
                                 <li>
                                     <a wire:navigate
-                                        class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-700 focus:outline-none focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
+                                        class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm rounded-lg focus:outline-none {{ request()->is('my-purchase-requests') ? 'text-gray-100 bg-emerald-600 dark:bg-emerald-600 dark:text-white' : 'text-gray-800 hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:text-neutral-200' }}"
                                         href="/my-purchase-requests">
                                         <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg"
                                             width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -161,7 +162,7 @@
                                 </li>
                                 <li>
                                     <a wire:navigate
-                                        class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-700 focus:outline-none focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
+                                        class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm rounded-lg focus:outline-none {{ request()->is('my-payments') ? 'text-gray-100 bg-emerald-600 dark:bg-emerald-600 dark:text-white' : 'text-gray-800 hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:text-neutral-200' }}"
                                         href="/my-payments">
                                         <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg"
                                             width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -177,7 +178,7 @@
                                 </li>
                                 <li>
                                     <a wire:navigate
-                                        class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-700 focus:outline-none focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
+                                        class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm rounded-lg focus:outline-none {{ request()->is('routing-logbook') ? 'text-gray-100 bg-emerald-600 dark:bg-emerald-600 dark:text-white' : 'text-gray-800 hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:text-neutral-200' }}"
                                         href="/routing-logbook">
                                         <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg"
                                             width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -250,7 +251,7 @@
                             <ul class="ps-8 pt-1 space-y-1">
                                 <li>
                                     <a wire:navigate
-                                        class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-700 focus:outline-none focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
+                                        class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm rounded-lg focus:outline-none {{ request()->is('status-incoming') ? 'text-gray-100 bg-emerald-600 dark:bg-emerald-600 dark:text-white' : 'text-gray-800 hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:text-neutral-200' }}"
                                         href="/status-incoming">
                                         <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg"
                                             width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -270,7 +271,7 @@
                                 </li>
                                 <li>
                                     <a wire:navigate
-                                        class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-700 focus:outline-none focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
+                                        class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm rounded-lg focus:outline-none {{ request()->is('status-pending') ? 'text-gray-100 bg-emerald-600 dark:bg-emerald-600 dark:text-white' : 'text-gray-800 hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:text-neutral-200' }}"
                                         href="/status-pending">
                                         <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg"
                                             width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -290,7 +291,7 @@
                                 </li>
                                 <li>
                                     <a wire:navigate
-                                        class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-700 focus:outline-none focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
+                                        class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm rounded-lg focus:outline-none {{ request()->is('status-endorsed') ? 'text-gray-100 bg-emerald-600 dark:bg-emerald-600 dark:text-white' : 'text-gray-800 hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:text-neutral-200' }}"
                                         href="/status-endorsed">
                                         <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg"
                                             width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -311,7 +312,7 @@
                                 </li>
                                 <li>
                                     <a wire:navigate
-                                        class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-700 focus:outline-none focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
+                                        class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm rounded-lg focus:outline-none {{ request()->is('status-forwarded') ? 'text-gray-100 bg-emerald-600 dark:bg-emerald-600 dark:text-white' : 'text-gray-800 hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:text-neutral-200' }}"
                                         href="/status-forwarded">
                                         <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg"
                                             width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -328,7 +329,7 @@
                                 </li>
                                 <li>
                                     <a wire:navigate
-                                        class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-700 focus:outline-none focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
+                                        class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm rounded-lg focus:outline-none {{ request()->is('status-closed') ? 'text-gray-100 bg-emerald-600 dark:bg-emerald-600 dark:text-white' : 'text-gray-800 hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:text-neutral-200' }}"
                                         href="/status-closed">
                                         <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg"
                                             width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -382,7 +383,7 @@
                             <ul class="ps-8 pt-1 space-y-1">
                                 <li>
                                     <a wire:navigate
-                                        class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-700 focus:outline-none focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
+                                        class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm rounded-lg focus:outline-none {{ request()->is('report-status-of-documents') ? 'text-gray-100 bg-emerald-600 dark:bg-emerald-600 dark:text-white' : 'text-gray-800 hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:text-neutral-200' }}"
                                         href="/report-status-of-documents">
                                         <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg"
                                             width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -398,7 +399,7 @@
                                 </li>
                                 <li>
                                     <a wire:navigate
-                                        class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-700 focus:outline-none focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
+                                        class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm rounded-lg focus:outline-none {{ request()->is('report-status-per-employee') ? 'text-gray-100 bg-emerald-600 dark:bg-emerald-600 dark:text-white' : 'text-gray-800 hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:text-neutral-200' }}"
                                         href="/report-status-per-employee">
                                         <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg"
                                             width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -414,7 +415,7 @@
                                 </li>
                                 <li>
                                     <a wire:navigate
-                                        class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-700 focus:outline-none focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
+                                        class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm rounded-lg focus:outline-none {{ request()->is('report-status-of-external-documents') ? 'text-gray-100 bg-emerald-600 dark:bg-emerald-600 dark:text-white' : 'text-gray-800 hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:text-neutral-200' }}"
                                         href="/report-status-of-external-documents">
                                         <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg"
                                             width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -430,7 +431,7 @@
                                 </li>
                                 <li>
                                     <a wire:navigate
-                                        class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-700 focus:outline-none focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
+                                        class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm rounded-lg focus:outline-none {{ request()->is('report-status-of-internal-documents') ? 'text-gray-100 bg-emerald-600 dark:bg-emerald-600 dark:text-white' : 'text-gray-800 hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:text-neutral-200' }}"
                                         href="/report-status-of-internal-documents">
                                         <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg"
                                             width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -446,7 +447,7 @@
                                 </li>
                                 <li>
                                     <a wire:navigate
-                                        class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-700 focus:outline-none focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
+                                        class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm rounded-lg focus:outline-none {{ request()->is('report-per-unit') ? 'text-gray-100 bg-emerald-600 dark:bg-emerald-600 dark:text-white' : 'text-gray-800 hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:text-neutral-200' }}"
                                         href="/report-per-unit">
                                         <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg"
                                             width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -465,7 +466,7 @@
                                 </li>
                                 <li>
                                     <a wire:navigate
-                                        class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-700 focus:outline-none focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
+                                        class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm rounded-lg focus:outline-none {{ request()->is('report-turnaround-time') ? 'text-gray-100 bg-emerald-600 dark:bg-emerald-600 dark:text-white' : 'text-gray-800 hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:text-neutral-200' }}"
                                         href="/report-turnaround-time">
                                         <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg"
                                             width="24" height="24" viewBox="0 0 24 24" fill="none"

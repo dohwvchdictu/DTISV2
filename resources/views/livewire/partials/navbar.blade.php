@@ -5,7 +5,7 @@
         <nav class="px-4 sm:px-4 flex basis-full items-center w-full mx-auto">
             <div class="me-5 flex items-center shrink-0">
                 <!-- Logo -->
-                <a href="#" aria-label="Document Tracking Information System"
+                <a href="/dashboard" wire:navigate aria-label="Document Tracking Information System"
                     class="flex flex-col text-white focus:outline-none focus:opacity-80" style="line-height: 1.2">
                     <span class="font-bold text-center" style="font-size: 20px">DTIS</span>
                     <span class="text-xs whitespace-nowrap">Document Tracking Information System</span>

@@ -56,6 +56,17 @@
         }
         document.addEventListener('DOMContentLoaded', applySidebarState);
         document.addEventListener('livewire:navigated', applySidebarState);
+
+        /* Keep the sidebar's scroll position across wire:navigate page swaps */
+        let sidebarScrollTop = 0;
+        document.addEventListener('livewire:navigating', function () {
+            const nav = document.getElementById('sidebar-scroll');
+            if (nav) sidebarScrollTop = nav.scrollTop;
+        });
+        document.addEventListener('livewire:navigated', function () {
+            const nav = document.getElementById('sidebar-scroll');
+            if (nav) nav.scrollTop = sidebarScrollTop;
+        });
     </script>
 </head>
 

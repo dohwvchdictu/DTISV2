@@ -255,13 +255,13 @@
                                             <span class="block relative z-10">
                                                 <div class="px-6 flex gap-x-1 text-sm">
                                                     {{
-                                                    Carbon\Carbon::parse($this->filterLog($document->id))->format('D, M
+                                                    Carbon\Carbon::parse($this->filterLog($document))->format('D, M
                                                     d, Y')
                                                     }}
                                                 </div>
                                                 <div class="px-6 flex gap-x-1 text-sm">
                                                     {{
-                                                    Carbon\Carbon::parse($this->filterLog($document->id))->format('h:i:s
+                                                    Carbon\Carbon::parse($this->filterLog($document))->format('h:i:s
                                                     A')
                                                     }}
                                                 </div>
@@ -272,7 +272,7 @@
                                             <span class="block relative z-10">
                                                 <div class="px-6 flex gap-x-1 text-sm">
                                                     {{
-                                                     $this->filterUserProcessed($document->id)
+                                                     $this->filterUserProcessed($document)
                                                     }}
                                                 </div>
                                             </span>

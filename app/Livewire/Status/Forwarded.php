@@ -357,11 +357,13 @@ class Forwarded extends Component
                 $query->where('assigned_to', $this->office)
                       ->whereIn('action_id', [3, 5]);
             })
-            // Eager load logs to prevent N+1 queries
+            // Eager load logs + category to prevent N+1 queries.
+            // ASC so ->first() on the loaded relation returns the earliest matching
+            // log — the same record the old per-row query (no order) displayed.
             ->with(['category', 'logs' => function ($query) {
                 $query->where('assigned_to', $this->office)
                       ->whereIn('action_id', [3, 5])
-                      ->orderBy('created_at', 'DESC');
+                      ->orderBy('created_at', 'ASC');
             }])
             ->orderBy('created_at', 'DESC')
             ->paginate(50);

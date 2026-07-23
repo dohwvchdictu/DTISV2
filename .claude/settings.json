@@ -34,7 +34,10 @@
       "Bash(echo \"=== 2\\) Any PHP reference to the Partials\\\\\\\\Logbook class \\(imports, routes, ::class\\) ===\")",
       "Bash(grep -rnE \"Partials\\\\\\\\\\\\\\\\Logbook|Partials/Logbook\" app/ routes/ config/)",
       "Bash(grep -rn \"Partials\\\\\\\\\\\\\\\\Logbook\\\\|Partials/Logbook\" app/ routes/ config/ bootstrap/)",
-      "Bash(php -l routes/web.php)"
+      "Bash(php -l routes/web.php)",
+      "Bash(grep -nE \"^\\\\s{0,4}[a-zA-Z_-]+:|image:|build:|command:|container_name:\" docker-compose.yml)",
+      "Bash(grep -noE '\\\\$this->\\(filterLog|filterUserProcessed|filterUser|filterOffice|lookUpOffice|calculateTurnaroundTime\\)\\\\\\(|\\\\$document->logs|->logs->|\\\\$this->offices|\\\\$this->employees' resources/views/livewire/status/forwarded.blade.php)",
+      "Bash(php -l database/migrations/2026_07_23_000002_add_assigned_action_index_to_logs_table.php)"
     ]
   }
 }

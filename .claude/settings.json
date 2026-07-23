@@ -25,7 +25,16 @@
       "Bash(php -l app/Livewire/Status/Forwarded.php)",
       "Bash(grep -nE '\\\\$documentsArray|\\\\$documents\\\\b' resources/views/livewire/partials/logbook.blade.php)",
       "Bash(grep -nA6 'public function filterUser' app/Livewire/Inbox/MyPurchaseRequests.php)",
-      "Bash(grep -c '\\\\.php$')"
+      "Bash(grep -c '\\\\.php$')",
+      "Bash(php -l app/Livewire/Report/DocumentStatus.php)",
+      "Bash(php -l app/Livewire/Report/Employees.php)",
+      "Bash(grep -noE '\\\\$documentsArray|\\\\$documents\\\\b|\\\\$offices\\\\b|\\\\$selectedItems' resources/views/livewire/partials/logbook.blade.php)",
+      "Bash(grep -nB2 -A1 'documentsArray' resources/views/livewire/partials/logbook.blade.php)",
+      "Bash(grep -rniE \"Partials\\\\\\\\\\\\\\\\Logbook|partials.logbook|generate.?logbook|selected_items\" routes/ resources/views/ app/)",
+      "Bash(echo \"=== 2\\) Any PHP reference to the Partials\\\\\\\\Logbook class \\(imports, routes, ::class\\) ===\")",
+      "Bash(grep -rnE \"Partials\\\\\\\\\\\\\\\\Logbook|Partials/Logbook\" app/ routes/ config/)",
+      "Bash(grep -rn \"Partials\\\\\\\\\\\\\\\\Logbook\\\\|Partials/Logbook\" app/ routes/ config/ bootstrap/)",
+      "Bash(php -l routes/web.php)"
     ]
   }
 }

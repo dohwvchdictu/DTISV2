@@ -167,46 +167,21 @@
                                         <td class="size-px whitespace-nowrap">
                                             <span class="block relative z-10">
                                                 <div class="px-6 text-amber-600 flex gap-x-1">
-                                                    {{
-                                                    number_format( $incoming =
-                                                    \App\Models\Document::where('endorsed_to',
-                                                    $employee['id'])->whereIn('status', ['For Receiving',
-                                                    'Returned'])->whereBetween('created_at',
-                                                    [\Carbon\Carbon::parse($this->startDate)->subDay(),
-                                                    \Carbon\Carbon::parse($this->endDate)->addDay()])->count())
-                                                    }}
+                                                    {{ number_format($incoming = ($incomingByEmployee[$employee['id']] ?? 0)) }}
                                                 </div>
                                             </span>
                                         </td>
                                         <td class="size-px whitespace-nowrap">
                                             <span class="block relative z-10">
                                                 <div class="px-6 flex text-red-600 gap-x-1">
-                                                    {{
-                                                    number_format( $pending = \App\Models\Document::where('endorsed_to',
-                                                    $employee['id'])->whereBetween('created_at',
-                                                    [\Carbon\Carbon::parse($this->startDate)->subDay(),
-                                                    \Carbon\Carbon::parse($this->endDate)->addDay()])->whereIn('status',
-                                                    ['On Process', 'Endorsed'])->count())
-                                                    }}
+                                                    {{ number_format($pending = ($pendingByEmployee[$employee['id']] ?? 0)) }}
                                                 </div>
                                             </span>
                                         </td>
                                         <td class="size-px whitespace-nowrap">
                                             <span class="block relative z-10">
                                                 <div class="px-6 flex text-emerald-600 gap-x-1">
-                                                    {{
-                                                    number_format($processed = \App\Models\Document::whereHas('logs',
-                                                    fn($query) =>
-                                                    $query->where('assigned_to', $this->office)
-                                                    ->where('user_id', $employee['id'])
-                                                    ->whereIn('action_id', [3, 5])
-                                                    )
-                                                    ->whereBetween('created_at', [
-                                                    \Carbon\Carbon::parse($this->startDate)->subDay(),
-                                                    \Carbon\Carbon::parse($this->endDate)->addDay(),
-                                                    ])
-                                                    ->count())
-                                                    }}
+                                                    {{ number_format($processed = ($processedByEmployee[$employee['id']] ?? 0)) }}
                                                 </div>
                                             </span>
                                         </td>

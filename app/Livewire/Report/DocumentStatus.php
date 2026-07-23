@@ -78,13 +78,47 @@ class DocumentStatus extends Component
 
     public function render()
     {
+        $start = Carbon::parse($this->startDate)->addDay(1);
+        $end = Carbon::parse($this->endDate)->addDay(1);
 
-        $this->offices = Arr::sort($this->offices, function (array $value) {
+        /**
+         * Pre-aggregate the per-office counts in three grouped queries instead
+         * of the blade running 3 count queries per office (~150 queries). The
+         * blade now looks each office up by id from these keyed collections.
+         */
+        $incomingByOffice = Document::query()
+            ->whereIn('status', ['For Receiving', 'Returned'])
+            ->whereBetween('created_at', [$start, $end])
+            ->selectRaw('assigned_to, COUNT(*) as aggregate')
+            ->groupBy('assigned_to')
+            ->pluck('aggregate', 'assigned_to');
+
+        $pendingByOffice = Document::query()
+            ->where('status', 'On Process')
+            ->whereBetween('created_at', [$start, $end])
+            ->selectRaw('assigned_to, COUNT(*) as aggregate')
+            ->groupBy('assigned_to')
+            ->pluck('aggregate', 'assigned_to');
+
+        // Processed = documents this office Forwarded (3) or Closed (5) in the window.
+        // (Previously the blade passed the whole $office array to where('assigned_to', ...),
+        //  which is corrected here to group by assigned_to.)
+        $processedByOffice = \App\Models\Log::query()
+            ->whereIn('action_id', [3, 5])
+            ->whereBetween('created_at', [$start, $end])
+            ->selectRaw('assigned_to, COUNT(*) as aggregate')
+            ->groupBy('assigned_to')
+            ->pluck('aggregate', 'assigned_to');
+
+        $offices = Arr::sort($this->offices, function (array $value) {
             return $value['officeName'];
         });
 
         return view('livewire.report.document-status', [
-            'offices' => $this->offices
+            'offices' => $offices,
+            'incomingByOffice' => $incomingByOffice,
+            'pendingByOffice' => $pendingByOffice,
+            'processedByOffice' => $processedByOffice,
         ]);
     }
 }

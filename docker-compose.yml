@@ -18,6 +18,14 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+    # Only 2 vCPUs total on this VM. cpu_shares is a relative priority (not a
+    # hard cap) that only kicks in once the CPU is saturated; cpus is a hard
+    # ceiling so no single container can starve the rest even when idle.
+    cpu_shares: 1536
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
 
   proxy:
     image: nginx:1.27-alpine
@@ -30,6 +38,11 @@ services:
       - ./docker/nginx/certs:/etc/nginx/certs:ro
     depends_on:
       - app
+    cpu_shares: 512
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
 
   db:
     image: mysql:8.0
@@ -46,12 +59,23 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
+    # Highest priority - the most latency-sensitive service under contention.
+    cpu_shares: 2048
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
 
   redis:
     image: redis:7-alpine
     restart: unless-stopped
     volumes:
       - redis-data:/data
+    cpu_shares: 512
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
 
   phpmyadmin:
     image: phpmyadmin:latest
@@ -65,6 +89,12 @@ services:
       - "${PHPMYADMIN_PORT:-8085}:80"
     depends_on:
       - db
+    # Lowest priority - only used occasionally for admin tasks.
+    cpu_shares: 256
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
 
 volumes:
   app-storage:

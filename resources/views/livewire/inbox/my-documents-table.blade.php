@@ -23,7 +23,7 @@
                                     <label for="search" class="sr-only">Search</label>
                                     <div class="relative">
                                         <input wire:model.live.debounce.300ms="search" type="text" id="search" name="search"
-                                            class="py-3 px-3 ps-11 block w-full border-gray-200 rounded-lg text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+                                            class="py-3 px-3 ps-11 block w-full border-gray-200 rounded-lg text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
                                             placeholder="Search">
                                         <div
                                             class="absolute inset-y-0 start-0 flex items-center pointer-events-none ps-4">
@@ -40,7 +40,7 @@
                                     <label for="startDate" class="sr-only">Start Date</label>
                                     <div class="relative">
                                         <input type="date" wire:model.live.debounce.2500ms="startDate" name='startDate'
-                                            class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                            class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5 dark:bg-neutral-800 dark:border-neutral-600 dark:placeholder-neutral-400 dark:text-neutral-200 dark:[color-scheme:dark] dark:focus:ring-blue-500 dark:focus:border-blue-500"
                                             placeholder="Select date">
                                     </div>
                                 </div>
@@ -48,7 +48,7 @@
                                     <label for="EndDate" class="sr-only">End Date</label>
                                     <div class="relative">
                                         <input type="date" wire:model.live.debounce.2500ms="endDate" name="endDate"
-                                            class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                            class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5 dark:bg-neutral-800 dark:border-neutral-600 dark:placeholder-neutral-400 dark:text-neutral-200 dark:[color-scheme:dark] dark:focus:ring-blue-500 dark:focus:border-blue-500"
                                             placeholder="Select date">
                                     </div>
                                 </div>
@@ -275,7 +275,7 @@
                                             <div class="flex items-center h-5">
                                                 <input wire:model.lazy='selected_item' type="checkbox" {{ in_array($document->status, ['Created', 'For Receiving']) ? '' : 'disabled'}}
                                                     value="{{ $document->id }}"
-                                                    class="border-gray-200 rounded text-blue-600 focus:ring-blue-500
+                                                    class="border-gray-200 dark:border-neutral-700 rounded text-blue-600 focus:ring-blue-500
                                                 dark:bg-neutral-800 dark:border-neutral-700 dark:checked:bg-blue-500
                                                 dark:checked:border-blue-500 dark:focus:ring-offset-gray-800">
                                                 <label for="documents_checkbox" class="sr-only">Checkbox</label>
@@ -330,18 +330,18 @@
                                 <td class="size-px whitespace-nowrap">
                                     <span class="block">
                                         <div class="px-6">
-                                            <div class="block text-sm text-emerald-900 decoration-2">
+                                            <div class="block text-sm text-emerald-900 dark:text-emerald-400 decoration-2">
                                                 {{ $document->control_no }}
                                             </div>
                                         </div>
                                         <div class="px-6 flex gap-x-2">
                                             <span
-                                                class="inline-flex items-center gap-1.5 py-1 px-2 mt-2 rounded-lg text-xs font-medium {{ $this->colorIndicator($document->status) }} text-gray-800">
+                                                class="inline-flex items-center gap-1.5 py-1 px-2 mt-2 rounded-lg text-xs font-medium {{ $this->colorIndicator($document->status) }} text-gray-800 dark:text-neutral-200">
                                                 {!! $this->iconIndicator($document->status) !!}
                                                 {{ Str::title($document->status ) }}
                                             </span>
                                             @if($document->status === "Closed")
-                                            <span class="inline-flex items-center gap-1.5 py-1 px-2 mt-2 rounded-lg text-xs font-medium bg-gray-100 text-gray-800">
+                                            <span class="inline-flex items-center gap-1.5 py-1 px-2 mt-2 rounded-lg text-xs font-medium bg-gray-100 dark:bg-neutral-700 text-gray-800 dark:text-neutral-200">
                                                 TAT: {{ $document->turnaroundtime ?? 0}} day/s
                                             </span>
                                             @endif
@@ -351,7 +351,7 @@
 
                                 <td class="hidden md:table-cell size-px whitespace-nowrap">
                                     <a class="block relative z-10" href="#">
-                                        <div class="px-6 py-2 flex -space-x-2 text-xs">
+                                        <div class="px-6 py-2 flex -space-x-2 text-xs text-gray-600 dark:text-neutral-400">
                                             {{ $this->filterOffice($document->assigned_to) }}
                                         </div>
                                     </a>
@@ -365,12 +365,12 @@
                                             $document->subject }}</span>
                                         <div class="flex gap-x-1 my-2">
                                             <span
-                                                class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium {{ $document->source == 'internal' ? 'bg-emerald-100 text-gray-800' : 'bg-red-100 text-gray-800'}} ">
+                                                class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium {{ $document->source == 'internal' ? 'bg-emerald-100 text-gray-800 dark:bg-emerald-500/20 dark:text-neutral-200' : 'bg-red-100 text-gray-800 dark:bg-red-500/20 dark:text-neutral-200'}} ">
                                                 {{ Str::title($document->source) }}
                                             </span>
                                             @if($document->citizen_charter_id)
                                             <span
-                                                class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium bg-gray-100 text-gray-800">
+                                                class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium bg-gray-100 dark:bg-neutral-700 text-gray-800 dark:text-neutral-200">
                                                 {{
                                                 \App\Models\CitizenCharter::find($document->citizen_charter_id)->name
                                                 }}
@@ -381,12 +381,12 @@
                                 </td>
                                 <td class="size-px whitespace-nowrap">
                                     <span class="block relative z-10">
-                                        <div class="px-6 flex gap-x-1 text-sm">
+                                        <div class="px-6 flex gap-x-1 text-sm text-gray-600 dark:text-neutral-400">
                                             {{
                                             Carbon\Carbon::parse($document->created_at)->format('D, M d, Y')
                                             }}
                                         </div>
-                                        <div class="px-6 flex gap-x-1 text-sm">
+                                        <div class="px-6 flex gap-x-1 text-sm text-gray-600 dark:text-neutral-400">
                                             {{
                                             Carbon\Carbon::parse($document->created_at)->format('h:i:s A')
                                             }}
@@ -395,7 +395,7 @@
                                 </td>
                                 <td class="hidden md:table-cell size-px whitespace-nowrap">
                                     <a class="block relative z-10" href="#">
-                                        <div class="px-6 py-2 flex -space-x-2 text-xs">
+                                        <div class="px-6 py-2 flex -space-x-2 text-xs text-gray-600 dark:text-neutral-400">
                                             {{ $this->filterUser($document->user_id) }}
                                         </div>
                                     </a>
@@ -404,7 +404,7 @@
                             </tr>
                             @empty
                             <tr>
-                                <td class="text-center py-5 font-bold text-lg" colspan="6">No records found!
+                                <td class="text-center py-5 font-bold text-lg text-gray-800 dark:text-neutral-200" colspan="6">No records found!
                                 </td>
                             </tr>
                             @endforelse
@@ -438,7 +438,7 @@
     <!-- End Card -->
 
     <div wire:loading class="fixed z-50 flex items-center justify-center top-1/2 start-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 py-4 max-w-full min-h-[8rem]">
-        <div class="bg-white rounded-xl shadow-lg  py-4 px-6 flex flex-col items-center">
+        <div class="bg-white dark:bg-neutral-800 rounded-xl shadow-lg  py-4 px-6 flex flex-col items-center">
             <div class="flex items-center gap-4">
                 <div class="animate-spin inline-block size-8 border-[3px] border-current border-t-transparent text-xl text-emerald-600 rounded-full"
                     role="status" aria-label="loading">

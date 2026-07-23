@@ -38,7 +38,7 @@
                     <h2 class="text-2xl font-semibold text-emerald-600 dark:text-neutral-200">{{
                         $document->category->name }}</h2>
                     <span
-                        class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium bg-gray-50 text-gray-800">
+                        class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium bg-gray-50 dark:bg-neutral-700 text-gray-800 dark:text-neutral-200">
                         Control No. {{
                         $document->control_no
                         }}
@@ -154,7 +154,7 @@
             <!-- End Grid -->
 
             <!-- Grid -->
-            <div class="grid md:grid-cols-2 gap-3 py-4 border-b border-gray-200">
+            <div class="grid md:grid-cols-2 gap-3 py-4 border-b border-gray-200 dark:border-neutral-700">
                 <div>
                     <div class="grid space-y-3 gap-x-4">
                         <dl class="flex flex-col sm:flex-row gap-x-3 text-sm">
@@ -162,7 +162,7 @@
                                 Created at:
                             </dt>
                             <dd class="text-gray-800 dark:text-neutral-200">
-                                <span class="inline-flex items-center gap-x-1.5 text-xs text-gray-800">
+                                <span class="inline-flex items-center gap-x-1.5 text-xs text-gray-800 dark:text-neutral-200">
                                     {{ Carbon\Carbon::parse($document->created_at)->format('D, M d, Y h:i:s A') }}
                                 </span>
                             </dd>
@@ -175,7 +175,7 @@
                             <dd class="font-medium text-gray-800 dark:text-neutral-200">
                                 <address class="not-italic font-normal">
                                     <textarea wire:model='subject'
-                                        class="py-3 px-2 block w-full border-gray-200 {{ $isReadOnly ? 'bg-slate-100' : 'bg-white' }} rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+                                        class="py-3 px-2 block w-full border-gray-200 {{ $isReadOnly ? 'bg-slate-100' : 'bg-white' }} rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
                                         rows="3" placeholder="Subject Details" {{ $isReadOnly ? 'readonly' : ''
                                         }}>{{ $document->subject}}</textarea>
                                 </address>
@@ -188,12 +188,12 @@
                             </dt>
                             <dd class="text-gray-800 dark:text-neutral-200">
                                 <span
-                                    class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium {{ $document->source == 'internal' ? 'bg-emerald-100 text-gray-800' : 'bg-red-100 text-gray-800'}} ">
+                                    class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium {{ $document->source == 'internal' ? 'bg-emerald-100 text-gray-800 dark:bg-emerald-500/20 dark:text-neutral-200' : 'bg-red-100 text-gray-800 dark:bg-red-500/20 dark:text-neutral-200'}} ">
                                     {{ Str::title($document->source) }}
                                 </span>
                                 @if($document->citizen_charter_id)
                                 <span
-                                    class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium bg-gray-50 text-gray-800">
+                                    class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium bg-gray-50 dark:bg-neutral-700 text-gray-800 dark:text-neutral-200">
                                     {{
                                     \App\Models\CitizenCharter::find($document->citizen_charter_id)->name
                                     }}
@@ -210,7 +210,7 @@
                             <dd class="text-gray-800 dark:text-neutral-200">
                                 @if($document->citizen_charter_id)
                                 <span
-                                    class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium bg-gray-50 text-gray-800">
+                                    class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium bg-gray-50 dark:bg-neutral-700 text-gray-800 dark:text-neutral-200">
                                     {{
                                     \App\Models\CitizenCharter::find($document->citizen_charter_id)->required_days
                                     }} Days
@@ -262,7 +262,7 @@
                                 Office Origin:
                             </dt>
                             <dd class="text-gray-800 dark:text-neutral-200">
-                                <span class="inline-flex items-center gap-x-1.5 text-gray-800">
+                                <span class="inline-flex items-center gap-x-1.5 text-gray-800 dark:text-neutral-200">
                                     {{ $this->lookUpOffice($document->office_id) }}
                                 </span>
                             </dd>
@@ -273,7 +273,7 @@
                                 Encoded by:
                             </dt>
                             <dd class="text-gray-800 dark:text-neutral-200">
-                                <span class="inline-flex items-center gap-x-1.5 text-gray-800">
+                                <span class="inline-flex items-center gap-x-1.5 text-gray-800 dark:text-neutral-200">
                                     {{ $this->filterUser($document->user_id) }}
                                 </span>
                             </dd>
@@ -340,7 +340,7 @@
                                     </tr>
                                     @empty
                                     <tr>
-                                        <td class="text-center py-5 font-bold text-lg" colspan="4">
+                                        <td class="text-center py-5 font-bold text-lg text-gray-800 dark:text-neutral-200" colspan="4">
                                             No Attachments found!
                                         </td>
                                     </tr>
@@ -400,7 +400,7 @@
                                     </tr>
                                     @empty
                                     <tr>
-                                        <td class="text-center py-5 font-bold text-lg" colspan="4">
+                                        <td class="text-center py-5 font-bold text-lg text-gray-800 dark:text-neutral-200" colspan="4">
                                             No Attachments found!
                                         </td>
                                     </tr>

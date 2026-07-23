@@ -388,18 +388,18 @@ class MyPurchaseRequests extends Component
     {
         switch ($status) {
             case 'Created':
-                return "bg-gray-100";
+                return "bg-gray-100 dark:bg-neutral-700";
                 break;
             case 'Closed':
-                return "bg-red-100";
+                return "bg-red-100 dark:bg-red-500/20";
                 break;
             case 'On Process':
-                return "bg-yellow-100";
+                return "bg-yellow-100 dark:bg-yellow-500/20";
                 break;
             case 'Returned':
-                return "bg-amber-100";
+                return "bg-amber-100 dark:bg-amber-500/20";
             default:
-                return "bg-sky-100";
+                return "bg-sky-100 dark:bg-sky-500/20";
         }
     }
 

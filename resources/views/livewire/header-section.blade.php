@@ -1,1 +1,2 @@
-<div class="h-28 flex bg-cover bg-center bg-gradient-to-r from-cyan-500 to-blue-500" style="background-image: url('/img/Department of Health Western Visayas.svg')"></div>
+<div class="fixed top-0 inset-x-0 z-[48] flex bg-cover bg-center bg-gradient-to-r from-cyan-500 to-blue-500"
+    style="height: 90px; background-image: url('/img/Department of Health Western Visayas.svg')"></div>

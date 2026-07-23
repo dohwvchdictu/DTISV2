@@ -112,7 +112,7 @@
                                             class="block text-sm mb-2 dark:text-white">Username</label>
                                         <div class="relative">
                                             <input type="email" id="email" wire:model="email" autocomplete="off"
-                                                class="py-3 px-4 block w-full bg-gray-50 border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none"
+                                                class="py-3 px-4 block w-full bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700 dark:text-neutral-200 dark:placeholder-neutral-500 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none"
                                                 required aria-describedby="email-error">
                                             <div class="hidden absolute inset-y-0 end-0 pointer-events-none pe-3">
                                                 <svg class="size-5 text-red-500" width="16" height="16"
@@ -138,7 +138,7 @@
                                         <div class="relative" x-data="{ show: false }">
                                             <input x-bind:type="show ? 'text' : 'password'" id="password" wire:model="password"
                                                 autocomplete="off" readonly onfocus="this.removeAttribute('readonly')"
-                                                class="py-3 px-4 pe-10 block w-full bg-gray-50 border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+                                                class="py-3 px-4 pe-10 block w-full bg-gray-50 border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-200 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
                                                 required aria-describedby="password-error">
                                             <button type="button"
                                                 class="absolute inset-y-0 end-0 flex items-center pe-3 text-gray-400 hover:text-gray-600 dark:text-neutral-500 dark:hover:text-neutral-300 focus:outline-none"
@@ -165,7 +165,7 @@
                                     <div wire:loading
                                         class="fixed z-50 flex items-center justify-center top-1/2 start-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 py-4 max-w-full min-h-[8rem]">
                                         <div
-                                            class="bg-white rounded-xl shadow-lg  py-4 px-6 flex flex-col items-center">
+                                            class="bg-white dark:bg-neutral-800 rounded-xl shadow-lg  py-4 px-6 flex flex-col items-center">
                                             <div class="flex items-center gap-4">
                                                 <div class="animate-spin inline-block size-8 border-[3px] border-current border-t-transparent text-xl text-emerald-600 rounded-full"
                                                     role="status" aria-label="loading">

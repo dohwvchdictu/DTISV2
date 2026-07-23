@@ -121,18 +121,18 @@ class DocumentTracking extends Component
     {
         switch ($status) {
             case 'Created':
-                return "text-gray-500";
+                return "text-gray-500 dark:text-neutral-400";
                 break;
             case 'Closed':
-                return "text-red-600";
+                return "text-red-600 dark:text-red-400";
                 break;
             case 'On Process':
-                return "text-yellow-600";
+                return "text-yellow-600 dark:text-yellow-400";
                 break;
             case 'Returned':
-                return "text-amber-600";
+                return "text-amber-600 dark:text-amber-400";
             default:
-                return "text-sky-600";
+                return "text-sky-600 dark:text-sky-400";
         }
     }
 

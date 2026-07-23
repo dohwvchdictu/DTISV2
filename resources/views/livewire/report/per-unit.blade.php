@@ -39,7 +39,7 @@
                     <div class="w-full md:w-[420px]">
                         <label for="officeFilter" class="sr-only">Unit/Office</label>
                         <select wire:model="officeFilter" name="officeFilter"
-                            class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                            class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-neutral-800 dark:border-neutral-600 dark:placeholder-neutral-400 dark:text-neutral-200 dark:[color-scheme:dark] dark:focus:ring-blue-500 dark:focus:border-blue-500">
                             <option value="">All Units/Offices</option>
                             @foreach ($this->offices as $officeOption)
                                 <option value="{{ $officeOption['id'] }}">
@@ -51,7 +51,7 @@
                     <div class="min-w-[130px]">
                         <label for="source" class="sr-only">Source</label>
                         <select wire:model="source" name="source"
-                            class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                            class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-neutral-800 dark:border-neutral-600 dark:placeholder-neutral-400 dark:text-neutral-200 dark:[color-scheme:dark] dark:focus:ring-blue-500 dark:focus:border-blue-500">
                             <option value="">All Sources</option>
                             <option value="internal">Internal</option>
                             <option value="external">External</option>
@@ -60,7 +60,7 @@
                     <div class="min-w-[130px]">
                         <label for="status" class="sr-only">Status</label>
                         <select wire:model="status" name="status"
-                            class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                            class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-neutral-800 dark:border-neutral-600 dark:placeholder-neutral-400 dark:text-neutral-200 dark:[color-scheme:dark] dark:focus:ring-blue-500 dark:focus:border-blue-500">
                             <option value="">All Statuses</option>
                             @foreach ($this->statuses as $statusOption)
                                 <option value="{{ $statusOption }}">{{ $statusOption }}</option>
@@ -70,13 +70,13 @@
                     <div class="min-w-[130px]">
                         <label for="startDate" class="sr-only">Start Date</label>
                         <input type="date" wire:model="startDate" name="startDate"
-                            class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                            class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-neutral-800 dark:border-neutral-600 dark:placeholder-neutral-400 dark:text-neutral-200 dark:[color-scheme:dark] dark:focus:ring-blue-500 dark:focus:border-blue-500"
                             placeholder="Select date">
                     </div>
                     <div class="min-w-[130px]">
                         <label for="endDate" class="sr-only">End Date</label>
                         <input type="date" wire:model="endDate" name="endDate"
-                            class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                            class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-neutral-800 dark:border-neutral-600 dark:placeholder-neutral-400 dark:text-neutral-200 dark:[color-scheme:dark] dark:focus:ring-blue-500 dark:focus:border-blue-500"
                             placeholder="Select date">
                     </div>
                     <div>
@@ -213,7 +213,7 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td class="text-center py-5 font-bold text-lg" colspan="2">
+                                            <td class="text-center py-5 font-bold text-lg text-gray-800 dark:text-neutral-200" colspan="2">
                                                 No records found!
                                             </td>
                                         </tr>

@@ -39,7 +39,7 @@
                     <div class="w-full md:w-[420px]">
                         <label for="officeFilter" class="sr-only">Unit/Office</label>
                         <select wire:model="officeFilter" name="officeFilter"
-                            class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                            class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-neutral-800 dark:border-neutral-600 dark:placeholder-neutral-400 dark:text-neutral-200 dark:[color-scheme:dark] dark:focus:ring-blue-500 dark:focus:border-blue-500">
                             <option value="">All Units/Offices</option>
                             @foreach ($this->offices as $officeOption)
                                 <option value="{{ $officeOption['id'] }}">
@@ -51,7 +51,7 @@
                     <div class="min-w-[130px]">
                         <label for="source" class="sr-only">Source</label>
                         <select wire:model="source" name="source"
-                            class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                            class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-neutral-800 dark:border-neutral-600 dark:placeholder-neutral-400 dark:text-neutral-200 dark:[color-scheme:dark] dark:focus:ring-blue-500 dark:focus:border-blue-500">
                             <option value="">All Sources</option>
                             <option value="internal">Internal</option>
                             <option value="external">External</option>
@@ -60,13 +60,13 @@
                     <div class="min-w-[130px]">
                         <label for="startDate" class="sr-only">Start Date</label>
                         <input type="date" wire:model="startDate" name="startDate"
-                            class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                            class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-neutral-800 dark:border-neutral-600 dark:placeholder-neutral-400 dark:text-neutral-200 dark:[color-scheme:dark] dark:focus:ring-blue-500 dark:focus:border-blue-500"
                             placeholder="Select date">
                     </div>
                     <div class="min-w-[130px]">
                         <label for="endDate" class="sr-only">End Date</label>
                         <input type="date" wire:model="endDate" name="endDate"
-                            class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                            class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-neutral-800 dark:border-neutral-600 dark:placeholder-neutral-400 dark:text-neutral-200 dark:[color-scheme:dark] dark:focus:ring-blue-500 dark:focus:border-blue-500"
                             placeholder="Select date">
                     </div>
                     <div>
@@ -227,7 +227,7 @@
                                             <td class="size-px whitespace-nowrap">
                                                 <button type="button" wire:click="toggleOffice({{ $office['office_id'] }})"
                                                     class="w-full flex items-center gap-x-2 px-6 py-4 font-semibold text-start text-emerald-900 hover:text-emerald-600 dark:text-neutral-200 dark:hover:text-emerald-400">
-                                                    <svg class="shrink-0 size-4 text-gray-400 transition-transform duration-200 {{ $expandedOffice === $office['office_id'] ? 'rotate-90' : '' }}"
+                                                    <svg class="shrink-0 size-4 text-gray-400 dark:text-neutral-500 transition-transform duration-200 {{ $expandedOffice === $office['office_id'] ? 'rotate-90' : '' }}"
                                                         xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                                                         viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -351,7 +351,7 @@
                                         @endif
                                     @empty
                                         <tr>
-                                            <td class="text-center py-5 font-bold text-lg" colspan="4">
+                                            <td class="text-center py-5 font-bold text-lg text-gray-800 dark:text-neutral-200" colspan="4">
                                                 No records found!
                                             </td>
                                         </tr>

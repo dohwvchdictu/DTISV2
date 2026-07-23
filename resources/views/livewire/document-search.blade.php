@@ -147,7 +147,7 @@
 
             {{-- Modal Loading Overlay --}}
             <div wire:loading class="fixed z-50 flex items-center justify-center top-1/2 start-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 py-4 max-w-full min-h-[8rem]">
-                <div class="bg-white rounded-xl shadow-lg  py-4 px-6 flex flex-col items-center">
+                <div class="bg-white dark:bg-neutral-800 rounded-xl shadow-lg  py-4 px-6 flex flex-col items-center">
                     <div class="flex items-center gap-4">
                         <div class="animate-spin inline-block size-8 border-[3px] border-current border-t-transparent text-xl text-emerald-600 rounded-full"
                             role="status" aria-label="loading">

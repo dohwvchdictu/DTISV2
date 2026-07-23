@@ -30,6 +30,6 @@
             </li>
         </ol>
         {{-- End of Breadcrumb --}}
-        <h1>New Bundle</h1>
+        <h1 class="text-xl font-bold text-gray-800 dark:text-neutral-200">New Bundle</h1>
     </div>
 </div>

@@ -58,7 +58,7 @@
                     @if($subEmployees)
                     <div class="max-w-full py-4 mt-2">
                         <label for="endorsedToOtherPersonnel" class="block text-sm font-medium mb-2 dark:text-white">Endorsed
-                            To <span class="text-sm text-gray-500">(optional)</span></label>
+                            To <span class="text-sm text-gray-500 dark:text-neutral-400">(optional)</span></label>
                         <select wire:model='endorsedToOtherPersonnel'
                             class="py-3 px-4 pe-9 block w-full border-gray-200 bg-gray-100 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
                             <option selected="">Select Personnel </option>
@@ -167,7 +167,7 @@
 
             {{-- Modal Loading Overlay --}}
             <div wire:loading class="fixed z-50 flex items-center justify-center top-1/2 start-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 py-4 max-w-full min-h-[8rem]">
-                <div class="bg-white rounded-xl shadow-lg  py-4 px-6 flex flex-col items-center">
+                <div class="bg-white dark:bg-neutral-800 rounded-xl shadow-lg  py-4 px-6 flex flex-col items-center">
                     <div class="flex items-center gap-4">
                         <div class="animate-spin inline-block size-8 border-[3px] border-current border-t-transparent text-xl text-emerald-600 rounded-full"
                             role="status" aria-label="loading">

@@ -30,6 +30,6 @@
             </li>
         </ol>
         {{-- End of Breadcrumb --}}
-        <h1>Report on Internal Documents</h1>
+        <h1 class="text-xl font-bold text-gray-800 dark:text-neutral-200">Report on Internal Documents</h1>
     </div>
 </div>

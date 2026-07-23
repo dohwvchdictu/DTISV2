@@ -40,7 +40,7 @@
                 <div class="p-4 border-b dark:border-neutral-700 bg-gray-50 dark:bg-neutral-900">
                     <div class="mb-2">
                         <p class="text-xs text-gray-500 dark:text-neutral-400 uppercase">Status</p>
-                        <p class="text-md font-medium {{ $this->colorIndicator($document['status']) }} dark:text-neutral-200 break-words">
+                        <p class="text-md font-medium {{ $this->colorIndicator($document['status']) }} break-words">
                             {{ $document['status'] ?? 'N/A' }}
                         </p>
                     </div>
@@ -71,7 +71,7 @@
                                     {{-- Timeline Icon --}}
                                     <div class="relative last:after:hidden after:absolute after:top-7 after:bottom-0 after:start-3.5 after:w-px after:-translate-x-[0.5px] after:bg-gray-200 dark:after:bg-neutral-700">
                                         <div class="relative z-10 size-7 flex justify-center items-center">
-                                            <div class="size-2 rounded-full {{ $loop->first ? 'bg-emerald-400' : 'bg-gray-400' }}"></div>
+                                            <div class="size-2 rounded-full {{ $loop->first ? 'bg-emerald-400' : 'bg-gray-400 dark:bg-neutral-600' }}"></div>
                                         </div>
                                     </div>
 
@@ -122,7 +122,7 @@
                     @else
                         {{-- No Tracking Data --}}
                         <div class="text-center py-8">
-                            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24"
+                            <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-neutral-500" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />

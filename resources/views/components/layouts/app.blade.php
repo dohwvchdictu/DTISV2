@@ -19,6 +19,35 @@
     <title>{{ $title ?? 'Page Title' }}</title>
     <link rel="icon" href="{!! asset('/img/doh.ico') !!}"/>
 
+    <style>
+        @media (min-width: 1024px) {
+            body.sidebar-collapsed #hs-application-sidebar { width: 64px; }
+            body.sidebar-collapsed .lg\:ps-64 { padding-inline-start: 64px; }
+            body.sidebar-collapsed #hs-application-sidebar .hs-accordion-content { display: none; }
+            body.sidebar-collapsed #hs-application-sidebar nav a,
+            body.sidebar-collapsed #hs-application-sidebar nav button,
+            body.sidebar-collapsed #sidebar-collapse-toggle {
+                font-size: 0;
+                gap: 0;
+                justify-content: center;
+                padding-inline: 8px;
+            }
+            body.sidebar-collapsed #hs-application-sidebar nav a > span.inline-flex { display: none; }
+            body.sidebar-collapsed #hs-application-sidebar nav .ms-auto { display: none; }
+            body.sidebar-collapsed #sidebar-collapse-toggle svg { transform: rotate(180deg); }
+        }
+    </style>
+    <script>
+        function applySidebarState() {
+            document.body.classList.toggle('sidebar-collapsed', localStorage.getItem('sidebarCollapsed') === '1');
+        }
+        function toggleSidebar() {
+            localStorage.setItem('sidebarCollapsed', localStorage.getItem('sidebarCollapsed') === '1' ? '0' : '1');
+            applySidebarState();
+        }
+        document.addEventListener('DOMContentLoaded', applySidebarState);
+        document.addEventListener('livewire:navigated', applySidebarState);
+    </script>
 </head>
 
 <body class="bg-slate-100 dark:bg-slate-700">

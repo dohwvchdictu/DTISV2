@@ -76,7 +76,7 @@
                                             <div class="relative">
                                                 <input type="date" wire:model="startDate"
                                                     name='startDate'
-                                                    class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                                    class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full py-3 px-3 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                                                     placeholder="Select date">
                                             </div>
                                         </div>
@@ -255,13 +255,13 @@
                                             <span class="block relative z-10">
                                                 <div class="px-6 flex gap-x-1 text-sm">
                                                     {{
-                                                    Carbon\Carbon::parse($this->filterLog($document->id))->format('D, M
+                                                    Carbon\Carbon::parse($this->filterLog($document))->format('D, M
                                                     d, Y')
                                                     }}
                                                 </div>
                                                 <div class="px-6 flex gap-x-1 text-sm">
                                                     {{
-                                                    Carbon\Carbon::parse($this->filterLog($document->id))->format('h:i:s
+                                                    Carbon\Carbon::parse($this->filterLog($document))->format('h:i:s
                                                     A')
                                                     }}
                                                 </div>
@@ -272,7 +272,7 @@
                                             <span class="block relative z-10">
                                                 <div class="px-6 flex gap-x-1 text-sm">
                                                     {{
-                                                     $this->filterUserProcessed($document->id)
+                                                     $this->filterUserProcessed($document)
                                                     }}
                                                 </div>
                                             </span>

@@ -34,7 +34,18 @@
       "Bash(echo \"=== 2\\) Any PHP reference to the Partials\\\\\\\\Logbook class \\(imports, routes, ::class\\) ===\")",
       "Bash(grep -rnE \"Partials\\\\\\\\\\\\\\\\Logbook|Partials/Logbook\" app/ routes/ config/)",
       "Bash(grep -rn \"Partials\\\\\\\\\\\\\\\\Logbook\\\\|Partials/Logbook\" app/ routes/ config/ bootstrap/)",
-      "Bash(php -l routes/web.php)"
+      "Bash(php -l routes/web.php)",
+      "Bash(grep -nE \"^\\\\s{0,4}[a-zA-Z_-]+:|image:|build:|command:|container_name:\" docker-compose.yml)",
+      "Bash(grep -noE '\\\\$this->\\(filterLog|filterUserProcessed|filterUser|filterOffice|lookUpOffice|calculateTurnaroundTime\\)\\\\\\(|\\\\$document->logs|->logs->|\\\\$this->offices|\\\\$this->employees' resources/views/livewire/status/forwarded.blade.php)",
+      "Bash(php -l database/migrations/2026_07_23_000002_add_assigned_action_index_to_logs_table.php)",
+      "Bash(php -l app/Http/Controllers/MiscController.php)",
+      "Bash(grep -n 'foreach \\($this->offices' app/Http/Controllers/MiscController.php)",
+      "Bash(awk 'NR>=254 && /public function/ && NR>260 {print NR\": \"$0; exit}' app/Http/Controllers/MiscController.php)",
+      "Bash(grep -ncE 'Models\\\\\\\\\\\\\\\\|::where|::whereIn|\\\\$this->[a-zA-Z]+\\\\\\(' resources/views/livewire/report/internal-documents.blade.php)",
+      "Bash(grep -noE '\\\\\\\\\\\\\\\\App\\\\\\\\\\\\\\\\Models\\\\\\\\\\\\\\\\[A-Za-z]+::[a-zA-Z]+|\\\\$this->[a-zA-Z_]+\\\\\\(' resources/views/livewire/report/internal-documents.blade.php)",
+      "Bash(grep -noE '\\\\\\\\\\\\\\\\App\\\\\\\\\\\\\\\\Models\\\\\\\\\\\\\\\\[A-Za-z]+::[a-zA-Z]+|\\\\$this->[a-zA-Z_]+\\\\\\(|\\\\$document->\\(logs|category\\)' resources/views/livewire/report/external-documents.blade.php)",
+      "Bash(grep -noE '\\\\$\\(modalTitle|modalContent|modalAction|[a-zA-Z_]+\\)' resources/views/components/modals/confirmation-modal.blade.php)",
+      "Bash(grep -nB3 'ps-10 p-2.5' resources/views/livewire/status/forwarded.blade.php)"
     ]
   }
 }

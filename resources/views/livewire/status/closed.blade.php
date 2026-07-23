@@ -186,10 +186,10 @@
                                             <td class="size-px whitespace-nowrap">
                                                 <span class="block relative z-10">
                                                     <div class="px-6 flex gap-x-1 text-sm">
-                                                        {{ Carbon\Carbon::parse($this->filterLog($document->id))->format('D, M d, Y') }}
+                                                        {{ Carbon\Carbon::parse($this->filterLog($document))->format('D, M d, Y') }}
                                                     </div>
                                                     <div class="px-6 flex gap-x-1 text-sm">
-                                                        {{ Carbon\Carbon::parse($this->filterLog($document->id))->format('h:i:s A') }}
+                                                        {{ Carbon\Carbon::parse($this->filterLog($document))->format('h:i:s A') }}
                                                     </div>
                                                 </span>
                                             </td>
@@ -197,7 +197,7 @@
                                             <td class="size-px whitespace-nowrap">
                                                 <span class="block relative z-10">
                                                     <div class="px-6 flex gap-x-1 text-sm">
-                                                        {{ $this->filterUser($document->id) }}
+                                                        {{ $this->filterUser($document) }}
                                                     </div>
                                                 </span>
                                             </td>

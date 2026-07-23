@@ -134,13 +134,30 @@ class Closed extends Component
 
     public function filterUser($document)
     {
-        $this->id = Log::where('document_id', $document)->where('action_id', 5)->where('assigned_to', $this->office)->first()->user_id;
+        // Use the eager-loaded logs when given a Document model to avoid a per-row query
+        if ($document instanceof Document && $document->relationLoaded('logs')) {
+            $log = $document->logs->first();
+        } else {
+            // Fallback to querying if not eager-loaded (for backward compatibility)
+            $log = Log::where('document_id', is_object($document) ? $document->id : $document)
+                ->where('action_id', 5)
+                ->where('assigned_to', $this->office)
+                ->first();
+        }
+
+        if (!$log) {
+            return '';
+        }
+        $this->id = $log->user_id;
 
         $result = array_filter($this->employees, function ($employee) {
             return $employee['id'] == $this->id;
         });
 
         $userList = array_values($result);
+        if (!isset($userList[0])) {
+            return '';
+        }
         $userInfo = $userList[0];
         return $userInfo['firstName'] . ' ' . $userInfo['lastName'] . ' ' . $userInfo['suffix'];
     }
@@ -161,11 +178,13 @@ class Closed extends Component
                 $query->where('assigned_to', $this->office)
                     ->where('action_id', 5);
             })
-            // Eager load logs + category to prevent N+1 queries
+            // Eager load logs + category to prevent N+1 queries.
+            // ASC so ->first() on the loaded relation returns the earliest matching
+            // log — the same record the old per-row query (no order) displayed.
             ->with(['category', 'logs' => function ($query) {
                 $query->where('assigned_to', $this->office)
                     ->where('action_id', 5)
-                    ->orderBy('created_at', 'DESC');
+                    ->orderBy('created_at', 'ASC');
             }])
             ->orderBy('created_at', 'DESC')
             ->paginate(50);

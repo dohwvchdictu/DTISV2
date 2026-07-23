@@ -207,29 +207,34 @@ class MiscController extends Controller
                 ])->count(),
         ];
 
-        // Generate office-wise data
+        // Generate office-wise data. Pre-aggregate the counts in three grouped
+        // queries instead of running 3 count queries per office (~150 queries).
+        $rangeStart = \Carbon\Carbon::parse($startDate)->addDay(1);
+        $rangeEnd = \Carbon\Carbon::parse($endDate)->addDay(1);
+
+        $incomingByOffice = Document::whereIn('status', ['For Receiving', 'Returned'])
+            ->whereBetween('created_at', [$rangeStart, $rangeEnd])
+            ->selectRaw('assigned_to, COUNT(*) as aggregate')
+            ->groupBy('assigned_to')
+            ->pluck('aggregate', 'assigned_to');
+
+        $pendingByOffice = Document::where('status', 'On Process')
+            ->whereBetween('created_at', [$rangeStart, $rangeEnd])
+            ->selectRaw('assigned_to, COUNT(*) as aggregate')
+            ->groupBy('assigned_to')
+            ->pluck('aggregate', 'assigned_to');
+
+        $processedByOffice = Log::whereIn('action_id', [3, 5])
+            ->whereBetween('created_at', [$rangeStart, $rangeEnd])
+            ->selectRaw('assigned_to, COUNT(*) as aggregate')
+            ->groupBy('assigned_to')
+            ->pluck('aggregate', 'assigned_to');
+
         $reportData['offices'] = [];
         foreach ($this->offices as $office) {
-            $incoming = Document::where('assigned_to', $office['id'])
-                ->whereIn('status', ['For Receiving', 'Returned'])
-                ->whereBetween('created_at', [
-                    \Carbon\Carbon::parse($startDate)->addDay(1),
-                    \Carbon\Carbon::parse($endDate)->addDay(1)
-                ])->count();
-            
-            $pending = Document::where('assigned_to', $office['id'])
-                ->whereIn('status', ['On Process'])
-                ->whereBetween('created_at', [
-                    \Carbon\Carbon::parse($startDate)->addDay(1),
-                    \Carbon\Carbon::parse($endDate)->addDay(1)
-                ])->count();
-            
-            $processed = Log::where('assigned_to', $office['id'])
-                ->whereIn('action_id', [3, 5])
-                ->whereBetween('created_at', [
-                    \Carbon\Carbon::parse($startDate)->addDay(1),
-                    \Carbon\Carbon::parse($endDate)->addDay(1)
-                ])->count();
+            $incoming = $incomingByOffice[$office['id']] ?? 0;
+            $pending = $pendingByOffice[$office['id']] ?? 0;
+            $processed = $processedByOffice[$office['id']] ?? 0;
 
             $total = $incoming + $pending + $processed;
             $percentage = $processed && $total > 0 ? ($processed / $total) * 100 : 0;
@@ -290,34 +295,39 @@ class MiscController extends Controller
                 ])->count(),
         ];
 
-        // Generate office-wise data for external documents
+        // Generate office-wise data for external documents. Pre-aggregate the
+        // counts in three grouped queries instead of 3 count queries per office.
+        $rangeStart = \Carbon\Carbon::parse($startDate)->addDay(1);
+        $rangeEnd = \Carbon\Carbon::parse($endDate)->addDay(1);
+
+        $incomingByOffice = Document::where('source', 'external')
+            ->whereIn('status', ['For Receiving', 'Returned'])
+            ->whereBetween('created_at', [$rangeStart, $rangeEnd])
+            ->selectRaw('assigned_to, COUNT(*) as aggregate')
+            ->groupBy('assigned_to')
+            ->pluck('aggregate', 'assigned_to');
+
+        $pendingByOffice = Document::where('source', 'external')
+            ->where('status', 'On Process')
+            ->whereBetween('created_at', [$rangeStart, $rangeEnd])
+            ->selectRaw('assigned_to, COUNT(*) as aggregate')
+            ->groupBy('assigned_to')
+            ->pluck('aggregate', 'assigned_to');
+
+        $processedByOffice = Document::where('source', 'external')
+            ->whereHas('logs', function ($query) {
+                $query->whereIn('action_id', [3, 5]);
+            })
+            ->whereBetween('created_at', [$rangeStart, $rangeEnd])
+            ->selectRaw('assigned_to, COUNT(*) as aggregate')
+            ->groupBy('assigned_to')
+            ->pluck('aggregate', 'assigned_to');
+
         $reportData['offices'] = [];
         foreach ($this->offices as $office) {
-            $incoming = Document::where('source', 'external')
-                ->where('assigned_to', $office['id'])
-                ->whereIn('status', ['For Receiving', 'Returned'])
-                ->whereBetween('created_at', [
-                    \Carbon\Carbon::parse($startDate)->addDay(1),
-                    \Carbon\Carbon::parse($endDate)->addDay(1)
-                ])->count();
-            
-            $pending = Document::where('source', 'external')
-                ->where('assigned_to', $office['id'])
-                ->whereIn('status', ['On Process'])
-                ->whereBetween('created_at', [
-                    \Carbon\Carbon::parse($startDate)->addDay(1),
-                    \Carbon\Carbon::parse($endDate)->addDay(1)
-                ])->count();
-            
-            $processed = Document::where('source', 'external')
-                ->where('assigned_to', $office['id'])
-                ->whereHas('logs', function ($query) {
-                    $query->whereIn('action_id', [3, 5]);
-                })
-                ->whereBetween('created_at', [
-                    \Carbon\Carbon::parse($startDate)->addDay(1),
-                    \Carbon\Carbon::parse($endDate)->addDay(1)
-                ])->count();
+            $incoming = $incomingByOffice[$office['id']] ?? 0;
+            $pending = $pendingByOffice[$office['id']] ?? 0;
+            $processed = $processedByOffice[$office['id']] ?? 0;
 
             $total = $incoming + $pending + $processed;
             $percentage = $processed && $total > 0 ? ($processed / $total) * 100 : 0;

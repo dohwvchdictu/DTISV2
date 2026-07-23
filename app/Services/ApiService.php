@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use GuzzleHttp\Client;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
 class ApiService
@@ -132,5 +133,27 @@ class ApiService
         ]);
 
         return false;
+    }
+
+    /**
+     * Office/employee directory data barely changes but was previously
+     * fetched fresh from the external API on every module load. Cached so
+     * only the first request per window pays the network round-trip; a
+     * failed lookup is not cached, so the next request retries automatically.
+     */
+    public function getEmployeesData(): ?array
+    {
+        return Cache::remember('api.employees', now()->addMinutes(5), function () {
+            $response = Http::get(config('services.api.base_url') . 'public/get-employees');
+            return $response->ok() ? $response->json() : null;
+        });
+    }
+
+    public function getOfficesData(): ?array
+    {
+        return Cache::remember('api.offices', now()->addMinutes(5), function () {
+            $response = Http::get(config('services.api.base_url') . 'public/get-offices');
+            return $response->ok() ? $response->json() : null;
+        });
     }
 }

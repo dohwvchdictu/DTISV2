@@ -4,9 +4,9 @@ namespace App\Livewire\Report;
 
 use Livewire\Component;
 use App\Models\Document;
+use App\Services\ApiService;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Http;
 use Jantinnerezo\LivewireAlert\LivewireAlert;
 use Livewire\Attributes\Title;
 use Livewire\WithPagination;
@@ -50,8 +50,8 @@ class Employees extends Component
 
         /** API for Employees */
         try {
-            $this->responseEmployees = Http::get(config('services.api.base_url') . 'public/get-employees')->json();
-            
+            $this->responseEmployees = app(ApiService::class)->getEmployeesData();
+
             // Check if API response is valid
             if (!isset($this->responseEmployees['employeesList']) || !is_array($this->responseEmployees['employeesList'])) {
                 $this->employees = [];

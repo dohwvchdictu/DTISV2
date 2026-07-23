@@ -10,9 +10,9 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use App\Services\ApiService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Illuminate\Support\Facades\Http;
 
 class CitizenCharterResource extends Resource
 {
@@ -30,8 +30,8 @@ class CitizenCharterResource extends Resource
                 Forms\Components\Select::make('office_id')
                     ->label('Owner')
                     ->options(function () {
-                        $response = Http::get(config('services.api.base_url') . 'public/get-offices');
-                        return $response->collect('officeList')->mapWithKeys(function ($data) {
+                        $offices = app(ApiService::class)->getOfficesData()['officeList'] ?? [];
+                        return collect($offices)->mapWithKeys(function ($data) {
                             return [$data['id'] => $data['officeName']];
                         });
                     })
@@ -60,9 +60,9 @@ class CitizenCharterResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('office_id')
                     ->getStateUsing(function (CitizenCharter $cc) {
-                        $response = Http::get(config('services.api.base_url') . 'public/get-offices');
-                        $data = $response->collect('officeList')->firstWhere('id', $cc->office_id);
-                        return $data['officeName'];
+                        $offices = app(ApiService::class)->getOfficesData()['officeList'] ?? [];
+                        $data = collect($offices)->firstWhere('id', $cc->office_id);
+                        return $data['officeName'] ?? 'Unknown Office';
                     })
                     ->label('Owner')
                     ->sortable(),

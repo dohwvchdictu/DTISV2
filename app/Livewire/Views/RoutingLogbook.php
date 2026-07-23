@@ -5,8 +5,8 @@ namespace App\Livewire\Views;
 use App\Models\Action;
 use App\Models\Document;
 use App\Models\Log;
+use App\Services\ApiService;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -30,14 +30,14 @@ class RoutingLogbook extends Component
         $this->from   = now()->subDay()->toDateString();
         $this->to     = now()->toDateString();
 
-        $response = Http::get(config('services.api.base_url') . 'public/get-offices');
-        if ($response->ok()) {
-            $this->offices = $response->json()['officeList'] ?? [];
+        $officeData = app(ApiService::class)->getOfficesData();
+        if ($officeData) {
+            $this->offices = $officeData['officeList'] ?? [];
         }
 
-        $employeeResponse = Http::get(config('services.api.base_url') . 'public/get-employees');
-        if ($employeeResponse->ok()) {
-            $this->employees = collect($employeeResponse->json()['employeesList'] ?? [])
+        $employeeData = app(ApiService::class)->getEmployeesData();
+        if ($employeeData) {
+            $this->employees = collect($employeeData['employeesList'] ?? [])
                 ->keyBy('id')
                 ->toArray();
         }

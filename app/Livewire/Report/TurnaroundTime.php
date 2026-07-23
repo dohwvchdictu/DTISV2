@@ -3,12 +3,12 @@
 namespace App\Livewire\Report;
 
 use App\Models\Document;
+use App\Services\ApiService;
 use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
 use Jantinnerezo\LivewireAlert\LivewireAlert;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -126,9 +126,9 @@ class TurnaroundTime extends Component
     public function checkApiConnection()
     {
         /** API */
-        $officeResponse = Http::get(config('services.api.base_url') . 'public/get-offices');
+        $this->response = app(ApiService::class)->getOfficesData();
 
-        if (!$officeResponse->ok()) {
+        if (!$this->response) {
             $this->offices = [];
 
             $this->alert('error', 'No response from API server. Check connection and try again.', [
@@ -142,8 +142,6 @@ class TurnaroundTime extends Component
 
             return false;
         }
-
-        $this->response = $officeResponse->json();
 
         $this->offices = collect($this->response['officeList'] ?? [])
             ->sortBy('officeName')

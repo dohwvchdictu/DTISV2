@@ -4,7 +4,7 @@ namespace App\Livewire\Status;
 
 use App\Models\Document;
 use App\Models\Log;
-use Illuminate\Support\Facades\Http;
+use App\Services\ApiService;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
@@ -31,9 +31,6 @@ class Closed extends Component
         /** End User Information */
         // Fetch API data with error handling
         $this->checkApiConnection();
-
-        $this->responseEmployees = Http::get(config('services.api.base_url') . 'public/get-employees')->json();
-        $this->employees = $this->responseEmployees['employeesList'];
     }
 
     /**
@@ -42,19 +39,16 @@ class Closed extends Component
      */
     private function checkApiConnection()
     {
-        $employeeResponse = Http::get(config('services.api.base_url') . 'public/get-employees');
-        $officeResponse = Http::get(config('services.api.base_url') . 'public/get-offices');
+        $this->responseEmployees = app(ApiService::class)->getEmployeesData();
+        $this->responseOffices = app(ApiService::class)->getOfficesData();
 
-        if (!$employeeResponse->ok() || !$officeResponse->ok()) {
+        if (!$this->responseEmployees || !$this->responseOffices) {
             $this->employees = [];
             $this->offices = [];
             $this->responseEmployees = null;
             $this->responseOffices = null;
             return false;
         }
-
-        $this->responseEmployees = $employeeResponse->json();
-        $this->responseOffices = $officeResponse->json();
 
         $this->employees = collect($this->responseEmployees['employeesList'] ?? [])
             ->sortBy('lastName')

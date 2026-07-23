@@ -1,5 +1,5 @@
 <div class="w-full lg:ps-64">
-    <div class="p-4 sm:p-6 space-y-4 sm:space-y-6">
+    <div class="p-4 sm:p-6 lg:pt-1.5 space-y-4 sm:space-y-6">
         {{-- Breadcrumb --}}
         <ol class="flex items-center whitespace-nowrap">
             <li class="inline-flex items-center">

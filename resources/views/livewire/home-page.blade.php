@@ -1,6 +1,6 @@
 <!-- Content -->
 <div class="w-full lg:ps-64">
-    <div class="p-4 sm:p-6 space-y-4 sm:space-y-6">
+    <div class="p-4 sm:p-6 lg:pt-1.5 space-y-4 sm:space-y-6">
         <ol class="flex items-center whitespace-nowrap">
             <li class="inline-flex items-center">
                 <a class="flex items-center text-sm text-gray-500 hover:text-blue-600 focus:outline-none focus:text-blue-600 dark:text-neutral-500 dark:hover:text-blue-500 dark:focus:text-blue-500"

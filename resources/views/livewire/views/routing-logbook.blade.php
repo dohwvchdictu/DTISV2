@@ -4,7 +4,7 @@
 /** @var \Illuminate\Database\Eloquent\Collection $receivedLogs */
 @endphp
 <div class="w-full lg:ps-64">
-    <div class="p-4 sm:p-6 space-y-4">
+    <div class="p-4 sm:p-6 lg:pt-1.5 space-y-4">
 
         {{-- Breadcrumb --}}
         <ol class="flex items-center whitespace-nowrap">

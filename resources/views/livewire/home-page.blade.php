@@ -34,7 +34,7 @@
                         <label for="startDate" class="sr-only">Start Date</label>
                         <div class="relative">
                             <input type="date" wire:model.live.debounce.2500ms="startDate" name='startDate'
-                                class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5 dark:bg-neutral-800 dark:border-neutral-600 dark:placeholder-neutral-400 dark:text-neutral-200 dark:[color-scheme:dark] dark:focus:ring-blue-500 dark:focus:border-blue-500"
                                 placeholder="Select date">
                         </div>
                     </div>
@@ -42,7 +42,7 @@
                         <label for="EndDate" class="sr-only">End Date</label>
                         <div class="relative">
                             <input type="date" wire:model.live.debounce.2500ms="endDate" name="endDate"
-                                class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5 dark:bg-neutral-800 dark:border-neutral-600 dark:placeholder-neutral-400 dark:text-neutral-200 dark:[color-scheme:dark] dark:focus:ring-blue-500 dark:focus:border-blue-500"
                                 placeholder="Select date">
                         </div>
                     </div>
@@ -79,7 +79,7 @@
 
                         <div class="grow">
                             <div class="flex items-center gap-x-2">
-                                <p class="text-xs uppercase tracking-wide text-amber-500 dark:text-neutral-500">
+                                <p class="text-xs uppercase tracking-wide text-amber-500 dark:text-amber-500">
                                     For Receiving
                                 </p>
                                 <div class="hs-tooltip">
@@ -129,7 +129,7 @@
 
                         <div class="grow">
                             <div class="flex items-center gap-x-2">
-                                <p class="text-xs uppercase tracking-wide text-red-500 dark:text-neutral-500">
+                                <p class="text-xs uppercase tracking-wide text-red-500 dark:text-red-500">
                                     Pending
                                 </p>
                                 <div class="hs-tooltip">
@@ -180,7 +180,7 @@
 
                         <div class="grow">
                             <div class="flex items-center gap-x-2">
-                                <p class="text-xs uppercase tracking-wide text-emerald-500 dark:text-neutral-500">
+                                <p class="text-xs uppercase tracking-wide text-emerald-500 dark:text-emerald-500">
                                     Processed
                                 </p>
                                 <div class="hs-tooltip">
@@ -230,7 +230,7 @@
 
                         <div class="grow">
                             <div class="flex items-center gap-x-2">
-                                <p class="text-xs uppercase tracking-wide text-sky-500 dark:text-neutral-500">
+                                <p class="text-xs uppercase tracking-wide text-sky-500 dark:text-sky-500">
                                     Acted Upon
                                 </p>
                                 <div class="hs-tooltip">
@@ -285,7 +285,7 @@
                     <div class="p-4 md:p-5 flex gap-x-4">
                         <div
                             class="shrink-0 flex justify-center items-center size-[46px] bg-gray-100 rounded-lg dark:bg-neutral-800">
-                            <svg class="shrink-0 size-5" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                            <svg class="shrink-0 size-5 text-gray-600 dark:text-neutral-400" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                                 viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                 stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-files">
                                 <path d="M20 7h-3a2 2 0 0 1-2-2V2" />
@@ -296,7 +296,7 @@
 
                         <div class="grow">
                             <div class="flex items-center gap-x-2">
-                                <p class="text-xs uppercase tracking-wide text-amber-500 dark:text-neutral-500">
+                                <p class="text-xs uppercase tracking-wide text-amber-500 dark:text-amber-500">
                                     Documents
                                 </p>
                                 <div class="hs-tooltip">
@@ -333,7 +333,7 @@
                     <div class="p-4 md:p-5 flex gap-x-4">
                         <div
                             class="shrink-0 flex justify-center items-center size-[46px] bg-gray-100 rounded-lg dark:bg-neutral-800">
-                            <svg class="shrink-0 size-5" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                            <svg class="shrink-0 size-5 text-gray-600 dark:text-neutral-400" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                                 viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                 stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-text">
                                 <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
@@ -346,7 +346,7 @@
 
                         <div class="grow">
                             <div class="flex items-center gap-x-2">
-                                <p class="text-xs uppercase tracking-wide text-red-500 dark:text-neutral-500">
+                                <p class="text-xs uppercase tracking-wide text-red-500 dark:text-red-500">
                                     Purchase Requests
                                 </p>
                                 <div class="hs-tooltip">
@@ -383,7 +383,7 @@
                     <div class="p-4 md:p-5 flex gap-x-4">
                         <div
                             class="shrink-0 flex justify-center items-center size-[46px] bg-gray-100 rounded-lg dark:bg-neutral-800">
-                            <svg class="shrink-0 size-5" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                            <svg class="shrink-0 size-5 text-gray-600 dark:text-neutral-400" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                                 viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                 stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-scroll-text">
                                 <path d="M15 12h-5" />
@@ -396,7 +396,7 @@
 
                         <div class="grow">
                             <div class="flex items-center gap-x-2">
-                                <p class="text-xs uppercase tracking-wide text-emerald-500 dark:text-neutral-500">
+                                <p class="text-xs uppercase tracking-wide text-emerald-500 dark:text-emerald-500">
                                     Payments
                                 </p>
                                 <div class="hs-tooltip">
@@ -446,7 +446,7 @@
 
                         <div class="grow">
                             <div class="flex items-center gap-x-2">
-                                <p class="text-xs uppercase tracking-wide text-sky-500 dark:text-neutral-500">
+                                <p class="text-xs uppercase tracking-wide text-sky-500 dark:text-sky-500">
                                     Bundles
                                 </p>
                                 <div class="hs-tooltip">

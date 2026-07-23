@@ -63,7 +63,7 @@
                     @if($subEmployees)
                     <div class="max-w-full py-4 mt-2">
                         <label for="endorsedTo" class="block text-sm font-medium mb-2 dark:text-white">Endorsed
-                            To <span class="text-sm text-gray-500">(optional)</span></label>
+                            To <span class="text-sm text-gray-500 dark:text-neutral-400">(optional)</span></label>
                         <select wire:model='endorsedTo'
                             class="py-3 px-4 pe-9 block w-full border-gray-200 bg-gray-100 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
                             <option selected="">Select Personnel </option>
@@ -138,7 +138,7 @@
                     </span>
                 </div>
                 <div>
-                    <span class="text-sm px-4 py-2 rounded-lg bg-gray-100 text-gray-600 mr-3">
+                    <span class="text-sm px-4 py-2 rounded-lg bg-gray-100 dark:bg-neutral-700 text-gray-600 dark:text-neutral-400 mr-3">
                         <em>{{'Calculated Turnaround Time: '. $turnaround_time . ' ' . $this->suffixTurnaroundTime()
                             }}</em>
                     </span>
@@ -170,7 +170,7 @@
                                     Carbon\Carbon::parse($log['created_at'])->format('h:i A')}}</span>
                                 <div class="mt-1 my-1">
                                     <span
-                                        class="inline-flex items-center gap-1.5 py-1 px-3 rounded-lg text-xs {{ $log->action->color ?? '' }} font-medium text-gray-800">
+                                        class="inline-flex items-center gap-1.5 py-1 px-3 rounded-lg text-xs {{ $log->action->color ?? '' }} dark:{{ str_replace('-100', '-500/20', $log->action->color ?? 'bg-gray-100') }} font-medium text-gray-800 dark:text-neutral-200">
                                         {{ Str::title($log->action->name ?? '') }}
                                     </span>
                                 </div>
@@ -182,7 +182,7 @@
                                 class="relative last:after:hidden after:absolute after:top-7 after:bottom-0 after:start-3.5 after:w-px after:-translate-x-[0.5px] after:bg-gray-200 dark:after:bg-neutral-700">
                                 <div class="relative z-10 size-7 flex justify-center items-center">
                                     <div
-                                        class="size-2 rounded-full {{ $loop->first ? 'bg-emerald-400' : 'bg-gray-400' }}">
+                                        class="size-2 rounded-full {{ $loop->first ? 'bg-emerald-400' : 'bg-gray-400 dark:bg-neutral-600' }}">
                                     </div>
                                 </div>
                             </div>
@@ -222,7 +222,7 @@
                                     <span class="font-medium">{{ $officeLabel }}:</span> {{ $officeName }}
                                 </p>
                                 <button type="button"
-                                    class="mt-1 -ms-1 p-1 inline-flex items-center gap-x-2 text-xs rounded-lg border border-transparent text-gray-500 bg-gray-100 focus:outline-none focus:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:text-neutral-400 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700">
+                                    class="mt-1 -ms-1 p-1 inline-flex items-center gap-x-2 text-xs rounded-lg border border-transparent text-gray-500 bg-gray-100 dark:bg-neutral-700 focus:outline-none focus:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:text-neutral-400 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700">
                                     {{ $this->filterUser($log['user_id']) }}
                                 </button>
                             </div>

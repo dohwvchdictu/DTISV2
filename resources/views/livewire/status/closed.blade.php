@@ -58,7 +58,7 @@
                                             <div class="relative">
                                                 <input wire:model.blur="search" type="text" id="search"
                                                     name="search"
-                                                    class="py-2 px-3 ps-11 block w-full border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+                                                    class="py-2 px-3 ps-11 block w-full border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
                                                     placeholder="Search">
                                                 <div
                                                     class="absolute inset-y-0 start-0 flex items-center pointer-events-none ps-4">
@@ -145,13 +145,13 @@
                                             <td class="size-px whitespace-nowrap">
                                                 <span class="block">
                                                     <div class="px-6">
-                                                        <div class="block text-sm text-emerald-900 decoration-2">
+                                                        <div class="block text-sm text-emerald-900 dark:text-emerald-400 decoration-2">
                                                             {{ $document->control_no }}
                                                         </div>
                                                     </div>
                                                     <div class="px-6">
                                                         <span
-                                                            class="inline-flex items-center gap-1.5 py-1 px-2 mt-2 rounded-lg text-xs font-medium {{ $this->colorIndicator($document->status) }} text-gray-800">
+                                                            class="inline-flex items-center gap-1.5 py-1 px-2 mt-2 rounded-lg text-xs font-medium {{ $this->colorIndicator($document->status) }} text-gray-800 dark:text-neutral-200">
                                                             {!! $this->iconIndicator($document->status) !!}
                                                             {{ Str::title($document->status) }}
                                                         </span>
@@ -166,12 +166,12 @@
                                                         class="block text-sm text-gray-500 dark:text-neutral-500 break-words">{{ $document->subject }}</span>
                                                     <div class="flex gap-x-1 my-2">
                                                         <span
-                                                            class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium {{ $document->source == 'internal' ? 'bg-emerald-100 text-gray-800' : 'bg-red-100 text-gray-800' }} ">
+                                                            class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium {{ $document->source == 'internal' ? 'bg-emerald-100 text-gray-800 dark:bg-emerald-500/20 dark:text-neutral-200' : 'bg-red-100 text-gray-800 dark:bg-red-500/20 dark:text-neutral-200' }} ">
                                                             {{ Str::title($document->source) }}
                                                         </span>
                                                         @if ($document->citizen_charter_id)
                                                             <span
-                                                                class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium bg-gray-100 text-gray-800">
+                                                                class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium bg-gray-100 dark:bg-neutral-700 text-gray-800 dark:text-neutral-200">
                                                                 {{ \App\Models\CitizenCharter::find($document->citizen_charter_id)->name }}
                                                             </span>
                                                         @endif
@@ -185,10 +185,10 @@
                                             </td>
                                             <td class="size-px whitespace-nowrap">
                                                 <span class="block relative z-10">
-                                                    <div class="px-6 flex gap-x-1 text-sm">
+                                                    <div class="px-6 flex gap-x-1 text-sm text-gray-600 dark:text-neutral-400">
                                                         {{ Carbon\Carbon::parse($this->filterLog($document))->format('D, M d, Y') }}
                                                     </div>
-                                                    <div class="px-6 flex gap-x-1 text-sm">
+                                                    <div class="px-6 flex gap-x-1 text-sm text-gray-600 dark:text-neutral-400">
                                                         {{ Carbon\Carbon::parse($this->filterLog($document))->format('h:i:s A') }}
                                                     </div>
                                                 </span>
@@ -196,7 +196,7 @@
 
                                             <td class="size-px whitespace-nowrap">
                                                 <span class="block relative z-10">
-                                                    <div class="px-6 flex gap-x-1 text-sm">
+                                                    <div class="px-6 flex gap-x-1 text-sm text-gray-600 dark:text-neutral-400">
                                                         {{ $this->filterUser($document) }}
                                                     </div>
                                                 </span>
@@ -204,7 +204,7 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td class="text-center py-5 font-bold text-lg" colspan="6">No records
+                                            <td class="text-center py-5 font-bold text-lg text-gray-800 dark:text-neutral-200" colspan="6">No records
                                                 found!
                                             </td>
                                         </tr>

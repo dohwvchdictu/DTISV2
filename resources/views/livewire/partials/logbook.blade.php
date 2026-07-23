@@ -88,7 +88,7 @@
     </style>
 </head>
 
-<body class="bg-gray-50">
+<body class="bg-gray-50 dark:bg-neutral-700">
     <div class="max-w-full px-4 mx-auto">
         <!-- Header -->
         <div class="row mb-4">
@@ -103,17 +103,17 @@
         </div>
 
         <div class="text-center mb-8 print-header">
-            <h1 class="text-2xl font-bold text-gray-800 mb-2">Electronic Document Logbook</h1>
-            <p class="text-gray-600">Generated on {{ now()->format('F d, Y h:i A') }}</p>
-            <p class="text-gray-600">Total Documents: {{ $documentsArray->flatten(1)->count() }}</p>
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-neutral-200 mb-2">Electronic Document Logbook</h1>
+            <p class="text-gray-600 dark:text-neutral-400">Generated on {{ now()->format('F d, Y h:i A') }}</p>
+            <p class="text-gray-600 dark:text-neutral-400">Total Documents: {{ $documentsArray->flatten(1)->count() }}</p>
         </div>
 
         @if($documentsArray->flatten(1)->count() > 0)
         <!-- Document Table -->
-        <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden print:shadow-none print:border-gray-400">
+        <div class="bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-lg shadow-sm overflow-hidden print:shadow-none print:border-gray-400">
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 print-table">
-                    <thead class="bg-white">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-neutral-700 print-table">
+                    <thead class="bg-white dark:bg-neutral-800">
                         <tr>
                             <th class="px-3 py-2 text-left text-xs font-medium text-emerald-800 uppercase tracking-wider col-control">
                                 Control No.
@@ -135,26 +135,26 @@
                             </th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
+                    <tbody class="bg-white dark:bg-neutral-800 divide-y divide-gray-200 dark:divide-neutral-700">
                         @foreach($documentsArray as $officeId => $documentsGroup)
                             @foreach($documentsGroup as $documentData)
                                 <tr>
                                     <td class="px-3 py-2 text-sm font-medium text-emerald-800 col-control" style="word-break: break-word;">
                                         {{ $documentData['control_no'] }}
                                     </td>
-                                    <td class="px-3 py-2 text-center text-sm text-gray-900 col-date" style="word-break: break-word;">
+                                    <td class="px-3 py-2 text-center text-sm text-gray-900 dark:text-neutral-200 col-date" style="word-break: break-word;">
                                         {{ $documentData['created_at']->format('M d, Y') }}
                                     </td>
-                                    <td class="px-3 py-2 text-sm text-gray-900 col-subject" style="word-break: break-word;">
+                                    <td class="px-3 py-2 text-sm text-gray-900 dark:text-neutral-200 col-subject" style="word-break: break-word;">
                                         <div class="font-medium text-xs">{{ $documentData['category'] }}</div>
-                                        <div class="text-gray-600 text-xs mt-1" style="line-height: 1.2;">{{ \Illuminate\Support\Str::limit($documentData['subject'], 180) }}</div>
+                                        <div class="text-gray-600 dark:text-neutral-400 text-xs mt-1" style="line-height: 1.2;">{{ \Illuminate\Support\Str::limit($documentData['subject'], 180) }}</div>
                                     </td>
-                                    <td class="px-3 py-2 text-center font-medium text-gray-900 col-office" style="word-break: break-word;">
+                                    <td class="px-3 py-2 text-center font-medium text-gray-900 dark:text-neutral-200 col-office" style="word-break: break-word;">
                                         {{ $documentData['office_name'] }}
                                     </td>
-                                    <td class="px-3 py-2 text-sm text-gray-900 col-received-date" style="word-break: break-word;">
+                                    <td class="px-3 py-2 text-sm text-gray-900 dark:text-neutral-200 col-received-date" style="word-break: break-word;">
                                     </td>
-                                    <td class="px-3 py-2 text-sm text-gray-900 col-received-by" style="word-break: break-word;">
+                                    <td class="px-3 py-2 text-sm text-gray-900 dark:text-neutral-200 col-received-by" style="word-break: break-word;">
                                     </td>
                                 </tr>
                             @endforeach
@@ -176,7 +176,7 @@
                 Print Logbook
             </button>
             <a href="{{ url()->previous() }}"
-                class="py-2 px-6 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
+                class="py-2 px-6 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 text-gray-700 dark:text-neutral-300 hover:bg-gray-50 dark:hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
                 <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="m12 19-7-7 7-7" />
                     <path d="M19 12H5" />
@@ -186,15 +186,15 @@
         </div>
         @else
         <div class="text-center py-12">
-            <div class="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="mx-auto w-24 h-24 bg-gray-100 dark:bg-neutral-700 rounded-full flex items-center justify-center mb-4">
+                <svg class="w-12 h-12 text-gray-400 dark:text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
             </div>
-            <h3 class="text-lg font-medium text-gray-900 mb-2">No Documents Selected</h3>
-            <p class="text-gray-500">Please select documents to generate the electronic logbook.</p>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-neutral-200 mb-2">No Documents Selected</h3>
+            <p class="text-gray-500 dark:text-neutral-400">Please select documents to generate the electronic logbook.</p>
             <a href="{{ url()->previous() }}"
-                class="mt-4 inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
+                class="mt-4 inline-flex items-center px-4 py-2 border border-gray-300 dark:border-neutral-600 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-gray-50 dark:hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
                 <svg class="shrink-0 size-4 mr-2" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="m12 19-7-7 7-7" />
                     <path d="M19 12H5" />

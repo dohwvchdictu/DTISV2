@@ -56,7 +56,7 @@
                                             <label for="search" class="sr-only">Search</label>
                                             <div class="relative">
                                                 <input wire:model.live.debounce.300ms="search" type="text" id="search" name="search"
-                                                    class="py-3 px-3 ps-11 block w-full border-gray-200 rounded-lg shadow text-sm focus:border-emerald-500 focus:ring-emerald-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+                                                    class="py-3 px-3 ps-11 block w-full border-gray-200 rounded-lg shadow text-sm focus:border-emerald-500 focus:ring-emerald-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
                                                     placeholder="Search">
                                                 <div
                                                     class="absolute inset-y-0 start-0 flex items-center pointer-events-none ps-4">
@@ -74,7 +74,7 @@
                                             <div class="relative">
                                                 <input type="date" wire:model.live.debounce.2500ms="startDate"
                                                     name='startDate'
-                                                    class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full py-3 px-3 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                                    class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full py-3 px-3 dark:bg-neutral-800 dark:border-neutral-600 dark:placeholder-neutral-400 dark:text-neutral-200 dark:[color-scheme:dark] dark:focus:ring-blue-500 dark:focus:border-blue-500"
                                                     placeholder="Select date">
                                             </div>
                                         </div>
@@ -83,7 +83,7 @@
                                             <div class="relative">
                                                 <input type="date" wire:model.live.debounce.2500ms="endDate"
                                                     name="endDate"
-                                                    class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full py-3 px-3 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                                    class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full py-3 px-3 dark:bg-neutral-800 dark:border-neutral-600 dark:placeholder-neutral-400 dark:text-neutral-200 dark:[color-scheme:dark] dark:focus:ring-blue-500 dark:focus:border-blue-500"
                                                     placeholder="Select date">
                                             </div>
                                         </div>
@@ -106,48 +106,48 @@
                                             <div class="divide-y divide-gray-200 dark:divide-neutral-700">
                                                 <ul class="max-w-sm flex flex-col">
                                                     <li
-                                                        class="inline-flex items-center gap-x-2 py-3 px-4 text-sm font-medium bg-white border text-gray-800 -mt-px first:rounded-t-lg first:mt-0 last:rounded-b-lg">
+                                                        class="inline-flex items-center gap-x-2 py-3 px-4 text-sm font-medium bg-white dark:bg-neutral-800 border text-gray-800 dark:text-neutral-200 -mt-px first:rounded-t-lg first:mt-0 last:rounded-b-lg">
                                                         <div class="relative flex items-start w-full">
                                                             <div class="flex items-center h-5">
                                                                 <input wire:key='type-1' id="hs-list-group-item-radio-1"
                                                                     wire:click='documentTypeFilter("")'
                                                                     name="hs-list-group-item-radio" type="radio"
-                                                                    class="border-gray-200 rounded-full disabled:opacity-50"
+                                                                    class="border-gray-200 dark:border-neutral-700 rounded-full disabled:opacity-50"
                                                                     checked="">
                                                             </div>
                                                             <label for="hs-list-group-item-radio-1"
-                                                                class="ms-3 block w-full text-sm text-gray-600">
+                                                                class="ms-3 block w-full text-sm text-gray-600 dark:text-neutral-400">
                                                                 All Documents
                                                             </label>
                                                         </div>
                                                     </li>
                                                     <li
-                                                        class="inline-flex items-center gap-x-2 py-3 px-4 text-sm font-medium bg-white border text-gray-800 -mt-px first:rounded-t-lg first:mt-0 last:rounded-b-lg">
+                                                        class="inline-flex items-center gap-x-2 py-3 px-4 text-sm font-medium bg-white dark:bg-neutral-800 border text-gray-800 dark:text-neutral-200 -mt-px first:rounded-t-lg first:mt-0 last:rounded-b-lg">
                                                         <div class="relative flex items-start w-full">
                                                             <div class="flex items-center h-5">
                                                                 <input wire:key='type-2' id="hs-list-group-item-radio-2"
                                                                     wire:click='documentTypeFilter("Purchase")'
                                                                     name="hs-list-group-item-radio" type="radio"
-                                                                    class="border-gray-200 rounded-full disabled:opacity-50">
+                                                                    class="border-gray-200 dark:border-neutral-700 rounded-full disabled:opacity-50">
                                                             </div>
                                                             <label for="hs-list-group-item-radio-2"
-                                                                class="ms-3 block w-full text-sm text-gray-600">
+                                                                class="ms-3 block w-full text-sm text-gray-600 dark:text-neutral-400">
                                                                 Purchase Requests
                                                             </label>
                                                         </div>
                                                     </li>
 
                                                     <li
-                                                        class="inline-flex items-center gap-x-2 py-3 px-4 text-sm font-medium bg-white border text-gray-800 -mt-px first:rounded-t-lg first:mt-0 last:rounded-b-lg">
+                                                        class="inline-flex items-center gap-x-2 py-3 px-4 text-sm font-medium bg-white dark:bg-neutral-800 border text-gray-800 dark:text-neutral-200 -mt-px first:rounded-t-lg first:mt-0 last:rounded-b-lg">
                                                         <div class="relative flex items-start w-full">
                                                             <div class="flex items-center h-5">
                                                                 <input wire:key='type-3' id="hs-list-group-item-radio-3"
                                                                     wire:click='documentTypeFilter("Payment")'
                                                                     name="hs-list-group-item-radio" type="radio"
-                                                                    class="border-gray-200 rounded-full disabled:opacity-50">
+                                                                    class="border-gray-200 dark:border-neutral-700 rounded-full disabled:opacity-50">
                                                             </div>
                                                             <label for="hs-list-group-item-radio-3"
-                                                                class="ms-3 block w-full text-sm text-gray-600">
+                                                                class="ms-3 block w-full text-sm text-gray-600 dark:text-neutral-400">
                                                                 Payments
                                                             </label>
                                                         </div>
@@ -331,13 +331,13 @@
                                         <td class="size-px whitespace-nowrap">
                                             <span class="block">
                                                 <div class="px-6">
-                                                    <div class="block text-sm text-emerald-900 decoration-2">
+                                                    <div class="block text-sm text-emerald-900 dark:text-emerald-400 decoration-2">
                                                         {{ $document->control_no }}
                                                     </div>
                                                 </div>
                                                 <div class="px-6">
                                                     <span
-                                                        class="inline-flex items-center gap-1.5 py-1 px-2 mt-2 rounded-lg text-xs font-medium {{ $this->colorIndicator($document->status) }} text-gray-800">
+                                                        class="inline-flex items-center gap-1.5 py-1 px-2 mt-2 rounded-lg text-xs font-medium {{ $this->colorIndicator($document->status) }} text-gray-800 dark:text-neutral-200">
                                                         {!! $this->iconIndicator($document->status) !!}
                                                         {{ Str::title($document->status ) }}
                                                     </span>
@@ -347,7 +347,7 @@
 
                                         <td class="size-px whitespace-nowrap">
                                             <span class="block relative z-10">
-                                                <div class="px-6 flex gap-x-1 text-sm">
+                                                <div class="px-6 flex gap-x-1 text-sm text-gray-600 dark:text-neutral-400">
                                                     {{
                                                         $this->filterOffice($document->logs->sortByDesc('id')->where('office_id', '!=', $this->office)->first()->office_id ?? '')
                                                     }}
@@ -364,12 +364,12 @@
                                                     $document->subject }}</span>
                                                 <div class="flex gap-x-1 my-2">
                                                     <span
-                                                        class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium {{ $document->source == 'internal' ? 'bg-emerald-100 text-gray-800' : 'bg-red-100 text-gray-800'}} ">
+                                                        class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium {{ $document->source == 'internal' ? 'bg-emerald-100 text-gray-800 dark:bg-emerald-500/20 dark:text-neutral-200' : 'bg-red-100 text-gray-800 dark:bg-red-500/20 dark:text-neutral-200'}} ">
                                                         {{ Str::title($document->source) }}
                                                     </span>
                                                     @if($document->citizen_charter_id)
                                                     <span
-                                                        class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium bg-gray-100 text-gray-800">
+                                                        class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium bg-gray-100 dark:bg-neutral-700 text-gray-800 dark:text-neutral-200">
                                                         {{
                                                         \App\Models\CitizenCharter::find($document->citizen_charter_id)->name
                                                         }}
@@ -380,13 +380,13 @@
                                         </td>
                                         <td class="size-px whitespace-nowrap">
                                             <span class="block relative z-10">
-                                                <div class="px-6 flex gap-x-1 text-sm">
+                                                <div class="px-6 flex gap-x-1 text-sm text-gray-600 dark:text-neutral-400">
                                                     {{
                                                     Carbon\Carbon::parse($document->updated_at)->format('D, M d,
                                                     Y')
                                                     }}
                                                 </div>
-                                                <div class="px-6 flex gap-x-1 text-sm">
+                                                <div class="px-6 flex gap-x-1 text-sm text-gray-600 dark:text-neutral-400">
                                                     {{
                                                     Carbon\Carbon::parse($document->updated_at)->format('h:i:s
                                                     A')
@@ -397,7 +397,7 @@
 
                                         <td class="hidden md:table-cell size-px whitespace-nowrap">
                                             <span class="block relative z-10">
-                                                <div class="px-6 flex gap-x-1 text-sm">
+                                                <div class="px-6 flex gap-x-1 text-sm text-gray-600 dark:text-neutral-400">
                                                     {{
                                                     Carbon\Carbon::now()->diffForHumans($document->updated_at)
                                                     }}
@@ -407,7 +407,7 @@
 
                                         <td class="hidden md:table-cell size-px whitespace-nowrap">
                                             <span class="block relative z-10">
-                                                <div class="px-6 flex gap-x-1 text-sm">
+                                                <div class="px-6 flex gap-x-1 text-sm text-gray-600 dark:text-neutral-400">
                                                     {{
                                                         $document->endorsed_to ? $this->filterUser($document->endorsed_to) : ''
                                                     }}
@@ -417,7 +417,7 @@
                                     </tr>
                                     @empty
                                     <tr>
-                                        <td class="text-center py-5 font-bold text-lg" colspan="7">No records
+                                        <td class="text-center py-5 font-bold text-lg text-gray-800 dark:text-neutral-200" colspan="7">No records
                                             found!
                                         </td>
                                     </tr>
@@ -454,7 +454,7 @@
 
     {{-- Modal Loading Overlay --}}
     <div wire:loading class="fixed z-50 flex items-center justify-center top-1/2 start-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 py-4 max-w-full min-h-[8rem]">
-        <div class="bg-white rounded-xl shadow-lg  py-4 px-6 flex flex-col items-center">
+        <div class="bg-white dark:bg-neutral-800 rounded-xl shadow-lg  py-4 px-6 flex flex-col items-center">
             <div class="flex items-center gap-4">
                 <div class="animate-spin inline-block size-8 border-[3px] border-current border-t-transparent text-xl text-emerald-600 rounded-full"
                     role="status" aria-label="loading">

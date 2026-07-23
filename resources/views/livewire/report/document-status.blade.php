@@ -293,7 +293,7 @@
                                             <div class="relative">
                                                 <input type="date" wire:model.live.debounce.2500ms="startDate"
                                                     name='startDate'
-                                                    class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                                    class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5 dark:bg-neutral-800 dark:border-neutral-600 dark:placeholder-neutral-400 dark:text-neutral-200 dark:[color-scheme:dark] dark:focus:ring-blue-500 dark:focus:border-blue-500"
                                                     placeholder="Select date">
                                             </div>
                                         </div>
@@ -302,7 +302,7 @@
                                             <div class="relative">
                                                 <input type="date" wire:model.live.debounce.2500ms="endDate"
                                                     name="endDate"
-                                                    class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                                    class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5 dark:bg-neutral-800 dark:border-neutral-600 dark:placeholder-neutral-400 dark:text-neutral-200 dark:[color-scheme:dark] dark:focus:ring-blue-500 dark:focus:border-blue-500"
                                                     placeholder="Select date">
                                             </div>
                                         </div>
@@ -411,7 +411,7 @@
                                             <td class="size-px whitespace-nowrap">
                                                 <span class="block">
                                                     <div class="px-6 py-4">
-                                                        <div class="block font-semibold text-emerald-900 decoration-2">
+                                                        <div class="block font-semibold text-emerald-900 dark:text-emerald-400 decoration-2">
                                                             {{ $office['officeName'] }}</div>
                                                     </div>
                                                 </span>
@@ -448,7 +448,7 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td class="text-center py-5 font-bold text-lg" colspan="6">No records
+                                            <td class="text-center py-5 font-bold text-lg text-gray-800 dark:text-neutral-200" colspan="6">No records
                                                 found!
                                             </td>
                                         </tr>

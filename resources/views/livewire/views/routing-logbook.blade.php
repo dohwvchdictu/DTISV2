@@ -66,7 +66,7 @@
                         class="py-1 px-2 lg:py-1.5 lg:px-3 text-xs lg:text-sm rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 dark:bg-neutral-800 dark:border-neutral-600 dark:text-neutral-200">
                 </div>
                 <button type="button" wire:click="resetDates"
-                    class="py-1 px-2.5 lg:py-1.5 lg:px-3 text-xs font-medium rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 focus:outline-none dark:bg-neutral-800 dark:border-neutral-600 dark:text-neutral-300">
+                    class="py-1 px-2.5 lg:py-1.5 lg:px-3 text-xs font-medium rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:hover:bg-neutral-700 focus:outline-none dark:bg-neutral-800 dark:border-neutral-600 dark:text-neutral-300">
                     Reset
                 </button>
             </div>

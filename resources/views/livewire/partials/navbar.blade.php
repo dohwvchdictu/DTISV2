@@ -1,7 +1,7 @@
 <div wire:poll.240s="refreshToken">
     <!-- ========== HEADER ========== -->
     <header style="top: 90px; height: 55px"
-        class="fixed inset-x-0 flex flex-wrap md:justify-start md:flex-nowrap z-[48] w-full bg-emerald-600 border-b text-sm dark:bg-neutral-800 dark:border-neutral-700">
+        class="fixed inset-x-0 flex flex-wrap md:justify-start md:flex-nowrap z-[48] w-full bg-emerald-600 border-b text-sm dark:bg-neutral-800 dark:border-transparent">
         <nav class="px-4 sm:px-4 flex basis-full items-center w-full mx-auto">
             <div class="me-5 flex items-center shrink-0">
                 <!-- Logo -->
@@ -40,6 +40,22 @@
                 </div>
 
                 <div class="flex flex-row items-center justify-end gap-1">
+                    <!-- Dark Mode Toggle -->
+                    <button type="button" onclick="toggleDarkMode()" aria-label="Toggle Dark Mode"
+                        class="size-9 inline-flex justify-center items-center gap-x-2 text-sm font-semibold rounded-full border border-transparent text-white hover:bg-emerald-700 focus:outline-none disabled:opacity-50 disabled:pointer-events-none">
+                        <svg class="hidden size-5 icon-sun" xmlns="http://www.w3.org/2000/svg" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        <svg class="size-5 icon-moon" xmlns="http://www.w3.org/2000/svg" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                        </svg>
+                    </button>
+                    <!-- End Dark Mode Toggle -->
+
                     <!-- Dropdown -->
                     <div class="hs-dropdown [--placement:bottom-right] relative inline-flex">
                         <button id="hs-dropdown-account" type="button"

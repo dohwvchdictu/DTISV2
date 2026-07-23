@@ -20,6 +20,10 @@
     <link rel="icon" href="{!! asset('/img/doh.ico') !!}"/>
 
     <style>
+        /* Dark mode toggle icon swap (sun shown in dark, moon in light) */
+        html.dark .icon-sun { display: block; }
+        html.dark .icon-moon { display: none; }
+
         @media (min-width: 1024px) {
             body.sidebar-collapsed #hs-application-sidebar { width: 64px; }
             body.sidebar-collapsed .lg\:ps-64 { padding-inline-start: 64px; }
@@ -38,6 +42,11 @@
         }
     </style>
     <script>
+        if (localStorage.getItem('darkMode') === '1') document.documentElement.classList.add('dark');
+        function toggleDarkMode() {
+            const on = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('darkMode', on ? '1' : '0');
+        }
         function applySidebarState() {
             document.body.classList.toggle('sidebar-collapsed', localStorage.getItem('sidebarCollapsed') === '1');
         }
@@ -50,7 +59,7 @@
     </script>
 </head>
 
-<body class="bg-slate-100 dark:bg-slate-700">
+<body class="bg-slate-100 dark:bg-neutral-900">
 
     <main>
         @livewire('header-section')

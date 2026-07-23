@@ -45,7 +45,14 @@
       "Bash(grep -noE '\\\\\\\\\\\\\\\\App\\\\\\\\\\\\\\\\Models\\\\\\\\\\\\\\\\[A-Za-z]+::[a-zA-Z]+|\\\\$this->[a-zA-Z_]+\\\\\\(' resources/views/livewire/report/internal-documents.blade.php)",
       "Bash(grep -noE '\\\\\\\\\\\\\\\\App\\\\\\\\\\\\\\\\Models\\\\\\\\\\\\\\\\[A-Za-z]+::[a-zA-Z]+|\\\\$this->[a-zA-Z_]+\\\\\\(|\\\\$document->\\(logs|category\\)' resources/views/livewire/report/external-documents.blade.php)",
       "Bash(grep -noE '\\\\$\\(modalTitle|modalContent|modalAction|[a-zA-Z_]+\\)' resources/views/components/modals/confirmation-modal.blade.php)",
-      "Bash(grep -nB3 'ps-10 p-2.5' resources/views/livewire/status/forwarded.blade.php)"
+      "Bash(grep -nB3 'ps-10 p-2.5' resources/views/livewire/status/forwarded.blade.php)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code} %{url_effective}\\\\n\" -L http://dtisv2.test)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost)",
+      "Bash(cat package.json 2>/dev/null | head -30; ls node_modules/.bin 2>/dev/null | grep -iE 'playwright|puppeteer' ; echo \"---browsers---\"; ls \"/c/Program Files/Google/Chrome/Application/chrome.exe\" \"/c/Program Files \\(x86\\)/Microsoft/Edge/Application/msedge.exe\" \"/c/Program Files \\(x86\\)/Google/Chrome/Application/chrome.exe\" 2>/dev/null)",
+      "Read(//c/Program Files/Google/Chrome/Application/**)",
+      "Bash(curl -s -o /dev/null -w \"auth api: %{http_code}\\\\n\" http://localhost:8081/ --max-time 5)",
+      "PowerShell(git -C c:\\\\Users\\\\DOH\\\\Herd\\\\DTISV2 diff --stat)",
+      "PowerShell(git -C c:\\\\Users\\\\DOH\\\\Herd\\\\DTISV2 status --short)"
     ]
   }
 }

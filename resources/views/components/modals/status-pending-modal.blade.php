@@ -58,7 +58,7 @@
                     @if($subEmployees)
                     <div class="max-w-full py-4 mt-2">
                         <label for="endorsedToOtherPersonnel" class="block text-sm font-medium mb-2 dark:text-white">Endorsed
-                            To <span class="text-sm text-gray-500">(optional)</span></label>
+                            To <span class="text-sm text-gray-500 dark:text-neutral-400">(optional)</span></label>
                         <select wire:model='endorsedToOtherPersonnel'
                             class="py-3 px-4 pe-9 block w-full border-gray-200 bg-gray-100 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
                             <option selected="">Select Personnel </option>
@@ -239,7 +239,7 @@
                     <!-- Form -->
                     <form wire:submit.prevent='close'>
                         <input type="text" readonly disabled wire:model='phrase'
-                            class="block w-full text-center font-serif font-semibold py-2 px-2 mb-2 text-gray-700 text-4xl bg-gray-50">
+                            class="block w-full text-center font-serif font-semibold py-2 px-2 mb-2 text-gray-700 dark:text-neutral-300 text-4xl bg-gray-50 dark:bg-neutral-700">
                         <div class="grid gap-y-4">
                             <!-- Form Group -->
                             <div>

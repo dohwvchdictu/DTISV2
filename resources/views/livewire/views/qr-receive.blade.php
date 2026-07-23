@@ -102,7 +102,7 @@
                         <dl class="flex flex-col sm:flex-row gap-x-3 text-sm">
                             <dt class="min-w-36 max-w-[200px] text-gray-500 dark:text-neutral-500">Current Status:</dt>
                             <dd>
-                                <span class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium bg-sky-100 text-gray-800">
+                                <span class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium bg-sky-100 text-gray-800 dark:bg-sky-500/20 dark:text-neutral-200">
                                     {{ $document->status }}
                                 </span>
                             </dd>
@@ -110,7 +110,7 @@
                     </div>
                     <div class="px-6 pb-6 flex justify-end gap-x-2">
                         <a href="/dashboard"
-                            class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 focus:outline-none">
+                            class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-gray-800 dark:text-neutral-200 shadow-sm hover:bg-gray-50 dark:hover:bg-neutral-700 focus:outline-none">
                             Dashboard
                         </a>
                         <a href="/status-pending"
@@ -167,7 +167,7 @@
                         <dl class="flex flex-col sm:flex-row gap-x-3 text-sm">
                             <dt class="min-w-36 max-w-[200px] text-gray-500 dark:text-neutral-500">Control No.:</dt>
                             <dd>
-                                <span class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium bg-gray-50 text-gray-800">
+                                <span class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium bg-gray-50 dark:bg-neutral-700 text-gray-800 dark:text-neutral-200">
                                     {{ $document->control_no }}
                                 </span>
                             </dd>
@@ -187,7 +187,7 @@
                         <dl class="flex flex-col sm:flex-row gap-x-3 text-sm">
                             <dt class="min-w-36 max-w-[200px] text-gray-500 dark:text-neutral-500">New Status:</dt>
                             <dd>
-                                <span class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium bg-yellow-100 text-gray-800">
+                                <span class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium bg-yellow-100 text-gray-800 dark:bg-yellow-500/20 dark:text-neutral-200">
                                     <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/>
                                     </svg>
@@ -198,7 +198,7 @@
                     </div>
                     <div class="px-6 pb-6 flex justify-end gap-x-2">
                         <a href="/dashboard"
-                            class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 focus:outline-none">
+                            class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-gray-800 dark:text-neutral-200 shadow-sm hover:bg-gray-50 dark:hover:bg-neutral-700 focus:outline-none">
                             Dashboard
                         </a>
                         <a href="/status-pending"
@@ -221,7 +221,7 @@
                             <h2 class="text-xl font-bold text-emerald-700 dark:text-neutral-200">
                                 {{ $document->category->name }}
                             </h2>
-                            <span class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium bg-gray-50 text-gray-800">
+                            <span class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium bg-gray-50 dark:bg-neutral-700 text-gray-800 dark:text-neutral-200">
                                 Control No. {{ $document->control_no }}
                             </span>
                         </div>
@@ -258,7 +258,7 @@
                                 <dl class="flex flex-col sm:flex-row gap-x-3 text-sm">
                                     <dt class="min-w-36 max-w-[200px] text-gray-500 dark:text-neutral-500">Created at:</dt>
                                     <dd class="text-gray-800 dark:text-neutral-200">
-                                        <span class="inline-flex items-center gap-x-1.5 text-xs text-gray-800">
+                                        <span class="inline-flex items-center gap-x-1.5 text-xs text-gray-800 dark:text-neutral-200">
                                             {{ $document->created_at->format('D, M d, Y h:i:s A') }}
                                         </span>
                                     </dd>
@@ -274,7 +274,7 @@
                                 <dl class="flex flex-col sm:flex-row gap-x-3 text-sm">
                                     <dt class="min-w-36 max-w-[200px] text-gray-500 dark:text-neutral-500">Tagging:</dt>
                                     <dd>
-                                        <span class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium {{ $document->source === 'internal' ? 'bg-emerald-100' : 'bg-red-100' }} text-gray-800">
+                                        <span class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium {{ $document->source === 'internal' ? 'bg-emerald-100' : 'bg-red-100' }} text-gray-800 dark:text-neutral-200">
                                             {{ Str::title($document->source) }}
                                         </span>
                                     </dd>
@@ -300,7 +300,7 @@
                                 <dl class="flex flex-col sm:flex-row gap-x-3 text-sm">
                                     <dt class="min-w-36 max-w-[200px] text-gray-500 dark:text-neutral-500">Status:</dt>
                                     <dd>
-                                        <span class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium bg-sky-100 text-gray-800">
+                                        <span class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium bg-sky-100 text-gray-800 dark:bg-sky-500/20 dark:text-neutral-200">
                                             <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                 <path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M2 15h10"/><path d="m9 18 3-3-3-3"/>
                                             </svg>
@@ -338,7 +338,7 @@
 
     {{-- Loading overlay --}}
     <div wire:loading class="fixed z-50 flex items-center justify-center top-1/2 start-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 py-4 max-w-full min-h-[8rem]">
-        <div class="bg-white rounded-xl shadow-lg py-4 px-6 flex flex-col items-center">
+        <div class="bg-white dark:bg-neutral-800 rounded-xl shadow-lg py-4 px-6 flex flex-col items-center">
             <div class="flex items-center gap-4">
                 <div class="animate-spin inline-block size-8 border-[3px] border-current border-t-transparent text-emerald-600 rounded-full"
                     role="status" aria-label="loading">

@@ -3,7 +3,8 @@
     "allow": [
       "Bash(Select-String -Path \"c:\\\\Users\\\\DOH\\\\Herd\\\\DTISV2\\\\resources\\\\views\\\\livewire\\\\auth\\\\login-page.blade.php\" -Pattern \"w-\\\\[28rem\\\\]|pt-36|grid-cols|h-screen|max-w-\\\\[85rem\\\\]\")",
       "Bash(Select-Object LineNumber, Line)",
-      "Bash(Get-Content \"c:\\\\Users\\\\DOH\\\\Herd\\\\DTISV2\\\\resources\\\\views\\\\livewire\\\\auth\\\\login-page.blade.php\" -TotalCount 180)"
+      "Bash(Get-Content \"c:\\\\Users\\\\DOH\\\\Herd\\\\DTISV2\\\\resources\\\\views\\\\livewire\\\\auth\\\\login-page.blade.php\" -TotalCount 180)",
+      "Bash(docker compose *)"
     ]
   }
 }

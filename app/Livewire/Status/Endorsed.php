@@ -6,9 +6,9 @@ use App\Models\Action;
 use App\Models\Category;
 use App\Models\Document;
 use App\Models\Log;
+use App\Services\ApiService;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Sleep;
 use Jantinnerezo\LivewireAlert\LivewireAlert;
 use Livewire\Attributes\On;
@@ -95,16 +95,16 @@ class Endorsed extends Component
      */
     private function checkApiConnection()
     {
-        $employeeResponse = Http::get(config('services.api.base_url') . 'public/get-employees');
-        $officeResponse = Http::get(config('services.api.base_url') . 'public/get-offices');
+        $this->responseEmployees = app(ApiService::class)->getEmployeesData();
+        $this->responseOffices = app(ApiService::class)->getOfficesData();
 
-        if (!$employeeResponse->ok() || !$officeResponse->ok()) {
+        if (!$this->responseEmployees || !$this->responseOffices) {
             $this->employees = [];
             $this->offices = [];
             $this->filterOfficeEmployees = [];
             $this->responseEmployees = null;
             $this->responseOffices = null;
-            
+
             $this->alert('error', 'No response from API server. Check connection and try again.', [
                 'position' => 'center',
                 'toast' => true,
@@ -113,12 +113,9 @@ class Endorsed extends Component
                 'confirmButtonText' => 'OK',
                 'confirmButtonColor' => '#dc2626',
             ]);
-            
+
             return false;
         }
-
-        $this->responseEmployees = $employeeResponse->json();
-        $this->responseOffices = $officeResponse->json();
 
         $this->employees = collect($this->responseEmployees['employeesList'] ?? [])
             ->sortBy('lastName')

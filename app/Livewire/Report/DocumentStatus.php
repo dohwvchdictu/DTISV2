@@ -3,9 +3,9 @@
 namespace App\Livewire\Report;
 
 use App\Models\Document;
+use App\Services\ApiService;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Http;
 use Jantinnerezo\LivewireAlert\LivewireAlert;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\On;
@@ -40,10 +40,9 @@ class DocumentStatus extends Component
     public function checkApiConnection()
     {
         /** API */
-        $officeResponse = Http::get(config('services.api.base_url') . 'public/get-offices');
+        $this->response = app(ApiService::class)->getOfficesData();
 
-        if(!$officeResponse->ok())
-        {
+        if (!$this->response) {
             $this->offices = [];
 
             $this->alert('error', 'No response from API server. Check connection and try again.', [
@@ -54,11 +53,9 @@ class DocumentStatus extends Component
                 'confirmButtonText' => 'OK',
                 'confirmButtonColor' => '#dc2626',
             ]);
-            
+
             return false;
         }
-
-        $this->response = $officeResponse->json();
 
         $this->offices = collect($this->response['officeList'] ?? [])
             ->sortBy('officeName')

@@ -4,9 +4,9 @@ namespace App\Livewire\Report;
 
 use App\Models\Action;
 use App\Models\Document;
+use App\Services\ApiService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -44,10 +44,9 @@ class ExternalDocuments extends Component
     public function checkApiConnection()
     {
         /** API */
-        $officeResponse = Http::get(config('services.api.base_url') . 'public/get-offices');
+        $this->response = app(ApiService::class)->getOfficesData();
 
-        if(!$officeResponse->ok())
-        {
+        if (!$this->response) {
             $this->offices = [];
 
             $this->alert('error', 'No response from API server. Check connection and try again.', [
@@ -62,16 +61,14 @@ class ExternalDocuments extends Component
             return false;
         }
 
-        $this->response = $officeResponse->json();
-
         $this->offices = collect($this->response['officeList'] ?? [])
             ->sortBy('officeName')
             ->values()
             ->all();
 
-        $employeeResponse = Http::get(config('services.api.base_url') . 'public/get-employees');
-        if ($employeeResponse->ok()) {
-            $this->employees = collect($employeeResponse->json()['employeesList'] ?? [])
+        $employeeData = app(ApiService::class)->getEmployeesData();
+        if ($employeeData) {
+            $this->employees = collect($employeeData['employeesList'] ?? [])
                 ->keyBy('id')
                 ->toArray();
         }

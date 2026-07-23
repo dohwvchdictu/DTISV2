@@ -4,7 +4,7 @@ namespace App\Livewire\Partials;
 
 use App\Models\Document;
 use App\Models\Log;
-use Illuminate\Support\Facades\Http;
+use App\Services\ApiService;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
@@ -43,10 +43,9 @@ class Logbook extends Component
     public function loadOffices()
     {
         try {
-            $response = Http::get(config('services.api.base_url') . 'public/get-offices');
-            
-            if ($response->ok()) {
-                $data = $response->json();
+            $data = app(ApiService::class)->getOfficesData();
+
+            if ($data) {
                 $this->offices = collect($data['officeList'] ?? [])
                     ->keyBy('id')
                     ->toArray();

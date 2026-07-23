@@ -6,8 +6,8 @@ use App\Http\Controllers\ApiController;
 use App\Models\Action;
 use App\Models\Document;
 use App\Models\Log;
+use App\Services\ApiService;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Sleep;
 use Jantinnerezo\LivewireAlert\LivewireAlert;
 use Livewire\Attributes\On;
@@ -87,14 +87,14 @@ class DocumentDetail extends Component
         $this->type = $this->document->category->name;
         $this->subject = $this->document->subject;
 
-        $this->responseEmployees = Http::get(config('services.api.base_url') . 'public/get-employees')->json();
-        $this->employees = collect($this->responseEmployees['employeesList'])
+        $this->responseEmployees = app(ApiService::class)->getEmployeesData();
+        $this->employees = collect($this->responseEmployees['employeesList'] ?? [])
             ->sortBy('lastName')
             ->values()
             ->all();
 
-        $this->responseOffices = Http::get(config('services.api.base_url') . 'public/get-offices')->json();
-        $this->offices = collect($this->responseOffices['officeList'])
+        $this->responseOffices = app(ApiService::class)->getOfficesData();
+        $this->offices = collect($this->responseOffices['officeList'] ?? [])
             ->sortBy('officeName')
             ->values()
             ->all();

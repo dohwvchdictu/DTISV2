@@ -27,6 +27,8 @@
         @livewire('header-section')
         @livewire('partials.navbar')
         @livewire('partials.sidebar')
+        {{-- Spacer for the fixed banner (90px) + navbar (55px) --}}
+        <div style="height: 145px"></div>
         {{ $slot }}
     </main>
 

@@ -9,23 +9,37 @@ use Livewire\Component;
 class DocumentTracking extends Component
 {
     /** Constant Variables */
-    public $offices = [];
+    /**
+     * Large, rarely-changing directory data. Kept protected so it is NOT
+     * serialized into the Livewire snapshot on every request; reloaded from
+     * cache each request via boot().
+     */
+    protected $offices = [];
     public $user = [];
     public $endorsedID;
-    public $responseOffices;
-    public $responseEmployees;
-    public $employees = [];
+    protected $responseOffices;
+    protected $responseEmployees;
+    protected $employees = [];
 
     public $document;
     public $trackingData = [];
     public $isLoading = true;
     public $id;
 
+    /**
+     * Runs on every request (before mount and before public-prop hydration).
+     * Reloads the protected directory data from cache so it is available for
+     * render and helper methods without bloating the Livewire snapshot.
+     */
+    public function boot()
+    {
+        $this->checkApiConnection();
+    }
+
     public function mount($document)
     {
         $this->document = $document;
         $this->loadTrackingData();
-        $this->checkApiConnection();
     }
 
     /**

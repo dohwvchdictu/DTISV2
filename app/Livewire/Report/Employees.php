@@ -19,7 +19,12 @@ class Employees extends Component
     #[Title('Status per Employee | Document Tracking Information System')]
 
     /** Constant Variables */
-    public $responseEmployees;
+    /**
+     * Full employee list (~400 KB) is only used inside mount() to derive the
+     * small per-office $employees subset below. Kept protected so it is never
+     * serialized into the Livewire snapshot.
+     */
+    protected $responseEmployees;
     public $employees = [];
     public $sortedEmployees = [];
     public $response;

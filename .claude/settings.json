@@ -4,7 +4,28 @@
       "Bash(Select-String -Path \"c:\\\\Users\\\\DOH\\\\Herd\\\\DTISV2\\\\resources\\\\views\\\\livewire\\\\auth\\\\login-page.blade.php\" -Pattern \"w-\\\\[28rem\\\\]|pt-36|grid-cols|h-screen|max-w-\\\\[85rem\\\\]\")",
       "Bash(Select-Object LineNumber, Line)",
       "Bash(Get-Content \"c:\\\\Users\\\\DOH\\\\Herd\\\\DTISV2\\\\resources\\\\views\\\\livewire\\\\auth\\\\login-page.blade.php\" -TotalCount 180)",
-      "Bash(docker compose *)"
+      "Bash(docker compose *)",
+      "Bash(cat)",
+      "Bash(php scratch_diag4.php)",
+      "Bash(rm -f scratch_diag*.php)",
+      "Bash(grep -rnoE '\\\\$\\(responseEmployees|responseOffices|employees|offices|subEmployees|filterOfficeEmployees\\)\\\\b' resources/views/livewire/status/incoming.blade.php resources/views/livewire/status/pending.blade.php)",
+      "Bash(grep -rln 'filterOfficeEmployees\\\\|subEmployees\\\\|responseEmployees\\\\|responseOffices\\\\|\\\\$offices\\\\|\\\\$employees' resources/views/)",
+      "Bash(grep -noE '\\(filterOfficeEmployees|subEmployees|responseEmployees|responseOffices|\\\\$offices|\\\\$employees\\)' resources/views/components/modals/status-pending-modal.blade.php resources/views/components/modals/inbox-modals.blade.php)",
+      "Bash(grep -nE 'filterOfficeEmployees|subEmployees|responseEmployees|responseOffices|\\\\$offices|\\\\$employees' resources/views/components/modals/status-pending-modal.blade.php)",
+      "Bash(php verify_idx.php)",
+      "Bash(rm -f verify_idx.php)",
+      "Bash(php -l app/Livewire/Status/Incoming.php)",
+      "Bash(php -l app/Livewire/Status/Pending.php)",
+      "Bash(php smoke.php)",
+      "Bash(php q.php)",
+      "Bash(grep -noE '\\\\$document->logs|->logs->' resources/views/livewire/status/incoming.blade.php resources/views/livewire/status/pending.blade.php)",
+      "Bash(grep -rlnE 'public \\\\$\\(responseEmployees|responseOffices|employees|offices\\)\\\\b' app/Livewire/)",
+      "Bash(php -l app/Livewire/Status/Endorsed.php)",
+      "Bash(php -l app/Livewire/Status/Closed.php)",
+      "Bash(php -l app/Livewire/Status/Forwarded.php)",
+      "Bash(grep -nE '\\\\$documentsArray|\\\\$documents\\\\b' resources/views/livewire/partials/logbook.blade.php)",
+      "Bash(grep -nA6 'public function filterUser' app/Livewire/Inbox/MyPurchaseRequests.php)",
+      "Bash(grep -c '\\\\.php$')"
     ]
   }
 }

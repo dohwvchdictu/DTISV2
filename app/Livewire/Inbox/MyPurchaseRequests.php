@@ -27,12 +27,18 @@ class MyPurchaseRequests extends Component
     public $office;
     public $user = [];
     public $categories_array = [];
-    public $employees = [];
+    /**
+     * Large, rarely-changing directory data. Kept protected so it is NOT
+     * serialized into the Livewire snapshot on every request; reloaded from
+     * cache each request via boot().
+     */
+    protected $employees = [];
+    /** Small per-office subset shown in a dropdown — must stay public for the Blade view. */
     public $subEmployees = [];
-    public $filterOfficeEmployees = [];
-    public $offices;
-    public $responseEmployees;
-    public $responseOffices;
+    protected $filterOfficeEmployees = [];
+    protected $offices;
+    protected $responseEmployees;
+    protected $responseOffices;
 
     /** Search & Filter Variables*/
     public $search = '';
@@ -77,8 +83,15 @@ class MyPurchaseRequests extends Component
         foreach ($categories_obj->toArray() as $value) {
             $this->categories_array[] = $value['id'];
         }
+    }
 
-        /** API - Load with error handling */
+    /**
+     * Runs on every request (before mount and before public-prop hydration).
+     * Reloads the protected directory data from cache so it is available for
+     * render and action methods without bloating the Livewire snapshot.
+     */
+    public function boot()
+    {
         $this->checkApiConnection();
     }
 
@@ -110,8 +123,9 @@ class MyPurchaseRequests extends Component
             ->values()
             ->all();
 
-        $this->filterOfficeEmployees = array_filter($this->employees, function ($office) {
-            return isset($office['office']['id']) && $office['office']['id'] == $this->user['office']['id'];
+        $sessionOfficeId = session('user')['office']['id'] ?? null;
+        $this->filterOfficeEmployees = array_filter($this->employees, function ($office) use ($sessionOfficeId) {
+            return isset($office['office']['id']) && $office['office']['id'] == $sessionOfficeId;
         });
 
         return true;
@@ -413,6 +427,7 @@ class MyPurchaseRequests extends Component
     public function render()
     {
         $documents = Document::query()
+            ->with('category')
             ->when($this->search, function ($query) {
                 $query->where('control_no', 'like', '%' . $this->search . '%')
                     ->orWhere('subject', 'like', '%' . $this->search . '%');

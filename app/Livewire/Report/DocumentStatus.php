@@ -20,21 +20,26 @@ class DocumentStatus extends Component
     #[Title('Status of Documents | Document Tracking Information System')]
 
     /** Constant Variables */
-    public $offices = [];
-    public $response;
+    /** Office directory kept protected so it is not serialized into the Livewire snapshot; reloaded from cache in boot(). */
+    protected $offices = [];
+    protected $response;
     public $percentage;
 
     /** Filter Date Variables */
     public $startDate;
     public $endDate;
 
+    /** Reloads the cached office directory on every request without bloating the snapshot. */
+    public function boot()
+    {
+        $this->checkApiConnection();
+    }
+
     public function mount()
     {
         /** Filter Records last 30 days */
         $this->startDate = Carbon::now()->subMonth(1)->format('Y-m-d');
         $this->endDate = Carbon::now()->format('Y-m-d');
-
-       $this->checkApiConnection();
     }
 
     public function checkApiConnection()

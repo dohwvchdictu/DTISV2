@@ -21,8 +21,9 @@ class PerUnit extends Component
     #[Title('Per Unit | Document Tracking Information System')]
 
     /** Constant Variables */
-    public $offices = [];
-    public $response;
+    /** Office directory kept protected so it is not serialized into the Livewire snapshot; reloaded from cache in boot(). */
+    protected $offices = [];
+    protected $response;
     public $purchaseRequestCategoryIds = [];
     public $paymentCategoryIds = [];
     public $statuses = ['Created', 'For Receiving', 'On Process', 'Returned', 'Closed'];
@@ -48,7 +49,11 @@ class PerUnit extends Component
         $this->paymentCategoryIds = Category::where('name', 'like', 'Payment%')->pluck('id')->toArray();
 
         $this->applyFilters();
+    }
 
+    /** Reloads the cached office directory on every request without bloating the snapshot. */
+    public function boot()
+    {
         $this->checkApiConnection();
     }
 

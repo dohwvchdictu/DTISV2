@@ -20,13 +20,28 @@ class ExternalDocuments extends Component
     /** Constant Variables */
     public $user = [];
     public $office;
-    public $offices = [];
-    public $employees = [];
-    public $response;
+    /**
+     * Large, rarely-changing directory data. Kept protected so it is NOT
+     * serialized into the Livewire snapshot on every request; reloaded from
+     * cache each request via boot().
+     */
+    protected $offices = [];
+    protected $employees = [];
+    protected $response;
 
     /** Filter Date Variables */
     public $startDate;
     public $endDate;
+
+    /**
+     * Runs on every request (before mount and before public-prop hydration).
+     * Reloads the protected directory data from cache so it is available for
+     * render and helper methods without bloating the Livewire snapshot.
+     */
+    public function boot()
+    {
+        $this->checkApiConnection();
+    }
 
     public function mount()
     {
@@ -36,9 +51,6 @@ class ExternalDocuments extends Component
         /** Filter Records last 30 days */
         $this->startDate = Carbon::now()->subMonth(1)->format('Y-m-d');
         $this->endDate = Carbon::now()->format('Y-m-d');
-
-        $this->checkApiConnection();
-
     }
 
     public function checkApiConnection()

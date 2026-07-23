@@ -14,17 +14,23 @@ class Logbook extends Component
     
     public $selectedItems = [];
     public $documents = [];
-    public $offices = [];
+    /** Office directory kept protected so it is not serialized into the Livewire snapshot; loaded from cache in boot(). */
+    protected $offices = [];
+
+    /** Loads the cached office directory on every request without bloating the snapshot. */
+    public function boot()
+    {
+        $this->loadOffices();
+    }
 
     public function mount()
     {
         // Get selected_items from query parameter
         $selectedItemsParam = request()->get('selected_items', '');
-        
+
         if (!empty($selectedItemsParam)) {
             $this->selectedItems = explode(',', $selectedItemsParam);
             $this->loadDocuments();
-            $this->loadOffices();
         }
     }
 

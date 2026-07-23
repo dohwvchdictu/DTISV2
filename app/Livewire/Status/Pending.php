@@ -26,7 +26,12 @@ class Pending extends Component
     #[Title('Pending Documents | Document Tracking Information System')]
 
     /** Constant Variables */
-    public $offices = [];
+    /**
+     * Large, rarely-changing directory data. Kept protected so it is NOT
+     * serialized into the Livewire snapshot on every request; reloaded from
+     * cache each request via boot().
+     */
+    protected $offices = [];
     public $user = [];
     public $office;
 
@@ -34,9 +39,10 @@ class Pending extends Component
     public $passphrase = '';
 
     /** API Responses */
-    public $responseEmployees;
-    public $responseOffices;
-    public $employees = [];
+    protected $responseEmployees;
+    protected $responseOffices;
+    protected $employees = [];
+    /** Small per-office subset shown in a dropdown — must stay public for the Blade view. */
     public $subEmployees = [];
     public $endorsedID;
 
@@ -59,7 +65,8 @@ class Pending extends Component
     public $endorsedToPersonnel;
     public $endorsedToOtherPersonnel;
     public $selected_office;
-    public $filterOfficeEmployees = [];
+    /** Reloaded from cache each request in boot(); accessed via $this-> in Blade. */
+    protected $filterOfficeEmployees = [];
 
     /** Forward Variables */
     public int $document_id;
@@ -83,6 +90,16 @@ class Pending extends Component
         'closeModal'
     ];
 
+    /**
+     * Runs on every request (before mount and before public-prop hydration).
+     * Reloads the protected directory data from cache so it is available for
+     * render and action methods without bloating the Livewire snapshot.
+     */
+    public function boot()
+    {
+        $this->checkApiConnection();
+    }
+
     public function mount()
     {
         /** User Information */
@@ -93,9 +110,6 @@ class Pending extends Component
         /** Filter Records last 1 Quarter */
         $this->startDate = Carbon::now()->subQuarter(1)->format('Y-m-d');
         $this->endDate = Carbon::now()->format('Y-m-d');
-
-        // Check API connection and load data
-        $this->checkApiConnection();
     }
 
     /**
@@ -136,8 +150,9 @@ class Pending extends Component
             ->values()
             ->all();
 
-        $this->filterOfficeEmployees = array_filter($this->employees, function ($office) {
-            return isset($office['office']['id']) && $office['office']['id'] == $this->user['office']['id'];
+        $sessionOfficeId = session('user')['office']['id'] ?? null;
+        $this->filterOfficeEmployees = array_filter($this->employees, function ($office) use ($sessionOfficeId) {
+            return isset($office['office']['id']) && $office['office']['id'] == $sessionOfficeId;
         });
 
         return true;
@@ -627,6 +642,7 @@ class Pending extends Component
     public function render()
     {
         $documents = Document::query()
+            ->with(['logs', 'category'])
              ->when($this->search, function ($query) {
                 $query->where(function ($q) {
                     $q->where('control_no', 'like', '%' . $this->search . '%')

@@ -14,14 +14,29 @@ class Closed extends Component
     /** Constant Variables */
     public $user = [];
     public $office;
-    public $responseEmployees;
-    public $responseOffices;
-    public $employees = [];
-    public $offices = [];
+    /**
+     * Large, rarely-changing directory data. Kept protected so it is NOT
+     * serialized into the Livewire snapshot on every request; reloaded from
+     * cache each request via boot().
+     */
+    protected $responseEmployees;
+    protected $responseOffices;
+    protected $employees = [];
+    protected $offices = [];
     public $id;
 
     /** Search & Filter Variables*/
     public $search = '';
+
+    /**
+     * Runs on every request (before mount and before public-prop hydration).
+     * Reloads the protected directory data from cache so it is available for
+     * render and action methods without bloating the Livewire snapshot.
+     */
+    public function boot()
+    {
+        $this->checkApiConnection();
+    }
 
     public function mount()
     {
@@ -29,8 +44,6 @@ class Closed extends Component
         $this->user = session('user');
         $this->office = $this->user['office']['id'];
         /** End User Information */
-        // Fetch API data with error handling
-        $this->checkApiConnection();
     }
 
     /**
@@ -148,8 +161,8 @@ class Closed extends Component
                 $query->where('assigned_to', $this->office)
                     ->where('action_id', 5);
             })
-            // Eager load logs to prevent N+1 queries
-            ->with(['logs' => function ($query) {
+            // Eager load logs + category to prevent N+1 queries
+            ->with(['category', 'logs' => function ($query) {
                 $query->where('assigned_to', $this->office)
                     ->where('action_id', 5)
                     ->orderBy('created_at', 'DESC');

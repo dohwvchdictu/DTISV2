@@ -21,72 +21,108 @@ class ApiService
         ]);
     }
 
-    public function login($credentials)
+    /**
+     * Authenticate against the external API.
+     *
+     * The API is a separate local service that is intermittently slow or
+     * unavailable on a cold first hit — that is why a login would fail once
+     * and then succeed on an unchanged second attempt. We therefore retry
+     * transient failures (connection drops, timeouts, 5xx and other
+     * unexpected responses) a couple of times before giving up. A genuine 401
+     * is a real credential rejection, so it returns immediately without
+     * retrying (retrying it is pointless and could trip API rate limiting).
+     *
+     * Every failed attempt is logged so the underlying cause is visible
+     * instead of being swallowed behind a generic message.
+     *
+     * @param  array  $credentials
+     * @param  int    $maxAttempts  Total tries, including the first.
+     * @return array
+     */
+    public function login($credentials, int $maxAttempts = 2)
     {
-        try {
-            $response = $this->client->post('auth/login', [
-                'json' => $credentials,
-            ]);
+        $lastResult = [
+            'success' => false,
+            'error' => 'unexpected_error',
+            'message' => 'An unexpected error occurred during authentication.',
+        ];
 
-            $statusCode = $response->getStatusCode();
-            $body = json_decode($response->getBody()->getContents(), true);
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            try {
+                // http_errors => false so 4xx/5xx come back as normal
+                // responses and are classified explicitly below.
+                $response = $this->client->post('auth/login', [
+                    'json' => $credentials,
+                    'http_errors' => false,
+                ]);
 
-            // Handle successful response
-            if ($statusCode === 200 && isset($body['token'])) {
-                return [
-                    'success' => true,
-                    'data' => $body,
-                ];
-            }
+                $statusCode = $response->getStatusCode();
+                $body = json_decode($response->getBody()->getContents(), true);
 
-            // Handle authentication failure
-            if ($statusCode === 401) {
-                return [
+                // Success.
+                if ($statusCode === 200 && isset($body['token'])) {
+                    return [
+                        'success' => true,
+                        'data' => $body,
+                    ];
+                }
+
+                // Real credential rejection — do not retry.
+                if ($statusCode === 401) {
+                    return [
+                        'success' => false,
+                        'error' => 'invalid_credentials',
+                        'message' => 'Invalid credentials provided.',
+                    ];
+                }
+
+                // Anything else is treated as transient and retried.
+                $lastResult = [
                     'success' => false,
-                    'error' => 'invalid_credentials',
-                    'message' => 'Invalid credentials provided.',
+                    'error' => $statusCode >= 500 ? 'server_error' : 'api_error',
+                    'message' => $statusCode >= 500
+                        ? 'Authentication server is currently unavailable.'
+                        : 'An unexpected error occurred during login.',
                 ];
-            }
 
-            // Handle other HTTP errors
-            return [
-                'success' => false,
-                'error' => 'api_error',
-                'message' => 'An unexpected error occurred during login.',
-            ];
-
-        } catch (\GuzzleHttp\Exception\ConnectException $e) {
-            return [
-                'success' => false,
-                'error' => 'connection_error',
-                'message' => 'Unable to connect to the authentication server.',
-            ];
-        } catch (\GuzzleHttp\Exception\ClientException $e) {
-            if ($e->getResponse() && $e->getResponse()->getStatusCode() === 401) {
-                return [
+                \Log::warning('Login attempt failed', [
+                    'attempt' => $attempt,
+                    'status' => $statusCode,
+                    'has_token' => isset($body['token']),
+                ]);
+            } catch (\GuzzleHttp\Exception\ConnectException $e) {
+                // Connection refused / DNS / timeout (cURL maps timeouts here).
+                $lastResult = [
                     'success' => false,
-                    'error' => 'invalid_credentials',
-                    'message' => 'Invalid credentials provided.',
+                    'error' => 'connection_error',
+                    'message' => 'Unable to connect to the authentication server.',
                 ];
+
+                \Log::warning('Login connection error', [
+                    'attempt' => $attempt,
+                    'message' => $e->getMessage(),
+                ]);
+            } catch (\Exception $e) {
+                $lastResult = [
+                    'success' => false,
+                    'error' => 'unexpected_error',
+                    'message' => 'An unexpected error occurred during authentication.',
+                ];
+
+                \Log::warning('Login unexpected error', [
+                    'attempt' => $attempt,
+                    'exception' => get_class($e),
+                    'message' => $e->getMessage(),
+                ]);
             }
-            return [
-                'success' => false,
-                'error' => 'client_error',
-                'message' => 'Authentication request failed.',
-            ];
-        } catch (\GuzzleHttp\Exception\ServerException $e) {
-            return [
-                'success' => false,
-                'error' => 'server_error',
-                'message' => 'Authentication server is currently unavailable.',
-            ];
-        } catch (\Exception $e) {
-            return [
-                'success' => false,
-                'error' => 'unexpected_error',
-                'message' => 'An unexpected error occurred during authentication.',
-            ];
+
+            // Brief backoff before retrying, but not after the final attempt.
+            if ($attempt < $maxAttempts) {
+                usleep(250000); // 250ms
+            }
         }
+
+        return $lastResult;
     }
 
     /**

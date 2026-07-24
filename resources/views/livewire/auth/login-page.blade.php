@@ -157,25 +157,21 @@
                                     <!-- End Form Group -->
 
 
-                                    <button type="submit" wire:loading.class="opacity-50 disabled"
-                                        class="w-full py-3 px-4 inline-flex justify-center items-center gap-x-2 text-sm font-medium rounded-lg border border-transparent bg-gradient-to-bl from-green-600 to-emerald-700 text-white hover:bg-emerald-700 focus:outline-none focus:bg-emerald-700 disabled:opacity-50 disabled:pointer-events-none">Sign
-                                        in</button>
-
-                                    {{-- Modal Loading Overlay --}}
-                                    <div wire:loading
-                                        class="fixed z-50 flex items-center justify-center top-1/2 start-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 py-4 max-w-full min-h-[8rem]">
-                                        <div
-                                            class="bg-white dark:bg-neutral-800 rounded-xl shadow-lg  py-4 px-6 flex flex-col items-center">
-                                            <div class="flex items-center gap-4">
-                                                <div class="animate-spin inline-block size-8 border-[3px] border-current border-t-transparent text-xl text-emerald-600 rounded-full"
-                                                    role="status" aria-label="loading">
-                                                    <span class="sr-only">Loading...</span>
-                                                </div>
-                                                <p class="text-emerald-600 text-xl font-medium">Logging In...</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {{-- End of Modal Loading --}}
+                                    <button type="submit"
+                                        wire:target="authenticate"
+                                        wire:loading.attr="disabled"
+                                        class="w-full py-3 px-4 inline-flex justify-center items-center gap-x-2 text-sm font-medium rounded-lg border border-transparent bg-gradient-to-bl from-green-600 to-emerald-700 text-white hover:bg-emerald-700 focus:outline-none focus:bg-emerald-700 disabled:opacity-50 disabled:pointer-events-none">
+                                        {{-- Idle label --}}
+                                        <span wire:loading.remove wire:target="authenticate">Sign in</span>
+                                        {{-- Loading label with inline spinner --}}
+                                        <span wire:loading wire:target="authenticate"
+                                            class="inline-flex items-center gap-x-2">
+                                            <span
+                                                class="animate-spin inline-block size-4 border-[2px] border-current border-t-transparent rounded-full"
+                                                aria-hidden="true"></span>
+                                            Logging in…
+                                        </span>
+                                    </button>
                                 </div>
                             </form>
                             <!-- End Form -->

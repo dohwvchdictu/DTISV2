@@ -13,7 +13,7 @@
     <div class="relative flex flex-col h-full max-h-full">
         <!-- Collapse Toggle (desktop) -->
         <div class="hidden lg:block">
-            <button type="button" id="sidebar-collapse-toggle" onclick="toggleSidebar()" aria-label="Toggle sidebar"
+            <button type="button" id="sidebar-collapse-toggle" onclick="toggleSidebar()" aria-label="Toggle sidebar" data-title="Expand sidebar"
                 class="w-full flex items-center justify-end gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 hover:bg-gray-100 dark:hover:bg-neutral-700 focus:outline-none focus:bg-gray-100 dark:focus:bg-neutral-700 dark:text-neutral-200">
                 <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -35,7 +35,7 @@
                     <li>
                         <a wire:navigate
                             class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm rounded-lg focus:outline-none {{ request()->is('dashboard') ? 'text-gray-100 bg-emerald-600 dark:bg-emerald-600 dark:text-white' : 'text-gray-800 hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:text-neutral-200' }}"
-                            href="/dashboard">
+                            data-title="Dashboard" href="/dashboard">
                             <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24"
                                 height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -49,7 +49,7 @@
                     <li class="hs-accordion" id="account-accordion" data-hs-accordion-always-open>
                         <button type="button"
                             class="hs-accordion-toggle w-full text-start flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:text-neutral-200"
-                            aria-expanded="true" aria-controls="account-accordion-child">
+                            aria-expanded="true" aria-controls="account-accordion-child" data-title="New Document">
                             <svg class="shrink-0 mt-0.5 size-4" xmlns="http://www.w3.org/2000/svg" width="24"
                                 height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -101,7 +101,7 @@
                     <li class="hs-accordion" id="inbox-accordion" data-hs-accordion-always-open>
                         <button type="button"
                             class="hs-accordion-toggle w-full text-start flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:text-neutral-200"
-                            aria-expanded="true" aria-controls="inbox-accordion-child">
+                            aria-expanded="true" aria-controls="inbox-accordion-child" data-title="Inbox">
                             <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24"
                                 height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -205,7 +205,7 @@
                     <li class="hs-accordion" id="status-accordion" data-hs-accordion-always-open>
                         <button type="button"
                             class="hs-accordion-toggle w-full text-start flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:text-neutral-200"
-                            aria-expanded="true" aria-controls="status-accordion-child">
+                            aria-expanded="true" aria-controls="status-accordion-child" data-title="Status">
                             <span class="relative flex shrink-0">
                                 <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24"
                                     height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -350,7 +350,7 @@
                     <li class="hs-accordion" id="reports-accordion" data-hs-accordion-always-open>
                         <button type="button"
                             class="hs-accordion-toggle w-full text-start flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:text-neutral-200"
-                            aria-expanded="true" aria-controls="reports-accordion-child">
+                            aria-expanded="true" aria-controls="reports-accordion-child" data-title="Reports">
                             <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24"
                                 height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -483,7 +483,7 @@
                         </div>
                     </li>
 
-                    <li><a class="w-full flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-900 dark:text-neutral-200 dark:hover:text-neutral-300"
+                    <li><a data-title="Feedback" class="w-full flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-900 dark:text-neutral-200 dark:hover:text-neutral-300"
                             href="#">
                             <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24"
                                 height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"

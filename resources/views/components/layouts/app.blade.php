@@ -40,6 +40,27 @@
             body.sidebar-collapsed #hs-application-sidebar nav .ms-auto { display: none; }
             body.sidebar-collapsed #sidebar-collapse-toggle svg { transform: rotate(180deg); }
         }
+
+        /* Hover hint shown next to a collapsed (icon-only) sidebar item.
+           Fixed + appended to <body> so it isn't clipped by the sidebar's
+           overflow, and only rendered while the sidebar is collapsed. */
+        .sidebar-tip {
+            position: fixed;
+            z-index: 80;
+            transform: translateY(-50%);
+            padding: 6px 9px;
+            border-radius: 6px;
+            background: #1f2937;
+            color: #fff;
+            font-size: 12px;
+            line-height: 1.1;
+            white-space: nowrap;
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, .18);
+            opacity: 0;
+            transition: opacity .12s ease;
+        }
+        .sidebar-tip.show { opacity: 1; }
     </style>
     <script>
         if (localStorage.getItem('darkMode') === '1') document.documentElement.classList.add('dark');
@@ -84,6 +105,48 @@
             const nav = document.getElementById('sidebar-scroll');
             if (nav) nav.scrollTop = sidebarScrollTop;
         });
+
+        /* Tooltip hints for the collapsed sidebar: while collapsed, hovering an
+           icon shows its label (from data-title) next to it. Delegated on
+           document so it keeps working across wire:navigate page swaps. */
+        (function () {
+            if (window.__sidebarTipInit) return;
+            window.__sidebarTipInit = true;
+
+            const SEL = '#hs-application-sidebar [data-title]';
+            let tip = null;
+
+            function getTip() {
+                if (!tip || !tip.isConnected) {
+                    tip = document.createElement('div');
+                    tip.className = 'sidebar-tip';
+                    document.body.appendChild(tip);
+                }
+                return tip;
+            }
+            function hide() { if (tip) tip.classList.remove('show'); }
+
+            document.addEventListener('mouseover', function (e) {
+                if (!document.body.classList.contains('sidebar-collapsed')) return;
+                const item = e.target.closest && e.target.closest(SEL);
+                if (!item) return;
+                const t = getTip();
+                t.textContent = item.getAttribute('data-title');
+                const r = item.getBoundingClientRect();
+                t.style.top = (r.top + r.height / 2) + 'px';
+                t.style.left = (r.right + 8) + 'px';
+                t.classList.add('show');
+            });
+            document.addEventListener('mouseout', function (e) {
+                const from = e.target.closest && e.target.closest(SEL);
+                if (!from) return;
+                const to = e.relatedTarget && e.relatedTarget.closest
+                    ? e.relatedTarget.closest(SEL) : null;
+                if (to !== from) hide(); // still inside the same item -> keep showing
+            });
+            document.addEventListener('click', hide);
+            document.addEventListener('livewire:navigating', hide);
+        })();
     </script>
 </head>
 

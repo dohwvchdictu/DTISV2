@@ -148,10 +148,7 @@ class TurnaroundTime extends Component
             return false;
         }
 
-        $this->offices = collect($this->response['officeList'] ?? [])
-            ->sortBy('officeName')
-            ->values()
-            ->all();
+        $this->offices = app(ApiService::class)->getActiveOffices($this->response);
 
         return true;
     }
@@ -403,10 +400,14 @@ class TurnaroundTime extends Component
         return ['categories' => $categories, 'current' => $current, 'completed' => $completed];
     }
 
-    /** Map of office_id => officeName pulled from the offices API list. */
+    /**
+     * Map of office_id => officeName pulled from the full offices API list
+     * (not the active-only dropdown list) so rows for documents that passed
+     * through a deactivated office still resolve to its name.
+     */
     private function officeNames(): array
     {
-        return collect($this->offices)->pluck('officeName', 'id')->toArray();
+        return collect($this->response['officeList'] ?? [])->pluck('officeName', 'id')->toArray();
     }
 
     /**

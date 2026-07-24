@@ -30,7 +30,7 @@ class CitizenCharterResource extends Resource
                 Forms\Components\Select::make('office_id')
                     ->label('Owner')
                     ->options(function () {
-                        $offices = app(ApiService::class)->getOfficesData()['officeList'] ?? [];
+                        $offices = app(ApiService::class)->getActiveOffices();
                         return collect($offices)->mapWithKeys(function ($data) {
                             return [$data['id'] => $data['officeName']];
                         });

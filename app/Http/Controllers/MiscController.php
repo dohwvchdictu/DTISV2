@@ -232,6 +232,12 @@ class MiscController extends Controller
 
         $reportData['offices'] = [];
         foreach ($this->offices as $office) {
+            // Report lists active offices only; $this->offices stays unfiltered
+            // because filterOffice() must still resolve deactivated offices.
+            if (!($office['status'] ?? true)) {
+                continue;
+            }
+
             $incoming = $incomingByOffice[$office['id']] ?? 0;
             $pending = $pendingByOffice[$office['id']] ?? 0;
             $processed = $processedByOffice[$office['id']] ?? 0;
@@ -325,6 +331,12 @@ class MiscController extends Controller
 
         $reportData['offices'] = [];
         foreach ($this->offices as $office) {
+            // Report lists active offices only; $this->offices stays unfiltered
+            // because filterOffice() must still resolve deactivated offices.
+            if (!($office['status'] ?? true)) {
+                continue;
+            }
+
             $incoming = $incomingByOffice[$office['id']] ?? 0;
             $pending = $pendingByOffice[$office['id']] ?? 0;
             $processed = $processedByOffice[$office['id']] ?? 0;

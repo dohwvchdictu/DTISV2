@@ -90,10 +90,7 @@ class PerUnit extends Component
             return false;
         }
 
-        $this->offices = collect($this->response['officeList'] ?? [])
-            ->sortBy('officeName')
-            ->values()
-            ->all();
+        $this->offices = app(ApiService::class)->getActiveOffices($this->response);
 
         return true;
     }

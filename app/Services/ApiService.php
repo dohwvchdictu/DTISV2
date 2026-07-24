@@ -159,4 +159,22 @@ class ApiService
             return $response->ok() ? $response->json() : null;
         });
     }
+
+    /**
+     * Offices the API flags as active (status !== false), sorted by name —
+     * the list dropdowns and report office listings should present. Lookups
+     * that resolve an office id on historical documents must keep using the
+     * full officeList so deactivated offices still resolve to a name.
+     * Offices without a status field (older API) are treated as active.
+     */
+    public function getActiveOffices(?array $officesData = null): array
+    {
+        $officesData ??= $this->getOfficesData();
+
+        return collect($officesData['officeList'] ?? [])
+            ->filter(fn ($office) => $office['status'] ?? true)
+            ->sortBy('officeName')
+            ->values()
+            ->all();
+    }
 }

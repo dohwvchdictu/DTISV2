@@ -68,10 +68,7 @@ class Closed extends Component
             ->values()
             ->all();
 
-        $this->offices = collect($this->responseOffices['officeList'] ?? [])
-            ->sortBy('officeName')
-            ->values()
-            ->all();
+        $this->offices = app(ApiService::class)->getActiveOffices($this->responseOffices);
 
         return true;
     }

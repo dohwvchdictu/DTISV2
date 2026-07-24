@@ -9,12 +9,9 @@ use Illuminate\Support\Facades\Http;
 class ApiService
 {
     protected $client;
-    protected $refreshThreshold;
 
     public function __construct()
     {
-        $this->refreshThreshold = config('services.api.refresh_threshold', 240);
-
         $this->client = new Client([
             'base_uri' => config('services.api.base_url'),
             'timeout'  => 10.0,
@@ -195,73 +192,6 @@ class ApiService
         }
 
         return $lastResult;
-    }
-
-    /**
-     * Make sure the session JWT is younger than the refresh threshold,
-     * silently re-authenticating with the stored credentials when it isn't.
-     * Call this before any request that sends the Bearer token.
-     */
-    public function ensureTokenIsFresh(): bool
-    {
-        $token = session('jwt_token');
-        $tokenAge = time() - session('token_created_at', 0);
-
-        if ($token && $tokenAge < $this->refreshThreshold) {
-            return true;
-        }
-
-        return $this->refreshWithStoredCredentials();
-    }
-
-    /**
-     * The API has no working token-refresh endpoint, so a "refresh" is a
-     * re-login with the credentials captured at sign-in.
-     *
-     * Concurrent requests for the same user (multiple tabs, parallel module
-     * loads, wire:poll) would otherwise each fire their own re-login and
-     * multiply calls against the API's rate limit. A short single-flight
-     * guard lets only the first proceed; the rest reuse the token they
-     * already hold, which stays valid until it truly expires.
-     */
-    protected function refreshWithStoredCredentials(): bool
-    {
-        $credentials = session('login_credentials');
-
-        if (!$credentials || empty($credentials['email'])) {
-            return false;
-        }
-
-        // Single-flight: Cache::add is atomic, so only the first concurrent
-        // caller wins the guard and re-logs-in. The TTL is just crash
-        // insurance — the finally block releases it as soon as we are done.
-        $guardKey = 'api.token_refresh:' . md5($credentials['email']);
-
-        if (! Cache::add($guardKey, true, 30)) {
-            // Another request is already refreshing for this user; keep using
-            // the token we currently hold rather than issuing a second login.
-            return (bool) session('jwt_token');
-        }
-
-        try {
-            $response = $this->login($credentials);
-
-            if (isset($response['success']) && $response['success'] === true) {
-                session([
-                    'jwt_token' => $response['data']['token'],
-                    'token_created_at' => time(),
-                ]);
-                return true;
-            }
-
-            \Log::warning('Token refresh via re-login failed', [
-                'error' => $response['error'] ?? 'unknown',
-            ]);
-
-            return false;
-        } finally {
-            Cache::forget($guardKey);
-        }
     }
 
     /**

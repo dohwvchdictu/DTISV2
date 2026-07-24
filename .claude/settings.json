@@ -56,7 +56,15 @@
       "Bash(xargs sed -i 's/class=\"p-4 sm:p-6 space-y-4 sm:space-y-6\"/class=\"p-4 sm:p-6 lg:pt-1.5 space-y-4 sm:space-y-6\"/')",
       "Bash(xargs sed -i 's/class=\"p-6 sm:p-6 space-y-4 sm:space-y-6\"/class=\"p-6 sm:p-6 lg:pt-1.5 space-y-4 sm:space-y-6\"/')",
       "Bash(xargs sed -i 's/class=\"p-4 sm:p-6 space-y-4\"/class=\"p-4 sm:p-6 lg:pt-1.5 space-y-4\"/')",
-      "Bash(curl -s --max-time 8 \"http://192.168.100.44:8081/public/get-offices\")"
+      "Bash(curl -s --max-time 8 \"http://192.168.100.44:8081/public/get-offices\")",
+      "Bash(git fetch *)",
+      "Bash(git rm *)",
+      "Bash(git commit *)",
+      "Bash(git --no-pager log --oneline -2)",
+      "Bash(echo \"=== auth-related packages ===\"; grep -iE 'spatie/laravel-permission|laravel/sanctum|laravel/fortify|filament/filament' composer.json || echo \"\\(none of those\\)\" *)",
+      "Read(//c/Users/DOH/Herd/DTISV2/database/migrations/**)",
+      "Bash(grep -rnE \"use App\\\\\\\\\\\\\\\\Models\\\\\\\\\\\\\\\\\\(Document|Bundle|Payment|PurchaseRequest\\)\" app/Livewire)",
+      "Bash(grep -rnE 'ensureTokenIsFresh|refreshWithStoredCredentials|fetchAndStorePhoto|refreshToken|login_credentials|refreshThreshold|\\\\$jwtToken' app resources routes)"
     ]
   }
 }

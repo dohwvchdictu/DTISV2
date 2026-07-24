@@ -35,6 +35,8 @@ class LoginPage extends Component
     {
         $this->validate();
 
+        $this->errorMessage = null;
+
         $credentials = [
             'email' => $this->email,
             'password' => $this->password,

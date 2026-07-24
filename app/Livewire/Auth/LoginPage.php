@@ -81,6 +81,9 @@ class LoginPage extends Component
                 case 'server_error':
                     $this->errorMessage = 'The authentication server is currently unavailable. Please try again later.';
                     break;
+                case 'rate_limited':
+                    $this->errorMessage = $response['message'] ?? 'Too many login attempts. Please wait a moment and try again.';
+                    break;
                 case 'client_error':
                 case 'api_error':
                 case 'unexpected_error':

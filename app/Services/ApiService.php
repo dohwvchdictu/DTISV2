@@ -21,16 +21,30 @@ class ApiService
         ]);
     }
 
+    /** Once the API rate-limits our (shared) source IP, stop sending
+     *  login/refresh calls for this long so the lockout window can clear.
+     *  A Retry-After header from the API overrides it. */
+    protected const LOGIN_COOLDOWN_SECONDS = 30;
+
+    /** Cache flag backing the login cooldown above. */
+    protected const LOGIN_COOLDOWN_KEY = 'api.login_cooldown';
+
     /**
      * Authenticate against the external API.
      *
      * The API is a separate local service that is intermittently slow or
-     * unavailable on a cold first hit — that is why a login would fail once
-     * and then succeed on an unchanged second attempt. We therefore retry
-     * transient failures (connection drops, timeouts, 5xx and other
-     * unexpected responses) a couple of times before giving up. A genuine 401
-     * is a real credential rejection, so it returns immediately without
-     * retrying (retrying it is pointless and could trip API rate limiting).
+     * unavailable on a cold first hit, so genuinely transient failures
+     * (connection drops, timeouts, 5xx) are retried a couple of times before
+     * giving up. Definitive answers are NOT retried: a 401 is a real
+     * credential rejection, and a 429 means we have already hit the API's
+     * login rate limit — retrying either is pointless, and retrying the 429
+     * only extends the lockout. Other 4xx responses won't change on retry.
+     *
+     * Because every user's login is proxied through this server, all of them
+     * share one source IP against the API's (per-IP) login rate limit. So a
+     * single 429 starts a short app-wide cooldown, during which we stop
+     * sending login/refresh calls entirely and let the window clear instead
+     * of hammering it.
      *
      * Every failed attempt is logged so the underlying cause is visible
      * instead of being swallowed behind a generic message.
@@ -41,6 +55,16 @@ class ApiService
      */
     public function login($credentials, int $maxAttempts = 2)
     {
+        // We very recently hit the API's login rate limit; failing fast here
+        // is what lets the window clear instead of piling on more requests.
+        if (Cache::has(self::LOGIN_COOLDOWN_KEY)) {
+            return [
+                'success' => false,
+                'error' => 'rate_limited',
+                'message' => 'Too many login attempts. Please wait a moment and try again.',
+            ];
+        }
+
         $lastResult = [
             'success' => false,
             'error' => 'unexpected_error',
@@ -67,6 +91,20 @@ class ApiService
                     ];
                 }
 
+                // 200 but no token: a response-shape mismatch, not transient.
+                // Retrying won't conjure a token, so return immediately.
+                if ($statusCode === 200) {
+                    \Log::warning('Login returned 200 without a token', [
+                        'attempt' => $attempt,
+                    ]);
+
+                    return [
+                        'success' => false,
+                        'error' => 'api_error',
+                        'message' => 'An unexpected error occurred during login.',
+                    ];
+                }
+
                 // Real credential rejection — do not retry.
                 if ($statusCode === 401) {
                     return [
@@ -76,13 +114,47 @@ class ApiService
                     ];
                 }
 
-                // Anything else is treated as transient and retried.
+                // Rate limited — never retry (that only extends the lockout).
+                // Start a short cooldown so the rest of the app stops calling
+                // the endpoint too until the window clears.
+                if ($statusCode === 429) {
+                    $retryAfter = (int) $response->getHeaderLine('Retry-After');
+                    $cooldown = $retryAfter > 0 ? $retryAfter : self::LOGIN_COOLDOWN_SECONDS;
+                    Cache::put(self::LOGIN_COOLDOWN_KEY, true, now()->addSeconds($cooldown));
+
+                    \Log::warning('Login rate limited (429)', [
+                        'attempt' => $attempt,
+                        'retry_after' => $retryAfter ?: null,
+                        'cooldown_seconds' => $cooldown,
+                    ]);
+
+                    return [
+                        'success' => false,
+                        'error' => 'rate_limited',
+                        'message' => 'Too many login attempts. Please wait a moment and try again.',
+                    ];
+                }
+
+                // Other client errors (4xx) won't succeed on retry either.
+                if ($statusCode >= 400 && $statusCode < 500) {
+                    \Log::warning('Login attempt failed', [
+                        'attempt' => $attempt,
+                        'status' => $statusCode,
+                    ]);
+
+                    return [
+                        'success' => false,
+                        'error' => 'api_error',
+                        'message' => 'An unexpected error occurred during login.',
+                    ];
+                }
+
+                // 5xx (or any other unexpected status) is treated as transient
+                // and retried.
                 $lastResult = [
                     'success' => false,
-                    'error' => $statusCode >= 500 ? 'server_error' : 'api_error',
-                    'message' => $statusCode >= 500
-                        ? 'Authentication server is currently unavailable.'
-                        : 'An unexpected error occurred during login.',
+                    'error' => 'server_error',
+                    'message' => 'Authentication server is currently unavailable.',
                 ];
 
                 \Log::warning('Login attempt failed', [
@@ -145,6 +217,12 @@ class ApiService
     /**
      * The API has no working token-refresh endpoint, so a "refresh" is a
      * re-login with the credentials captured at sign-in.
+     *
+     * Concurrent requests for the same user (multiple tabs, parallel module
+     * loads, wire:poll) would otherwise each fire their own re-login and
+     * multiply calls against the API's rate limit. A short single-flight
+     * guard lets only the first proceed; the rest reuse the token they
+     * already hold, which stays valid until it truly expires.
      */
     protected function refreshWithStoredCredentials(): bool
     {
@@ -154,21 +232,36 @@ class ApiService
             return false;
         }
 
-        $response = $this->login($credentials);
+        // Single-flight: Cache::add is atomic, so only the first concurrent
+        // caller wins the guard and re-logs-in. The TTL is just crash
+        // insurance — the finally block releases it as soon as we are done.
+        $guardKey = 'api.token_refresh:' . md5($credentials['email']);
 
-        if (isset($response['success']) && $response['success'] === true) {
-            session([
-                'jwt_token' => $response['data']['token'],
-                'token_created_at' => time(),
-            ]);
-            return true;
+        if (! Cache::add($guardKey, true, 30)) {
+            // Another request is already refreshing for this user; keep using
+            // the token we currently hold rather than issuing a second login.
+            return (bool) session('jwt_token');
         }
 
-        \Log::warning('Token refresh via re-login failed', [
-            'error' => $response['error'] ?? 'unknown',
-        ]);
+        try {
+            $response = $this->login($credentials);
 
-        return false;
+            if (isset($response['success']) && $response['success'] === true) {
+                session([
+                    'jwt_token' => $response['data']['token'],
+                    'token_created_at' => time(),
+                ]);
+                return true;
+            }
+
+            \Log::warning('Token refresh via re-login failed', [
+                'error' => $response['error'] ?? 'unknown',
+            ]);
+
+            return false;
+        } finally {
+            Cache::forget($guardKey);
+        }
     }
 
     /**

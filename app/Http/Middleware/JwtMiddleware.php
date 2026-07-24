@@ -2,7 +2,6 @@
 
 namespace App\Http\Middleware;
 
-use App\Services\ApiService;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -24,23 +23,11 @@ class JwtMiddleware
             return redirect()->route('login');
         }
 
-        $tokenTtl = config('services.api.token_ttl', 300);
-        $refreshThreshold = config('services.api.refresh_threshold', 240);
-        $tokenAge = time() - session('token_created_at', 0);
-
-        if ($tokenAge >= $refreshThreshold) {
-            $refreshed = app(ApiService::class)->ensureTokenIsFresh();
-
-            // A failed refresh is only fatal once the token is truly past its
-            // lifetime — a proactive refresh that hits an API blip while the
-            // token is still valid should not log the user out.
-            if (!$refreshed && $tokenAge >= $tokenTtl) {
-                session(['url.intended' => $request->url()]);
-                session()->invalidate();
-                session()->regenerateToken();
-                return redirect()->route('login')->with('error', 'Your session has expired. Please login again.');
-            }
-        }
+        // Identity lives in the Laravel session (SESSION_LIFETIME), not the
+        // 5-minute API token. The token is only used once at login to cache
+        // the profile photo, so we no longer refresh it here or log the user
+        // out when it ages — that was the source of the per-request stalls and
+        // the login rate-limit storm.
 
         // Validate user office data
         if (!isset($user['office']['id'])) {

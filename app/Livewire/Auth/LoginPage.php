@@ -4,6 +4,8 @@ namespace App\Livewire\Auth;
 
 use Livewire\Component;
 use App\Services\ApiService;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 
@@ -21,12 +23,14 @@ class LoginPage extends Component
     #[Layout('components.layouts.login')]
     #[Title('DTIS | Document Tracking Information System')]
 
-    public function mount(ApiService $apiService)
+    public function mount()
     {
-        $token = session('jwt_token');
-        $user  = session('user');
+        $user = session('user');
 
-        if ($token && $user && isset($user['office']['id']) && $apiService->ensureTokenIsFresh()) {
+        // Identity now lives in the Laravel session (SESSION_LIFETIME), not
+        // the 5-minute API token, so an existing session is enough to skip
+        // the login page — no token refresh needed.
+        if (session('jwt_token') && isset($user['office']['id'])) {
             return redirect()->route('dashboard');
         }
     }
@@ -58,12 +62,14 @@ class LoginPage extends Component
                 'user' => $data['employee'],
                 'auth_email' => $this->email,
                 'token_created_at' => time(),
-                // Kept for silent re-login when the 5-minute token ages out
-                // (the API has no working refresh endpoint). Requires
-                // SESSION_ENCRYPT=true so the password never sits on disk
-                // in plain text.
-                'login_credentials' => $credentials,
             ]);
+
+            // The API token is only ever used to fetch the profile photo, and
+            // it expires in 5 minutes — so fetch and cache the photo now,
+            // while it is fresh. After this the app never needs the token
+            // again for the rest of the session.
+            $this->cacheEmployeePhoto($data['employee'], $data['token']);
+
             $this->dispatch('save-login-email', email: $this->email);
             $intended = session()->pull('url.intended', route('dashboard'));
             return redirect()->to($intended);
@@ -94,6 +100,50 @@ class LoginPage extends Component
         } else {
             // Fallback error message
             $this->errorMessage = 'Authentication failed. Please verify your credentials and try again.';
+        }
+    }
+
+    /**
+     * Fetch the employee's profile photo while the just-issued API token is
+     * still valid and cache it locally, storing the public URL in the session
+     * as 'user_photo'. The photo is the only thing the token is used for, so
+     * doing it here means the app never re-authenticates mid-session just to
+     * show an avatar. Failures are non-fatal — the navbar falls back to a
+     * default avatar.
+     */
+    protected function cacheEmployeePhoto(array $employee, ?string $token): void
+    {
+        $photoUrl = $employee['photoUrl'] ?? null;
+
+        // Nothing to fetch, or it is already a full external URL.
+        if (!$photoUrl || filter_var($photoUrl, FILTER_VALIDATE_URL)) {
+            if ($photoUrl) {
+                session(['user_photo' => $photoUrl]);
+            }
+            return;
+        }
+
+        $imagePath = 'photos/' . basename($photoUrl);
+
+        // Reuse an already-cached copy from a previous login.
+        if (Storage::disk('public')->exists($imagePath)) {
+            session(['user_photo' => asset('storage/' . $imagePath)]);
+            return;
+        }
+
+        try {
+            $response = Http::withToken($token)
+                ->timeout(10)
+                ->get(config('services.api.base_url') . 'employee/image/' . urlencode($photoUrl));
+
+            if ($response->successful() && strlen($response->body()) > 100) {
+                Storage::disk('public')->put($imagePath, $response->body());
+                session(['user_photo' => asset('storage/' . $imagePath)]);
+            }
+        } catch (\Exception $e) {
+            \Log::warning('Could not cache employee photo at login', [
+                'message' => $e->getMessage(),
+            ]);
         }
     }
 

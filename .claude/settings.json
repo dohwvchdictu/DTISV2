@@ -55,7 +55,8 @@
       "PowerShell(git -C c:\\\\Users\\\\DOH\\\\Herd\\\\DTISV2 status --short)",
       "Bash(xargs sed -i 's/class=\"p-4 sm:p-6 space-y-4 sm:space-y-6\"/class=\"p-4 sm:p-6 lg:pt-1.5 space-y-4 sm:space-y-6\"/')",
       "Bash(xargs sed -i 's/class=\"p-6 sm:p-6 space-y-4 sm:space-y-6\"/class=\"p-6 sm:p-6 lg:pt-1.5 space-y-4 sm:space-y-6\"/')",
-      "Bash(xargs sed -i 's/class=\"p-4 sm:p-6 space-y-4\"/class=\"p-4 sm:p-6 lg:pt-1.5 space-y-4\"/')"
+      "Bash(xargs sed -i 's/class=\"p-4 sm:p-6 space-y-4\"/class=\"p-4 sm:p-6 lg:pt-1.5 space-y-4\"/')",
+      "Bash(curl -s --max-time 8 \"http://192.168.100.44:8081/public/get-offices\")"
     ]
   }
 }

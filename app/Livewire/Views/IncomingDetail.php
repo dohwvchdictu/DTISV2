@@ -87,10 +87,7 @@ class IncomingDetail extends Component
             ->all();
 
         $this->responseOffices = app(ApiService::class)->getOfficesData();
-        $this->offices = collect($this->responseOffices['officeList'] ?? [])
-            ->sortBy('officeName')
-            ->values()
-            ->all();
+        $this->offices = app(ApiService::class)->getActiveOffices($this->responseOffices);
     }
 
     public function mount($control_no)

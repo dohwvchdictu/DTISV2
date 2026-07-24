@@ -118,10 +118,7 @@ class MyPurchaseRequests extends Component
             ->values()
             ->all();
 
-        $this->offices = collect($this->responseOffices['officeList'] ?? [])
-            ->sortBy('officeName')
-            ->values()
-            ->all();
+        $this->offices = app(ApiService::class)->getActiveOffices($this->responseOffices);
 
         $sessionOfficeId = session('user')['office']['id'] ?? null;
         $this->filterOfficeEmployees = array_filter($this->employees, function ($office) use ($sessionOfficeId) {
@@ -371,7 +368,9 @@ class MyPurchaseRequests extends Component
         
         $this->id = $id;
 
-        $result = array_filter($this->offices, function ($office) {
+        // Full officeList (not the active-only dropdown list) so documents
+        // assigned to a deactivated office still resolve to its code.
+        $result = array_filter($this->responseOffices['officeList'] ?? [], function ($office) {
             return $office['id'] == $this->id;
         });
 

@@ -103,10 +103,7 @@ class PendingDetail extends Component
             ->all();
 
         $this->responseOffices = app(ApiService::class)->getOfficesData();
-        $this->offices = collect($this->responseOffices['officeList'] ?? [])
-            ->sortBy('officeName')
-            ->values()
-            ->all();
+        $this->offices = app(ApiService::class)->getActiveOffices($this->responseOffices);
 
         $sessionOfficeId = session('user')['office']['id'] ?? null;
         $this->filterOfficeEmployees = array_filter($this->employees, function ($office) use ($sessionOfficeId) {

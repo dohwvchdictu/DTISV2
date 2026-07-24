@@ -50,12 +50,29 @@
         function applySidebarState() {
             document.body.classList.toggle('sidebar-collapsed', localStorage.getItem('sidebarCollapsed') === '1');
         }
-        function toggleSidebar() {
-            localStorage.setItem('sidebarCollapsed', localStorage.getItem('sidebarCollapsed') === '1' ? '0' : '1');
+        function setSidebarCollapsed(collapsed) {
+            localStorage.setItem('sidebarCollapsed', collapsed ? '1' : '0');
             applySidebarState();
+        }
+        function toggleSidebar() {
+            setSidebarCollapsed(localStorage.getItem('sidebarCollapsed') !== '1');
         }
         document.addEventListener('DOMContentLoaded', applySidebarState);
         document.addEventListener('livewire:navigated', applySidebarState);
+
+        /* While collapsed, a group icon's sub-items are hidden, so clicking one looks dead.
+           Expand the sidebar first (capture phase) and let the accordion open as usual. */
+        document.addEventListener('click', function (e) {
+            if (!document.body.classList.contains('sidebar-collapsed')) return;
+            const toggle = e.target.closest('#hs-application-sidebar .hs-accordion-toggle');
+            if (!toggle) return;
+            setSidebarCollapsed(false);
+            /* Already open: swallow the click so expanding doesn't collapse the group instead */
+            if (toggle.closest('.hs-accordion').classList.contains('active')) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        }, true);
 
         /* Keep the sidebar's scroll position across wire:navigate page swaps */
         let sidebarScrollTop = 0;

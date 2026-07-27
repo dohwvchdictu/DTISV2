@@ -1,0 +1,110 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{width:440px;height:860px;display:grid;place-items:center;background:#eef2f0;
+    font-family:"Segoe UI",system-ui,Arial,sans-serif}
+  .phone{position:relative;width:392px;height:812px;background:#0b0b0d;border-radius:46px;
+    padding:13px;box-shadow:0 30px 70px -30px rgba(6,40,28,.55)}
+  .screen{position:relative;width:100%;height:100%;border-radius:34px;overflow:hidden;
+    background:radial-gradient(120% 90% at 50% 35%, #2b2f36 0%, #16181c 55%, #0d0e11 100%)}
+  /* status bar */
+  .status{position:absolute;top:0;left:0;right:0;height:34px;display:flex;align-items:center;
+    justify-content:space-between;padding:0 22px;color:#fff;font-size:13px;font-weight:600;z-index:5}
+  .status .ic{display:inline-flex;gap:5px;align-items:center}
+  .status .bar{display:inline-block;width:16px;height:9px;border:1.5px solid #fff;border-radius:2px;position:relative}
+  .status .bar::after{content:"";position:absolute;right:-3px;top:2px;width:2px;height:3px;background:#fff;border-radius:1px}
+  .status .bar .fill{position:absolute;left:1px;top:1px;bottom:1px;width:9px;background:#fff;border-radius:1px}
+  /* notch */
+  .notch{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:104px;height:20px;background:#0b0b0d;border-radius:12px;z-index:6}
+  /* scanned object: form corner with QR, tilted */
+  .obj{position:absolute;top:172px;left:50%;transform:translateX(-50%) rotate(-4deg);
+    width:216px;background:#fff;border-radius:10px;padding:16px 14px 14px;box-shadow:0 18px 40px -12px rgba(0,0,0,.6)}
+  .obj .lt{font-family:Georgia,serif;font-size:8px;color:#333;text-align:center;line-height:1.25;margin-bottom:8px}
+  .obj .lt b{font-size:9px}
+  .obj svg{display:block;width:150px;height:150px;margin:0 auto}
+  .obj .cap{text-align:center;font-size:9px;font-weight:800;letter-spacing:.14em;color:#111;margin-top:7px}
+  /* scan brackets */
+  .frame{position:absolute;top:150px;left:50%;transform:translateX(-50%);width:262px;height:262px;z-index:4}
+  .cor{position:absolute;width:40px;height:40px;border:4px solid #fff;border-radius:4px}
+  .cor.tl{top:0;left:0;border-right:none;border-bottom:none}
+  .cor.tr{top:0;right:0;border-left:none;border-bottom:none}
+  .cor.bl{bottom:0;left:0;border-right:none;border-top:none}
+  .cor.br{bottom:0;right:0;border-left:none;border-top:none}
+  /* detected link banner */
+  .link{position:absolute;left:24px;right:24px;top:474px;z-index:7;background:#fff;border-radius:16px;
+    padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 14px 34px -12px rgba(0,0,0,.5)}
+  .link .qi{width:38px;height:38px;border-radius:10px;background:#ecfdf5;display:grid;place-items:center;flex-shrink:0}
+  .link .qi svg{width:20px;height:20px}
+  .link .tx{flex:1;min-width:0}
+  .link .u{font-size:12.5px;font-weight:700;color:#0e1a15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .link .s{font-size:11px;color:#059669;font-weight:600;margin-top:1px}
+  .link .go{font-size:12px;font-weight:700;color:#fff;background:#059669;border-radius:9px;padding:7px 12px;flex-shrink:0}
+  /* hint */
+  .hint{position:absolute;left:0;right:0;top:432px;text-align:center;color:#e7efea;font-size:12px;font-weight:600;z-index:4;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+  /* camera controls */
+  .ctrl{position:absolute;left:0;right:0;bottom:26px;display:flex;align-items:center;justify-content:center;gap:44px;z-index:5}
+  .ctrl .shutter{width:66px;height:66px;border-radius:50%;border:4px solid #fff;background:rgba(255,255,255,.25)}
+  .ctrl .mini{width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3)}
+  .modes{position:absolute;left:0;right:0;bottom:104px;display:flex;justify-content:center;gap:22px;color:#cfd6d2;font-size:12px;font-weight:600;z-index:5}
+  .modes .on{color:#ffd166}
+</style></head>
+<body>
+  <div class="phone">
+    <div class="screen">
+      <div class="notch"></div>
+      <div class="status">
+        <span>9:41</span>
+        <span class="ic">
+          <svg width="17" height="12" viewBox="0 0 17 12" fill="#fff"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="4.5" y="5" width="3" height="7" rx="1"/><rect x="9" y="2.5" width="3" height="9.5" rx="1"/><rect x="13.5" y="0" width="3" height="12" rx="1"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12" fill="#fff"><path d="M8 11.5 0.7 4.2a10.3 10.3 0 0 1 14.6 0L8 11.5Z" opacity=".95"/></svg>
+          <span class="bar"><span class="fill"></span></span>
+        </span>
+      </div>
+
+      <!-- scanned form corner -->
+      <div class="obj">
+        <div class="lt">Republic of the Philippines<br><b>DEPARTMENT OF HEALTH</b><br>Western Visayas</div>
+        <svg id="qr" viewBox="0 0 100 100" aria-hidden="true"></svg>
+        <div class="cap">SCAN TO RECEIVE</div>
+      </div>
+
+      <!-- scan frame -->
+      <div class="frame">
+        <span class="cor tl"></span><span class="cor tr"></span>
+        <span class="cor bl"></span><span class="cor br"></span>
+      </div>
+
+      <div class="hint">QR code detected</div>
+
+      <!-- detected link -->
+      <div class="link">
+        <span class="qi"><svg viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M20 14v.01M14 20h.01M17 20h.01M20 17v.01M20 20v.01"/></svg></span>
+        <div class="tx">
+          <div class="u">dtis.dohwv.ph/qr-receive/2026-07-000482</div>
+          <div class="s">Tap to open in DTIS</div>
+        </div>
+        <span class="go">Open</span>
+      </div>
+
+      <div class="modes"><span>VIDEO</span><span class="on">PHOTO</span><span>SCAN</span></div>
+      <div class="ctrl">
+        <span class="mini"></span>
+        <span class="shutter"></span>
+        <span class="mini"></span>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function(){
+      const svg=document.getElementById('qr');const N=25,s=100/N;let seed=20260726;
+      const rnd=()=>(seed=(seed*1103515245+12345)&0x7fffffff)/0x7fffffff;
+      const on=[];for(let y=0;y<N;y++){on[y]=[];for(let x=0;x<N;x++)on[y][x]=rnd()>0.5;}
+      const zones=[[0,0],[N-7,0],[0,N-7]];
+      const near=(x,y)=>zones.some(([fx,fy])=>x>=fx-1&&x<fx+8&&y>=fy-1&&y<fy+8);
+      let r='';for(let y=0;y<N;y++)for(let x=0;x<N;x++){if(near(x,y))continue;if(on[y][x])r+='<rect x="'+(x*s).toFixed(2)+'" y="'+(y*s).toFixed(2)+'" width="'+s.toFixed(2)+'" height="'+s.toFixed(2)+'"/>';}
+      const finder=(fx,fy)=>{const px=fx*s,py=fy*s,u=s;return '<rect x="'+px+'" y="'+py+'" width="'+(7*u)+'" height="'+(7*u)+'"/><rect x="'+(px+u)+'" y="'+(py+u)+'" width="'+(5*u)+'" height="'+(5*u)+'" fill="#fff"/><rect x="'+(px+2*u)+'" y="'+(py+2*u)+'" width="'+(3*u)+'" height="'+(3*u)+'" fill="#111"/>';};
+      svg.innerHTML='<rect width="100" height="100" fill="#fff"/><g fill="#111">'+r+'</g>'+finder(0,0)+finder(N-7,0)+finder(0,N-7);
+    })();
+  </script>
+</body></html>

@@ -79,6 +79,11 @@ class ApiService
 
                 $statusCode = $response->getStatusCode();
                 $body = json_decode($response->getBody()->getContents(), true);
+                // The API signals business errors (bad password, locked/disabled
+                // account, etc.) via a `message` in the body — capture it so it
+                // can be logged and shown to the user instead of a generic line.
+                $apiMessage = is_array($body) ? ($body['message'] ?? null) : null;
+                $bodyStatus = is_array($body) ? ($body['statusCode'] ?? null) : null;
 
                 // Success.
                 if ($statusCode === 200 && isset($body['token'])) {
@@ -93,21 +98,30 @@ class ApiService
                 if ($statusCode === 200) {
                     \Log::warning('Login returned 200 without a token', [
                         'attempt' => $attempt,
+                        'body_status' => $bodyStatus,
+                        'api_message' => $apiMessage,
                     ]);
 
                     return [
                         'success' => false,
                         'error' => 'api_error',
-                        'message' => 'An unexpected error occurred during login.',
+                        'message' => $apiMessage ?? 'An unexpected error occurred during login.',
+                        'api_message' => $apiMessage,
                     ];
                 }
 
                 // Real credential rejection — do not retry.
                 if ($statusCode === 401) {
+                    \Log::warning('Login rejected (401)', [
+                        'attempt' => $attempt,
+                        'api_message' => $apiMessage,
+                    ]);
+
                     return [
                         'success' => false,
                         'error' => 'invalid_credentials',
-                        'message' => 'Invalid credentials provided.',
+                        'message' => $apiMessage ?? 'Invalid credentials provided.',
+                        'api_message' => $apiMessage,
                     ];
                 }
 
@@ -123,6 +137,7 @@ class ApiService
                         'attempt' => $attempt,
                         'retry_after' => $retryAfter ?: null,
                         'cooldown_seconds' => $cooldown,
+                        'api_message' => $apiMessage,
                     ]);
 
                     return [
@@ -137,12 +152,15 @@ class ApiService
                     \Log::warning('Login attempt failed', [
                         'attempt' => $attempt,
                         'status' => $statusCode,
+                        'body_status' => $bodyStatus,
+                        'api_message' => $apiMessage,
                     ]);
 
                     return [
                         'success' => false,
                         'error' => 'api_error',
-                        'message' => 'An unexpected error occurred during login.',
+                        'message' => $apiMessage ?? 'An unexpected error occurred during login.',
+                        'api_message' => $apiMessage,
                     ];
                 }
 
@@ -157,6 +175,8 @@ class ApiService
                 \Log::warning('Login attempt failed', [
                     'attempt' => $attempt,
                     'status' => $statusCode,
+                    'body_status' => $bodyStatus,
+                    'api_message' => $apiMessage,
                     'has_token' => isset($body['token']),
                 ]);
             } catch (\GuzzleHttp\Exception\ConnectException $e) {

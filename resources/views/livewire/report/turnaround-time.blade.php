@@ -257,18 +257,14 @@
                                         @if ($expandedOffice === $office['office_id'])
                                             <tr wire:key="detail-{{ $office['office_id'] }}" class="bg-gray-50 dark:bg-neutral-800/60">
                                                 <td colspan="4" class="p-0">
-                                                    <div class="px-6 py-4" wire:loading.class="opacity-50" wire:target="toggleOffice,docs">
+                                                    <div class="px-6 py-4" wire:loading.class="opacity-50"
+                                                        wire:target="toggleOffice,sortDetailBy,gotoPage,nextPage,previousPage">
                                                         @if ($detail && $detail['office'] === $office['office_id'])
                                                             <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mb-3 text-sm">
                                                                 <span class="font-semibold text-gray-800 dark:text-neutral-200">
                                                                     {{ number_format($detail['completed']) }} completed
                                                                     {{ Str::plural('hop', $detail['completed']) }}
                                                                 </span>
-                                                                @if ($detail['current'] > 0)
-                                                                    <span class="inline-flex items-center gap-1.5 py-0.5 px-2 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
-                                                                        {{ number_format($detail['current']) }} currently here
-                                                                    </span>
-                                                                @endif
                                                             </div>
 
                                                             @if ($detail['rows']->isEmpty())

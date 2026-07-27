@@ -127,16 +127,23 @@ class IncomingDetail extends Component
         $this->document_id = $document_id;
     }
 
+    /**
+     * Resolve an office id to its office name.
+     *
+     * array_filter preserves the original keys, so the previous $result[$id - 1]
+     * lookup only worked while officeList happened to be id-ordered and gap-free;
+     * a deactivated or reordered office threw "Undefined array key". Reindex and
+     * take the first match instead.
+     */
     public function lookUpOffice($assigned_to)
     {
-        $this->selected_office = $this->assigned_to ?? $assigned_to;
+        $this->selected_office = $assigned_to;
 
-        $result = array_filter($this->responseOffices['officeList'], function ($office) {
-            return $office['id'] == $this->selected_office;
-        });
+        $result = array_values(array_filter($this->responseOffices['officeList'] ?? [], function ($office) {
+            return isset($office['id']) && $office['id'] == $this->selected_office;
+        }));
 
-        $findOffice = $result[$this->selected_office - 1];
-        return $findOffice['officeName'];
+        return $result[0]['officeName'] ?? '';
     }
 
     public function receive()
@@ -183,7 +190,12 @@ class IncomingDetail extends Component
             ]);
         }
 
-        $this->showAlert($message = 'received!');
+        /** flash() so the toast survives the redirect; alert() was discarded by it */
+        $this->flash('success', 'Document successfully received!', [
+            'position' => 'top-end',
+            'timer' => 10000,
+            'toast' => true
+        ]);
 
         $this->redirect(Pending::class);
     }
@@ -262,12 +274,12 @@ class IncomingDetail extends Component
         $doc_type = $document->is_bundle == '1' ? 'Bundle' : 'Document';
         $lookUpOffice = $this->lookUpOffice($this->assigned_to);
 
-        /** Look-up for Return Office */
+        /**
+         * Look-up for Return Office. Was a second hand-rolled array_filter with the
+         * same $res[$id - 1] key bug as lookUpOffice(); reuse the fixed helper.
+         */
         $this->return_office = $data['returnTo'];
-        $res = array_filter($this->responseOffices['officeList'], function ($office) {
-            return isset($office['id']) && $office['id'] == $this->return_office;
-        });
-        $returnOffice = $res[$this->return_office - 1];
+        $returnOfficeName = $this->lookUpOffice($data['returnTo']);
 
         // Return to Owner Log
         Log::create([
@@ -277,7 +289,7 @@ class IncomingDetail extends Component
             'office_id' => $this->user['office']['id'],
             'assigned_to' => $data['returnTo'],
             'remarks' => $data['remarks'],
-            'description' => $doc_type . " has been returned to " . $returnOffice['officeName'] . " by " . $lookUpOffice . "."
+            'description' => $doc_type . " has been returned to " . $returnOfficeName . " by " . $lookUpOffice . "."
         ]);
 
         // Return Attached Documents
@@ -297,13 +309,16 @@ class IncomingDetail extends Component
                 'office_id' => $this->user['office']['id'],
                 'assigned_to' => $data['returnTo'],
                 'remarks' => $data['remarks'],
-                'description' => $doc_type . " has been returned to " . $returnOffice['officeName'] . " by " . $lookUpOffice . "."
+                'description' => $doc_type . " has been returned to " . $returnOfficeName . " by " . $lookUpOffice . "."
             ]);
         }
 
-        $this->showAlert($message = "returned to " . $returnOffice['officeName'] . "!");
-
-        return redirect()->to('/status-incoming');
+        /** flash() so the toast survives the redirect; alert() was discarded by it */
+        return $this->flash('success', 'Document successfully returned to ' . $returnOfficeName . '!', [
+            'position' => 'top-end',
+            'timer' => 10000,
+            'toast' => true
+        ], '/status-incoming');
     }
     /** End of Return Document */
 
@@ -339,15 +354,6 @@ class IncomingDetail extends Component
     public function closeModal()
     {
         return redirect()->route('document.incoming', $this->document->control_no);
-    }
-
-    public function showAlert($message)
-    {
-        $this->alert('success', 'Document successfully ' . $message, [
-            'position' => 'top-end',
-            'timer' => 10000,
-            'toast' => true
-        ]);
     }
 
     public function colorIndicator($status)

@@ -77,25 +77,29 @@ class LoginPage extends Component
 
         // Handle specific error cases with user-friendly messages
         if (isset($response['error'])) {
-            switch ($response['error']) {
-                case 'connection_error':
-                    $this->errorMessage = 'Unable to connect to the authentication server. Please check your internet connection and try again.';
-                    break;
-                case 'invalid_credentials':
-                    $this->errorMessage = 'The provided credentials do not match our records. Please check your email and password.';
-                    break;
-                case 'server_error':
-                    $this->errorMessage = 'The authentication server is currently unavailable. Please try again later.';
-                    break;
-                case 'rate_limited':
-                    $this->errorMessage = $response['message'] ?? 'Too many login attempts. Please wait a moment and try again.';
-                    break;
-                case 'client_error':
-                case 'api_error':
-                case 'unexpected_error':
-                default:
-                    $this->errorMessage = 'An error occurred during authentication. Please try again.';
-                    break;
+            // When the API returned its own message (e.g. "Your account is
+            // locked"), show that verbatim; otherwise fall back to friendly,
+            // mapped text for transport-level failures that have no useful body.
+            if (!empty($response['api_message'])) {
+                $this->errorMessage = $response['api_message'];
+            } else {
+                switch ($response['error']) {
+                    case 'connection_error':
+                        $this->errorMessage = 'Unable to connect to the authentication server. Please check your internet connection and try again.';
+                        break;
+                    case 'invalid_credentials':
+                        $this->errorMessage = 'The provided credentials do not match our records. Please check your email and password.';
+                        break;
+                    case 'server_error':
+                        $this->errorMessage = 'The authentication server is currently unavailable. Please try again later.';
+                        break;
+                    case 'rate_limited':
+                        $this->errorMessage = $response['message'] ?? 'Too many login attempts. Please wait a moment and try again.';
+                        break;
+                    default:
+                        $this->errorMessage = 'An error occurred during authentication. Please try again.';
+                        break;
+                }
             }
         } else {
             // Fallback error message

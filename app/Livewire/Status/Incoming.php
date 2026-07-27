@@ -8,7 +8,6 @@ use App\Models\Document;
 use App\Models\Log;
 use App\Services\ApiService;
 use Carbon\Carbon;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Jantinnerezo\LivewireAlert\LivewireAlert;
 use Livewire\Attributes\On;
@@ -137,84 +136,195 @@ class Incoming extends Component
         return true;
     }
 
-    /** Reset pagination whenever a filter changes so results never land on an out-of-range page */
-    public function updatedSearch()
+    /**
+     * Single source of truth for "which documents belong on this screen".
+     *
+     * render(), updatedSelectAll() and receive() all build from this, so the
+     * select-all set can never drift from the rows the user can actually see.
+     * Previously each one hand-rolled its own filter list and they fell out of
+     * sync, letting select-all pick up documents outside the active category and
+     * date filters.
+     */
+    private function baseQuery()
     {
-        $this->resetPage();
-    }
-
-    public function updatedStartDate()
-    {
-        $this->resetPage();
-    }
-
-    public function updatedEndDate()
-    {
-        $this->resetPage();
-    }
-
-    /** Multiple Receive */
-    public function updatedSelectAll($value)
-    {
-        $this->selected_item = $value ? Document::whereNull('bundle_id')
+        return Document::query()
+            ->whereNull('bundle_id')
+            ->where('assigned_to', $this->office)
+            ->whereIn('status', ['For Receiving', 'Returned'])
             ->when($this->search, function ($query) {
-                // Properly scope the OR conditions to avoid query issues
+                // Properly scope the OR conditions within a nested where
                 $query->where(function ($q) {
                     $q->where('control_no', 'like', '%' . $this->search . '%')
                         ->orWhere('subject', 'like', '%' . $this->search . '%');
                 });
             })
-            ->where('assigned_to', $this->office)
-            ->whereIn('status', ['For Receiving', 'Returned'])
-            ->pluck('id')->toArray() : [];
+            ->when($this->selectFilter, function ($query) {
+                $query->whereIn('category_id', $this->selectFilter);
+            })
+            ->when($this->startDate && $this->endDate, function ($query) {
+                $query->whereBetween('created_at', [
+                    Carbon::parse($this->startDate)->startOfDay(),
+                    Carbon::parse($this->endDate)->endOfDay()
+                ]);
+            });
     }
 
-    public function modalReceiveDocument()
+    /**
+     * Drop any pending selection. Called whenever the visible result set changes
+     * so previously selected (now hidden) documents cannot be acted on.
+     */
+    private function clearSelection()
     {
-        $this->alert('info', 'Receive ' . count($this->selected_item) . ' Documents?', [
-            'position' => 'center',
-            'toast' => true,
-            'timer' => null,
-            'showConfirmButton' => true,
-            'confirmButtonText' => 'Confirm',
-            'onConfirmed' => 'receive',
-            'confirmButtonColor' => '#059669',
-            'showCancelButton' => true,
-            'cancelButtonText' => 'Cancel',
-            'onDismissed' => 'closeModal'
-        ]);
+        $this->selected_item = [];
+        $this->selectAll = false;
     }
 
+    /**
+     * Reset pagination whenever a filter changes so results never land on an
+     * out-of-range page, and clear the selection so it always reflects the
+     * currently visible rows.
+     */
+    public function updatedSearch()
+    {
+        $this->resetPage();
+        $this->clearSelection();
+    }
+
+    public function updatedStartDate()
+    {
+        $this->resetPage();
+        $this->clearSelection();
+    }
+
+    public function updatedEndDate()
+    {
+        $this->resetPage();
+        $this->clearSelection();
+    }
+
+    /** Multiple Receive */
+    public function updatedSelectAll($value)
+    {
+        $this->selected_item = $value
+            ? $this->baseQuery()->pluck('id')->toArray()
+            : [];
+    }
+
+    /**
+     * Keep the header checkbox honest about the row checkboxes.
+     *
+     * Without this, unticking a single row left "select all" visually ticked, and
+     * clicking it again did nothing because Livewire skips updated* hooks when the
+     * value has not changed - so the row could not be re-added. A single EXISTS
+     * query asks whether anything in the filtered set is still unselected.
+     */
+    public function updatedSelectedItem()
+    {
+        if (empty($this->selected_item)) {
+            $this->selectAll = false;
+
+            return;
+        }
+
+        $this->selectAll = !$this->baseQuery()
+            ->whereNotIn('id', $this->selected_item)
+            ->exists();
+    }
+
+    /**
+     * Resolve an office id to its office name.
+     *
+     * array_filter preserves the original keys, so the previous $result[$id - 1]
+     * lookup only worked while officeList happened to be id-ordered and gap-free;
+     * a deactivated or reordered office threw "Undefined array key". Reindex and
+     * take the first match instead, mirroring filterOffice() below. The argument is
+     * now authoritative — it used to be silently overridden by $this->assigned_to.
+     */
     public function lookUpOffice($assigned_to)
     {
-        $this->selected_office = $this->assigned_to ?? $assigned_to;
+        $this->selected_office = $assigned_to;
 
-        $result = array_filter($this->responseOffices['officeList'], function ($office) {
-            return $office['id'] == $this->selected_office;
-        });
+        $result = array_values(array_filter($this->responseOffices['officeList'] ?? [], function ($office) {
+            return isset($office['id']) && $office['id'] == $this->selected_office;
+        }));
 
-        $findOffice = $result[$this->selected_office - 1];
-        return $findOffice['officeName'];
+        return $result[0]['officeName'] ?? '';
     }
 
     public function receive()
     {
-        $this->checkApiConnection();
+        /**
+         * checkApiConnection() nulls out responseOffices and alerts on failure, so
+         * carrying on would only crash later in lookUpOffice(). Bail out instead.
+         */
+        if (!$this->checkApiConnection()) {
+            return;
+        }
 
-        /** Loop Document item selected */
-        Arr::map($this->selected_item, function ($item) {
-            DB::transaction(function () use ($item) {
-                Document::find($item)->update([
+        /**
+         * Re-validate the selection against the current filters before touching
+         * anything. Guards against a stale selection - filters changed after
+         * selecting, another user already received the document, or client-side
+         * tampering - so we never act on rows outside the visible set.
+         */
+        $documentIds = $this->baseQuery()
+            ->whereIn('id', $this->selected_item)
+            ->pluck('id')
+            ->toArray();
+
+        if (empty($documentIds)) {
+            $this->clearSelection();
+
+            $this->alert('warning', 'Nothing to receive. The selected document(s) are no longer available.', [
+                'position' => 'top-end',
+                'timer' => 10000,
+                'toast' => true
+            ]);
+
+            return;
+        }
+
+        $receivedActionId = Action::firstWhere('name', 'Received')?->id;
+
+        if (!$receivedActionId) {
+            $this->alert('error', 'The "Received" action is missing. Contact the system administrator.', [
+                'position' => 'center',
+                'toast' => true,
+                'timer' => null,
+                'showConfirmButton' => true,
+                'confirmButtonText' => 'OK',
+                'confirmButtonColor' => '#dc2626',
+            ]);
+
+            return;
+        }
+
+        /** Receiving office name, identical for every document in the batch */
+        $lookUpOffice = $this->lookUpOffice($this->office);
+
+        /**
+         * One transaction for the whole batch. Previously each document had its own
+         * transaction inside the loop, so a failure partway through committed a
+         * partial receive that could not be undone from the UI.
+         */
+        DB::transaction(function () use ($documentIds, $receivedActionId, $lookUpOffice) {
+            /** Loop Document item selected */
+            foreach ($documentIds as $item) {
+                $document = Document::find($item);
+
+                if (!$document) {
+                    continue;
+                }
+
+                $doc_type = $document->is_bundle ? 'Bundle' : 'Document';
+
+                $document->update([
                     'assigned_to' => $this->office,
                     'status' => 'On Process'
                 ]);
 
-                $document = Document::find($item);
-                $doc_type = is_object($document) && $document->is_bundle ? 'Bundle' : 'Document';
-                $lookUpOffice = $this->lookUpOffice($document->assigned_to);
-
                 Log::create([
-                    'action_id' => Action::firstWhere('name', 'Received')->id,
+                    'action_id' => $receivedActionId,
                     'document_id' => $document->id,
                     'user_id' => $this->user['id'],
                     'office_id' => $this->office,
@@ -222,17 +332,25 @@ class Incoming extends Component
                     'description' => $doc_type . " (" . $document->control_no . ") has been received and being process by " . $lookUpOffice . "."
                 ]);
 
-                /** Loop Attachments */
-                $this->attachments = Document::where('assigned_to', $this->office)->where('status', 'For Receiving')->where('bundle_id', $item)->orderBy('created_at', 'DESC')->get();
-                foreach ($this->attachments as $attachment) {
+                /**
+                 * Loop Attachments. 'Returned' is included because returning a bundle
+                 * marks its children 'Returned' too - filtering on 'For Receiving'
+                 * alone stranded them while the parent moved to 'On Process'.
+                 */
+                $this->attachments = Document::where('assigned_to', $this->office)
+                    ->whereIn('status', ['For Receiving', 'Returned'])
+                    ->where('bundle_id', $item)
+                    ->orderBy('created_at', 'DESC')
+                    ->get();
 
-                    Document::find($attachment->id)->update([
+                foreach ($this->attachments as $attachment) {
+                    $attachment->update([
                         'assigned_to' => $this->office,
                         'status' => 'On Process'
                     ]);
 
                     Log::create([
-                        'action_id' => Action::firstWhere('name', 'Received')->id,
+                        'action_id' => $receivedActionId,
                         'document_id' => $attachment->id,
                         'bundle_id' => $document->id,
                         'user_id' => $this->user['id'],
@@ -241,10 +359,24 @@ class Incoming extends Component
                         'description' => $doc_type . " (" . $document->control_no . ") has been received and being process by " . $lookUpOffice . "."
                     ]);
                 }
-            });
+            }
         });
 
-        $this->showAlert($message = 'received!');
+        $this->clearSelection();
+
+        /**
+         * flash() stores the toast in the session so it survives the redirect. The
+         * previous alert() dispatched a browser event that the redirect discarded,
+         * so the success message never actually appeared. flash() also returns its
+         * own redirect response, which we ignore - Livewire's redirect() below
+         * performs the navigation.
+         */
+        $this->flash('success', 'Document successfully received!', [
+            'position' => 'top-end',
+            'timer' => 10000,
+            'toast' => true
+        ]);
+
         $this->redirect(Pending::class);
     }
     /** End of Multiple Receive */
@@ -254,15 +386,6 @@ class Incoming extends Component
     public function closeModal()
     {
         return $this->redirect(Incoming::class);
-    }
-
-    public function showAlert($message)
-    {
-        $this->alert('success', 'Document successfully ' . $message, [
-            'position' => 'top-end',
-            'timer' => 10000,
-            'toast' => true
-        ]);
     }
 
     public function colorIndicator($status)
@@ -306,6 +429,7 @@ class Incoming extends Component
     public function documentTypeFilter($type)
     {
         $this->resetPage();
+        $this->clearSelection();
 
         return $this->selectFilter = Category::where('name', 'like', '%' . $type . '%')->pluck('id')->toArray();
     }
@@ -352,27 +476,8 @@ class Incoming extends Component
 
     public function render()
     {
-        $documents = Document::query()
+        $documents = $this->baseQuery()
             ->with(['logs', 'category'])
-            ->where('assigned_to', $this->office)
-            ->whereIn('status', ['For Receiving', 'Returned'])
-            ->whereNull('bundle_id')
-            ->when($this->search, function ($query) {
-                // Properly scope the OR conditions within a nested where
-                $query->where(function ($q) {
-                    $q->where('control_no', 'like', '%' . $this->search . '%')
-                        ->orWhere('subject', 'like', '%' . $this->search . '%');
-                });
-            })
-            ->when($this->selectFilter, function ($query) {
-                $query->whereIn('category_id', $this->selectFilter);
-            })
-            ->when($this->startDate && $this->endDate, function ($query) {
-                $query->whereBetween('created_at', [
-                    Carbon::parse($this->startDate)->startOfDay(),
-                    Carbon::parse($this->endDate)->endOfDay()
-                ]);
-            })
             ->orderBy('created_at', 'ASC')
             ->paginate(50);
 

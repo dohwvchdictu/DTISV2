@@ -1,0 +1,83 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{width:680px;height:900px;display:grid;place-items:center;background:#eef2f0;
+    font-family:"Segoe UI",system-ui,Arial,sans-serif}
+  .paper{width:620px;background:#fff;color:#111;border:1px solid #e7e7e7;border-radius:6px;
+    box-shadow:0 24px 55px -26px rgba(6,40,28,.45);padding:22px 24px 18px;font-size:12px}
+  .paper *{border-color:#333}
+  .ph{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  .seal{width:60px;height:60px;border-radius:50%;border:2px solid #0a7d4d;display:grid;place-items:center;
+    color:#0a7d4d;font-weight:800;font-size:11px;text-align:center;opacity:.85;flex-shrink:0;
+    font-family:Georgia,serif;line-height:1.1}
+  .lt{flex:1;text-align:center;font-family:Georgia,serif;line-height:1.35;padding-top:2px;font-size:12px}
+  .lt b{font-size:13px;letter-spacing:.03em}
+  .qrbox{width:78px;flex-shrink:0;text-align:center}
+  .qrbox svg{width:72px;height:72px}
+  .qrbox .cap{font-size:8.5px;font-weight:800;letter-spacing:.1em;margin-top:3px;color:#111}
+  hr{border:none;border-top:1px solid #333;margin:11px 0}
+  .ttl{text-align:center;font-weight:800;letter-spacing:.05em;font-size:16px;margin:4px 0 12px;font-family:Georgia,serif}
+  table{width:100%;border-collapse:collapse;margin-bottom:11px}
+  td,th{border:1px solid #333;padding:5px 7px;text-align:left;vertical-align:top;font-size:11.5px}
+  td.k{background:#f3f3f3;font-weight:700;color:#333;white-space:nowrap;width:1%}
+  th{font-weight:700}
+  thead th{text-align:center;background:#fafafa}
+  .rt td{height:30px}
+  .foot{display:flex;justify-content:space-between;font-size:9px;color:#444;font-style:italic;margin-top:6px}
+  .addr{text-align:center;font-size:9px;color:#555;margin-top:8px;border-top:1px solid #ccc;padding-top:6px}
+</style></head>
+<body>
+  <div class="paper">
+    <div class="ph">
+      <div class="seal">DOH<br>WV</div>
+      <div class="lt">
+        Republic of the Philippines<br>
+        <b>DEPARTMENT OF HEALTH</b><br>
+        Western Visayas<br>Center for Health Development
+      </div>
+      <div class="qrbox">
+        <svg id="qr" viewBox="0 0 100 100" aria-hidden="true"></svg>
+        <div class="cap">SCAN TO RECEIVE</div>
+      </div>
+    </div>
+    <hr>
+    <div class="ttl">DOCUMENT TRACKING FORM</div>
+    <table>
+      <tr><td class="k">CONTROL NO</td><th colspan="2">2026-07-000482</th><td class="k">DATE</td><th>07/26/2026 9:14:07 AM</th></tr>
+      <tr><td class="k">SOURCE</td><th>External</th><td class="k">CATEGORY</td><th colspan="2">Purchase Request</th></tr>
+      <tr><td class="k">ORIGIN</td><th colspan="4">Records Section (MSD)</th></tr>
+      <tr><td class="k">DESTINATION</td><th colspan="4">Accounting Section</th></tr>
+      <tr><td class="k">ACTION REQUESTED</td><th colspan="4"></th></tr>
+      <tr><td class="k">ENCODED BY</td><th colspan="4">Dela Cruz, Maria</th></tr>
+      <tr><td class="k">SUBJECT</td><td colspan="4" style="height:44px;font-size:12.5px">Request for procurement of medical supplies &mdash; Q3 replenishment</td></tr>
+    </table>
+    <table>
+      <thead>
+        <tr><th rowspan="2" style="vertical-align:middle">DATE</th><th colspan="2">OFFICE</th>
+          <th rowspan="2" style="vertical-align:middle">ACTION REQUESTED</th><th rowspan="2" style="vertical-align:middle">COMMENT / REMARKS</th></tr>
+        <tr><th>FROM</th><th>NEXT</th></tr>
+      </thead>
+      <tbody>
+        <tr class="rt"><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr class="rt"><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr class="rt"><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr class="rt"><td></td><td></td><td></td><td></td><td></td></tr>
+      </tbody>
+    </table>
+    <div class="foot"><span>*In the event of loss, please return this document to its owner.</span><span>DOH-CHD6-MSD-RECORDS-SOP-02-FORM4-Rev1</span></div>
+    <div class="addr">Brgy. Bolong Oeste, Santa Barbara, Iloilo 5002 &middot; https://www.wv.doh.gov.ph &middot; records@dohwv.com &middot; (033) 500-1030</div>
+  </div>
+  <script>
+    (function(){
+      const svg=document.getElementById('qr');const N=25,s=100/N;let seed=20260726;
+      const rnd=()=>(seed=(seed*1103515245+12345)&0x7fffffff)/0x7fffffff;
+      const on=[];for(let y=0;y<N;y++){on[y]=[];for(let x=0;x<N;x++)on[y][x]=rnd()>0.5;}
+      const zones=[[0,0],[N-7,0],[0,N-7]];
+      const near=(x,y)=>zones.some(([fx,fy])=>x>=fx-1&&x<fx+8&&y>=fy-1&&y<fy+8);
+      let r='';for(let y=0;y<N;y++)for(let x=0;x<N;x++){if(near(x,y))continue;if(on[y][x])r+='<rect x="'+(x*s).toFixed(2)+'" y="'+(y*s).toFixed(2)+'" width="'+s.toFixed(2)+'" height="'+s.toFixed(2)+'"/>';}
+      const finder=(fx,fy)=>{const px=fx*s,py=fy*s,u=s;return '<rect x="'+px+'" y="'+py+'" width="'+(7*u)+'" height="'+(7*u)+'"/><rect x="'+(px+u)+'" y="'+(py+u)+'" width="'+(5*u)+'" height="'+(5*u)+'" fill="#fff"/><rect x="'+(px+2*u)+'" y="'+(py+2*u)+'" width="'+(3*u)+'" height="'+(3*u)+'" fill="#111"/>';};
+      svg.innerHTML='<rect width="100" height="100" fill="#fff"/><g fill="#111">'+r+'</g>'+finder(0,0)+finder(N-7,0)+finder(0,N-7);
+    })();
+  </script>
+</body></html>

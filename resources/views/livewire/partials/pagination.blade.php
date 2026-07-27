@@ -1,4 +1,9 @@
-<div>
+@php
+    /** Each paginator drives its own page name, so a component may render several independently. */
+    $pageName = $paginator->getPageName();
+@endphp
+
+<div wire:key="pagination-{{ $pageName }}">
     @if ($paginator->hasPages())
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <p class="text-sm text-gray-600 dark:text-neutral-400">
@@ -13,7 +18,7 @@
 
             <nav class="flex items-center gap-x-1" aria-label="Pagination">
                 {{-- Previous --}}
-                <button type="button" wire:click="previousPage"
+                <button type="button" wire:click="previousPage('{{ $pageName }}')"
                     @if ($paginator->onFirstPage()) disabled @endif
                     class="py-2 px-2.5 inline-flex items-center gap-x-1.5 text-sm rounded-lg text-gray-800 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:text-white dark:hover:bg-white/10 dark:focus:bg-white/10"
                     aria-label="Previous">
@@ -44,7 +49,7 @@
                                     {{ $page }}
                                 </span>
                             @else
-                                <button type="button" wire:click="gotoPage({{ $page }})"
+                                <button type="button" wire:click="gotoPage({{ $page }}, '{{ $pageName }}')"
                                     class="min-w-9 flex justify-center items-center py-2 px-3 text-sm rounded-lg text-gray-800 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:text-white dark:hover:bg-white/10 dark:focus:bg-white/10 tabular-nums">
                                     {{ $page }}
                                 </button>
@@ -54,7 +59,7 @@
                 @endforeach
 
                 {{-- Next --}}
-                <button type="button" wire:click="nextPage"
+                <button type="button" wire:click="nextPage('{{ $pageName }}')"
                     @if (!$paginator->hasMorePages()) disabled @endif
                     class="py-2 px-2.5 inline-flex items-center gap-x-1.5 text-sm rounded-lg text-gray-800 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:text-white dark:hover:bg-white/10 dark:focus:bg-white/10"
                     aria-label="Next">

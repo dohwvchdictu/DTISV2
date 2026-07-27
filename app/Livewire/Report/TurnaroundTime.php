@@ -22,12 +22,22 @@ class TurnaroundTime extends Component
 
     /**
      * Action ids. A hop starts when an office receives a document and ends the
-     * moment that same office forwards, endorses, returns, or closes it. The
-     * origin office only "Created" the document, so it is never a hop start and
-     * is excluded — matching the rule that dwell is counted per receiving office.
+     * moment the *next* office receives it — so the holding office is charged for
+     * both its own processing and the transit that follows, and no time between
+     * two receipts goes unaccounted for.
+     *
+     * "Closed" is the terminal fallback: nobody receives a closed document, so
+     * without it the last office in every chain would never be measured. All other
+     * actions (Forwarded, Endorsed, Returned, For Receiving, ...) leave the hop
+     * open — a document forwarded but not yet received is still in transit, and
+     * its hop stays incomplete until someone receives it.
+     *
+     * The origin office only "Created" the document, so it is never a hop start
+     * and is excluded — dwell is counted per receiving office.
      */
     private const ACTION_RECEIVED = 1;
-    private const EXIT_ACTIONS = [3, 10, 4, 5]; // Forwarded, Endorsed, Returned, Closed
+    private const ACTION_CLOSED = 5;
+    private const HOP_BOUNDARIES = [self::ACTION_RECEIVED, self::ACTION_CLOSED];
 
     /** Constant Variables */
     /** Office directory kept protected so it is not serialized into the Livewire snapshot; reloaded from cache in boot(). */
@@ -187,7 +197,7 @@ class TurnaroundTime extends Component
 
     /**
      * Walk every in-scope document's logs and accumulate, per office, the dwell
-     * time of each completed hop (Received → Forwarded/Endorsed/Returned/Closed).
+     * time of each completed hop (Received → next Received, or → Closed).
      * Returns [office stats keyed by office_id, overall summary].
      *
      * Only source and date drive the heavy walk, so the result is cached under
@@ -202,7 +212,8 @@ class TurnaroundTime extends Component
             'end' => $this->applied['endDate'] ?? $this->endDate,
         ]));
 
-        return Cache::remember('turnaround_dwell_' . $signature, now()->addMinutes(5), function () {
+        /** _v2 = receive-to-receive dwell; bumped so pre-change results are not served. */
+        return Cache::remember('turnaround_dwell_v2_' . $signature, now()->addMinutes(5), function () {
             return $this->walkDwell();
         });
     }
@@ -231,7 +242,7 @@ class TurnaroundTime extends Component
 
         $logs = DB::table('logs')
             ->join('documents', 'documents.id', '=', 'logs.document_id')
-            ->whereIn('logs.action_id', array_merge([self::ACTION_RECEIVED], self::EXIT_ACTIONS))
+            ->whereIn('logs.action_id', self::HOP_BOUNDARIES)
             ->when($this->applied['source'] ?? '', function ($query, $source) {
                 $query->where('documents.source', $source);
             })
@@ -253,35 +264,47 @@ class TurnaroundTime extends Component
                 $openHop = null;
             }
 
+            /**
+             * Offices routinely log the same receipt several times in a burst
+             * (batch scans). A repeat receive by the office already holding the
+             * document is not a handoff — keep the original custody timestamp.
+             */
+            if ((int) $log->action_id === self::ACTION_RECEIVED
+                && $openHop !== null
+                && $openHop['office'] === (int) $log->office_id) {
+                continue;
+            }
+
+            /**
+             * Either boundary closes the hop in progress: the next office taking
+             * receipt, or the document being closed where it sits.
+             */
+            if ($openHop !== null) {
+                $office = $openHop['office'];
+                $days = $this->businessDays($openHop['time'], $log->created_at);
+
+                if (!isset($perOffice[$office])) {
+                    $perOffice[$office] = ['count' => 0, 'sum' => 0, 'min' => $days, 'max' => $days];
+                }
+
+                $perOffice[$office]['count']++;
+                $perOffice[$office]['sum'] += $days;
+                $perOffice[$office]['min'] = min($perOffice[$office]['min'], $days);
+                $perOffice[$office]['max'] = max($perOffice[$office]['max'], $days);
+
+                $overall['count']++;
+                $overall['sum'] += $days;
+                $overall['min'] = $overall['min'] === null ? $days : min($overall['min'], $days);
+                $overall['max'] = $overall['max'] === null ? $days : max($overall['max'], $days);
+
+                $documentsWithHop[$documentId] = true;
+                $openHop = null;
+            }
+
+            /** A receive hands the clock straight to the receiving office. */
             if ((int) $log->action_id === self::ACTION_RECEIVED) {
                 $openHop = ['office' => (int) $log->office_id, 'time' => $log->created_at];
-                continue;
             }
-
-            /** An exit action closes the hop opened by the matching receive. */
-            if ($openHop === null) {
-                continue;
-            }
-
-            $office = $openHop['office'];
-            $days = $this->businessDays($openHop['time'], $log->created_at);
-
-            if (!isset($perOffice[$office])) {
-                $perOffice[$office] = ['count' => 0, 'sum' => 0, 'min' => $days, 'max' => $days];
-            }
-
-            $perOffice[$office]['count']++;
-            $perOffice[$office]['sum'] += $days;
-            $perOffice[$office]['min'] = min($perOffice[$office]['min'], $days);
-            $perOffice[$office]['max'] = max($perOffice[$office]['max'], $days);
-
-            $overall['count']++;
-            $overall['sum'] += $days;
-            $overall['min'] = $overall['min'] === null ? $days : min($overall['min'], $days);
-            $overall['max'] = $overall['max'] === null ? $days : max($overall['max'], $days);
-
-            $documentsWithHop[$documentId] = true;
-            $openHop = null;
         }
 
         return [
@@ -294,9 +317,8 @@ class TurnaroundTime extends Component
 
     /**
      * Per-category breakdown for a single office: one row per document category,
-     * summarising the dwell of the completed hops at that office, plus a count of
-     * documents currently sitting there (received, not yet forwarded/closed).
-     * Loaded on demand when a row is expanded and cached under office + filters.
+     * summarising the dwell of the completed hops at that office. Loaded on demand
+     * when a row is expanded and cached under office + filters.
      */
     private function officeDetail(int $officeId): array
     {
@@ -307,7 +329,7 @@ class TurnaroundTime extends Component
             'end' => $this->applied['endDate'] ?? $this->endDate,
         ]));
 
-        return Cache::remember('turnaround_detail_' . $signature, now()->addMinutes(5), function () use ($officeId) {
+        return Cache::remember('turnaround_detail_v2_' . $signature, now()->addMinutes(5), function () use ($officeId) {
             return $this->walkOfficeDetail($officeId);
         });
     }
@@ -331,7 +353,7 @@ class TurnaroundTime extends Component
             ->pluck('logs.document_id');
 
         if ($documentIds->isEmpty()) {
-            return ['categories' => [], 'current' => 0, 'completed' => 0];
+            return ['categories' => [], 'completed' => 0];
         }
 
         /** document_id => category_id, so each hop can be attributed to a type. */
@@ -339,7 +361,7 @@ class TurnaroundTime extends Component
 
         $logs = DB::table('logs')
             ->whereIn('document_id', $documentIds)
-            ->whereIn('action_id', array_merge([self::ACTION_RECEIVED], self::EXIT_ACTIONS))
+            ->whereIn('action_id', self::HOP_BOUNDARIES)
             ->orderBy('document_id')
             ->orderBy('created_at')
             ->orderBy('id')
@@ -347,57 +369,51 @@ class TurnaroundTime extends Component
             ->cursor();
 
         $categories = [];
-        $current = 0;
         $completed = 0;
         $currentDoc = null;
         $openHop = null;
-
-        /** A still-open hop at this office means the document is sitting here now. */
-        $finalize = function () use (&$openHop, &$current, $officeId) {
-            if ($openHop !== null && $openHop['office'] === $officeId) {
-                $current++;
-            }
-        };
 
         foreach ($logs as $log) {
             $documentId = (int) $log->document_id;
 
             if ($documentId !== $currentDoc) {
-                $finalize();
                 $currentDoc = $documentId;
+                $openHop = null;
+            }
+
+            /** Repeat receives by the holding office are duplicate scans, not handoffs. */
+            if ((int) $log->action_id === self::ACTION_RECEIVED
+                && $openHop !== null
+                && $openHop['office'] === (int) $log->office_id) {
+                continue;
+            }
+
+            /** Either boundary closes the hop; only credit the office being detailed. */
+            if ($openHop !== null) {
+                if ($openHop['office'] === $officeId) {
+                    $categoryId = (int) ($categoryByDoc[$documentId] ?? 0);
+                    $days = $this->businessDays($openHop['time'], $log->created_at);
+
+                    if (!isset($categories[$categoryId])) {
+                        $categories[$categoryId] = ['count' => 0, 'sum' => 0, 'min' => $days, 'max' => $days];
+                    }
+
+                    $categories[$categoryId]['count']++;
+                    $categories[$categoryId]['sum'] += $days;
+                    $categories[$categoryId]['min'] = min($categories[$categoryId]['min'], $days);
+                    $categories[$categoryId]['max'] = max($categories[$categoryId]['max'], $days);
+                    $completed++;
+                }
+
                 $openHop = null;
             }
 
             if ((int) $log->action_id === self::ACTION_RECEIVED) {
                 $openHop = ['office' => (int) $log->office_id, 'time' => $log->created_at];
-                continue;
             }
-
-            if ($openHop === null) {
-                continue;
-            }
-
-            if ($openHop['office'] === $officeId) {
-                $categoryId = (int) ($categoryByDoc[$documentId] ?? 0);
-                $days = $this->businessDays($openHop['time'], $log->created_at);
-
-                if (!isset($categories[$categoryId])) {
-                    $categories[$categoryId] = ['count' => 0, 'sum' => 0, 'min' => $days, 'max' => $days];
-                }
-
-                $categories[$categoryId]['count']++;
-                $categories[$categoryId]['sum'] += $days;
-                $categories[$categoryId]['min'] = min($categories[$categoryId]['min'], $days);
-                $categories[$categoryId]['max'] = max($categories[$categoryId]['max'], $days);
-                $completed++;
-            }
-
-            $openHop = null;
         }
 
-        $finalize();
-
-        return ['categories' => $categories, 'current' => $current, 'completed' => $completed];
+        return ['categories' => $categories, 'completed' => $completed];
     }
 
     /**
@@ -520,7 +536,6 @@ class TurnaroundTime extends Component
 
             $detail = [
                 'office' => $this->expandedOffice,
-                'current' => $result['current'],
                 'completed' => $result['completed'],
                 'rows' => new LengthAwarePaginator(
                     $categoryRows->slice(($docsPage - 1) * $this->detailPerPage, $this->detailPerPage)->values(),

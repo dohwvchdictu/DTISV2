@@ -83,9 +83,15 @@ class Incoming extends Component
         $this->office = $this->user['office']['id'];
         /** End User Information */
 
-        /** Filter Records last 30 days */
-        $this->startDate = Carbon::now()->subQuarter(1)->format('Y-m-d');
-        $this->endDate = Carbon::now()->format('Y-m-d');
+        /**
+         * No default date range.
+         *
+         * This used to default to the last quarter, which silently hid every
+         * For Receiving / Returned document older than 3 months and made this table
+         * disagree with the sidebar badge, which has never been date-bounded. A
+         * status queue must show the whole queue; the date inputs remain available
+         * for narrowing on demand.
+         */
 
         $this->modalTitle = 'Receive Document';
         $this->modalContent = 'Are you sure you want to receive the selected document(s)?';
@@ -161,11 +167,12 @@ class Incoming extends Component
             ->when($this->selectFilter, function ($query) {
                 $query->whereIn('category_id', $this->selectFilter);
             })
-            ->when($this->startDate && $this->endDate, function ($query) {
-                $query->whereBetween('created_at', [
-                    Carbon::parse($this->startDate)->startOfDay(),
-                    Carbon::parse($this->endDate)->endOfDay()
-                ]);
+            /** Bounds applied independently so one blank input still filters sanely */
+            ->when($this->startDate, function ($query) {
+                $query->where('created_at', '>=', Carbon::parse($this->startDate)->startOfDay());
+            })
+            ->when($this->endDate, function ($query) {
+                $query->where('created_at', '<=', Carbon::parse($this->endDate)->endOfDay());
             });
     }
 
@@ -202,12 +209,39 @@ class Incoming extends Component
         $this->clearSelection();
     }
 
+    /** Has the user actively narrowed the list? */
+    private function hasActiveFilter(): bool
+    {
+        return filled($this->search)
+            || !empty($this->selectFilter)
+            || filled($this->startDate)
+            || filled($this->endDate);
+    }
+
+    /**
+     * Scope of a select-all click.
+     *
+     * Filtering is an explicit, bounded narrowing, so select-all takes the whole
+     * filtered set across pages. With no filter it takes only the current page - an
+     * office can hold over a thousand documents awaiting receipt, and an unfiltered
+     * click must not be able to receive the entire queue at once.
+     */
+    private function selectableIds(): array
+    {
+        $query = $this->baseQuery()->orderBy('created_at', 'ASC');
+
+        if ($this->hasActiveFilter()) {
+            return $query->pluck('id')->all();
+        }
+
+        /** forPage() mirrors paginate()'s offset, so this is exactly the visible page */
+        return $query->forPage(max(1, (int) $this->getPage()), 50)->pluck('id')->all();
+    }
+
     /** Multiple Receive */
     public function updatedSelectAll($value)
     {
-        $this->selected_item = $value
-            ? $this->baseQuery()->pluck('id')->toArray()
-            : [];
+        $this->selected_item = $value ? $this->selectableIds() : [];
     }
 
     /**
@@ -226,9 +260,10 @@ class Incoming extends Component
             return;
         }
 
-        $this->selectAll = !$this->baseQuery()
-            ->whereNotIn('id', $this->selected_item)
-            ->exists();
+        $selectable = $this->selectableIds();
+
+        $this->selectAll = !empty($selectable)
+            && empty(array_diff($selectable, $this->selected_item));
     }
 
     /**
@@ -431,7 +466,15 @@ class Incoming extends Component
         $this->resetPage();
         $this->clearSelection();
 
-        return $this->selectFilter = Category::where('name', 'like', '%' . $type . '%')->pluck('id')->toArray();
+        /**
+         * An empty $type is the "All Documents" choice — clear the filter rather than
+         * matching every category. The old like '%%' pluck returned every category id,
+         * which silently excluded documents with a null category_id and also counted
+         * as an active filter for select-all scoping.
+         */
+        return $this->selectFilter = $type === ''
+            ? []
+            : Category::where('name', 'like', '%' . $type . '%')->pluck('id')->toArray();
     }
 
     public function filterUser($encoded_user)

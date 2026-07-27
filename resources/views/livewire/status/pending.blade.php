@@ -88,7 +88,17 @@
                                                     placeholder="Select date">
                                             </div>
                                         </div>
-                                    <div class="hs-dropdown [--placement:bottom-right] relative inline-block">
+                                    {{--
+                                        wire:ignore is required, not cosmetic. Choosing a filter triggers
+                                        Preline's auto-close, which sets animationInProcess = true and waits
+                                        for the menu's transitionend before resetting it. The Livewire
+                                        re-render then morphs `hidden` back onto the menu, so transitionend
+                                        never fires, the flag stays true, and every later open() bails out --
+                                        the dropdown appears empty until a full page reload. Keeping the
+                                        subtree out of the morph lets the transition finish. The radios below
+                                        are wire:click only (no wire:model), so nothing here needs re-rendering.
+                                    --}}
+                                    <div wire:ignore class="hs-dropdown [--placement:bottom-right] relative inline-block">
                                         <button id="hs-as-table-table-filter-dropdown" type="button"
                                             class="py-3 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 focus:outline-none focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"
                                             aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">

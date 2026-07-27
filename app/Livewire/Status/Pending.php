@@ -8,9 +8,7 @@ use App\Models\Document;
 use App\Models\Log;
 use App\Services\ApiService;
 use Carbon\Carbon;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Sleep;
 use Jantinnerezo\LivewireAlert\LivewireAlert;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
@@ -107,9 +105,15 @@ class Pending extends Component
         $this->office = $this->user['office']['id'];
         /** End User Information */
 
-        /** Filter Records last 1 Quarter */
-        $this->startDate = Carbon::now()->subQuarter(1)->format('Y-m-d');
-        $this->endDate = Carbon::now()->format('Y-m-d');
+        /**
+         * No default date range.
+         *
+         * This used to default to the last quarter, which silently hid every
+         * On Process document older than 3 months - precisely the overdue ones -
+         * and made this table disagree with the sidebar badge, which has never been
+         * date-bounded. A status queue must show the whole queue; the date inputs
+         * remain available for narrowing on demand.
+         */
     }
 
     /**
@@ -155,20 +159,128 @@ class Pending extends Component
         return true;
     }
 
-    /** Multiple Receive */
-    public function updatedSelectAll($value)
+    /**
+     * Single source of truth for "which documents belong on this screen".
+     *
+     * render(), select-all and the three bulk actions all build from this so the
+     * selection can never drift from the rows the user can actually see. Each of
+     * them used to hand-roll its own filter list, and select-all's copy was missing
+     * the category and date conditions entirely - meaning a filtered select-all fed
+     * documents the user never saw into close() and forward().
+     */
+    private function baseQuery()
     {
-        $this->selected_item = $value ? Document::whereNull('bundle_id')
+        return Document::query()
+            ->whereNull('bundle_id')
+            ->where('assigned_to', $this->office)
+            ->where('status', 'On Process')
             ->when($this->search, function ($query) {
-                // Properly scope the OR conditions to avoid query issues
+                // Properly scope the OR conditions within a nested where
                 $query->where(function ($q) {
                     $q->where('control_no', 'like', '%' . $this->search . '%')
                         ->orWhere('subject', 'like', '%' . $this->search . '%');
                 });
             })
-            ->where('assigned_to', $this->office)
-            ->where('status', 'On Process')
-            ->pluck('id')->toArray() : [];
+            ->when($this->selectFilter, function ($query) {
+                $query->whereIn('category_id', $this->selectFilter);
+            })
+            /** Bounds applied independently so one blank input still filters sanely */
+            ->when($this->startDate, function ($query) {
+                $query->where('created_at', '>=', Carbon::parse($this->startDate)->startOfDay());
+            })
+            ->when($this->endDate, function ($query) {
+                $query->where('created_at', '<=', Carbon::parse($this->endDate)->endOfDay());
+            });
+    }
+
+    /** Has the user actively narrowed the list? */
+    private function hasActiveFilter(): bool
+    {
+        return filled($this->search)
+            || !empty($this->selectFilter)
+            || filled($this->startDate)
+            || filled($this->endDate);
+    }
+
+    /**
+     * Scope of a select-all click.
+     *
+     * Filtering is an explicit, bounded narrowing, so select-all takes the whole
+     * filtered set across pages. With no filter it takes only the current page -
+     * this office can hold hundreds of On Process documents and an unfiltered click
+     * must not be able to close or forward the entire queue at once.
+     */
+    private function selectableIds(): array
+    {
+        $query = $this->baseQuery()->orderBy('created_at', 'ASC');
+
+        if ($this->hasActiveFilter()) {
+            return $query->pluck('id')->toArray();
+        }
+
+        /** forPage() mirrors paginate()'s offset, so this is exactly the visible page */
+        return $query->forPage(max(1, (int) $this->getPage()), 50)->pluck('id')->all();
+    }
+
+    /**
+     * Drop any pending selection. Called whenever the visible result set changes so
+     * previously selected (now hidden) documents cannot be acted on.
+     */
+    private function clearSelection()
+    {
+        $this->selected_item = [];
+        $this->selectAll = false;
+    }
+
+    /**
+     * Reset pagination whenever a filter changes so results never land on an
+     * out-of-range page, and clear the selection so it always reflects the
+     * currently visible rows. None of these hooks existed before, so this component
+     * could show an empty table after filtering from a later page.
+     */
+    public function updatedSearch()
+    {
+        $this->resetPage();
+        $this->clearSelection();
+    }
+
+    public function updatedStartDate()
+    {
+        $this->resetPage();
+        $this->clearSelection();
+    }
+
+    public function updatedEndDate()
+    {
+        $this->resetPage();
+        $this->clearSelection();
+    }
+
+    /** Multiple Selection */
+    public function updatedSelectAll($value)
+    {
+        $this->selected_item = $value ? $this->selectableIds() : [];
+    }
+
+    /**
+     * Keep the header checkbox honest about the row checkboxes.
+     *
+     * Without this, unticking a single row left "select all" visually ticked, and
+     * clicking it again did nothing because Livewire skips updated* hooks when the
+     * value has not changed - so the row could not be re-added.
+     */
+    public function updatedSelectedItem()
+    {
+        if (empty($this->selected_item)) {
+            $this->selectAll = false;
+
+            return;
+        }
+
+        $selectable = $this->selectableIds();
+
+        $this->selectAll = !empty($selectable)
+            && empty(array_diff($selectable, $this->selected_item));
     }
 
     public function updatedAssignedTo($value)
@@ -180,10 +292,21 @@ class Pending extends Component
         });
     }
 
+    /**
+     * Resolve an office id to its id/code/name.
+     *
+     * Two bugs fixed here. array_filter and array_map both preserve the original
+     * keys, so the old $findOffice[$id - 1] lookup only worked while officeList
+     * happened to be id-ordered and gap-free; a deactivated or reordered office
+     * threw "Undefined array key". And the API-down branch returned a bare null
+     * while both callers immediately did $lookUpOffice['name'], turning an outage
+     * into "Trying to access array offset on null". Always returns an array now.
+     */
     public function lookUpOffice($assigned_to)
     {
-
         $this->assignedTo = $assigned_to;
+
+        $unknown = ['id' => $assigned_to, 'code' => '', 'name' => 'Unknown Office'];
 
         if ($this->responseOffices === null || !isset($this->responseOffices['officeList'])) {
             $this->alert('error', 'No response from API server. Check connection and try again.', [
@@ -194,23 +317,92 @@ class Pending extends Component
                 'confirmButtonText' => 'OK',
                 'confirmButtonColor' => '#dc2626',
             ]);
-            return;
+
+            return $unknown;
         }
 
-        $findOffice = array_map(
-            function ($office) {
-                return [
-                    'id' => $office['id'],
-                    'code' => $office['officeCode'],
-                    'name' => $office['officeName']
-                ];
-            },
-            array_filter($this->responseOffices['officeList'], function ($office) {
-                return $office['id'] == $this->assignedTo;
-            })
-        );
+        $findOffice = array_values(array_filter($this->responseOffices['officeList'], function ($office) {
+            return isset($office['id']) && $office['id'] == $this->assignedTo;
+        }));
 
-        return $findOffice[$this->assignedTo - 1];
+        if (!isset($findOffice[0])) {
+            return $unknown;
+        }
+
+        return [
+            'id' => $findOffice[0]['id'],
+            'code' => $findOffice[0]['officeCode'] ?? '',
+            'name' => $findOffice[0]['officeName'] ?? 'Unknown Office'
+        ];
+    }
+
+    /**
+     * Shared guard for the three bulk actions: confirm the API is reachable, then
+     * re-validate the selection against the current filters before anything is
+     * written. Guards against a stale selection - filters changed after selecting,
+     * another user already acted on the document, or client-side tampering - so we
+     * never act on rows outside the visible set. Returns null when the caller must
+     * abort.
+     */
+    private function validatedSelection(): ?array
+    {
+        /**
+         * checkApiConnection() nulls out responseOffices and alerts on failure;
+         * carrying on would only produce "Unknown Office" logs at best.
+         */
+        if (!$this->checkApiConnection()) {
+            return null;
+        }
+
+        $documentIds = $this->baseQuery()
+            ->whereIn('id', $this->selected_item)
+            ->pluck('id')
+            ->toArray();
+
+        if (empty($documentIds)) {
+            $this->clearSelection();
+
+            $this->alert('warning', 'Nothing to act on. The selected document(s) are no longer available.', [
+                'position' => 'top-end',
+                'timer' => 10000,
+                'toast' => true
+            ]);
+
+            return null;
+        }
+
+        return $documentIds;
+    }
+
+    /**
+     * Resolve the action rows once, up front. These used to be re-queried on every
+     * loop iteration with an unguarded ->id, so a missing row crashed mid-write.
+     * Returns null (after alerting) when any name is missing.
+     */
+    private function actionIds(array $names): ?array
+    {
+        $ids = [];
+
+        foreach ($names as $name) {
+            $id = Action::firstWhere('name', $name)?->id;
+
+            if (!$id) {
+                $this->alert('error', 'The "' . $name . '" action is missing. Contact the system administrator.', [
+                    'position' => 'center',
+                    'toast' => true,
+                    'timer' => null,
+                    'showConfirmButton' => true,
+                    'confirmButtonText' => 'OK',
+                    'confirmButtonColor' => '#dc2626',
+                ]);
+
+                return null;
+            }
+
+            $ids[$name] = $id;
+        }
+
+        return $ids;
     }
 
     /** End of Multiple Selection */
@@ -239,114 +431,172 @@ class Pending extends Component
 
     public function close()
     {
-        $this->checkApiConnection();
-
+        /**
+         * Validate everything once, up front. remarks used to be validated inside the
+         * loop, so a failure on document 5 threw after documents 1-4 were already
+         * closed and logged.
+         */
         $data = $this->validate([
             'phrase' => 'required',
-            'passphrase' => 'required'
+            'passphrase' => 'required',
+            'remarks' => 'required'
         ]);
 
-        if ($data['phrase'] === $data['passphrase']) {
+        if ($data['phrase'] !== $data['passphrase']) {
+            $this->alert('error', 'Document unsuccessfully closed, please enter the characters correctly!', [
+                'position' => 'top-end',
+                'timer' => 10000,
+                'toast' => true
+            ]);
 
-            Arr::map($this->selected_item, function ($item) {
-                $data = $this->validate([
-                    'remarks' => 'required'
+            return;
+        }
+
+        $documentIds = $this->validatedSelection();
+
+        if ($documentIds === null) {
+            return;
+        }
+
+        $actions = $this->actionIds(['Closed']);
+
+        if ($actions === null) {
+            return;
+        }
+
+        /**
+         * One transaction for the whole batch. Previously each document had its own
+         * transaction inside the loop, so a failure partway through committed a
+         * partial close that cannot be undone from the UI.
+         */
+        DB::transaction(function () use ($documentIds, $actions, $data) {
+            foreach ($documentIds as $item) {
+                $document = Document::find($item);
+
+                if (!$document) {
+                    continue;
+                }
+
+                $doc_type = $document->is_bundle ? 'Bundle' : 'Document';
+                $lookUpOffice = $this->lookUpOffice($document->assigned_to);
+
+                $document->update([
+                    'status' => 'Closed'
                 ]);
 
-                DB::transaction(function () use ($item, $data) {
-                    Document::find($item)->update([
+                Log::create([
+                    'action_id' => $actions['Closed'],
+                    'document_id' => $document->id,
+                    'user_id' => $this->user['id'],
+                    'office_id' => $this->office,
+                    'assigned_to' => $this->office,
+                    'description' => $doc_type . " (" . $document->control_no . ") has been acted upon and closed by " . $lookUpOffice['name'],
+                    'remarks' => $data['remarks']
+                ]);
+
+                /** Calculate Turn Around Time — reads the Closed log written above */
+                $document->update([
+                    'turnaroundtime' => $this->calculateTurnaroundTime($document->id)
+                ]);
+
+                $attachments = Document::where('assigned_to', $this->office)
+                    ->where('status', 'On Process')
+                    ->where('bundle_id', $item)
+                    ->orderBy('created_at', 'DESC')
+                    ->get();
+
+                foreach ($attachments as $attachment) {
+                    $attachment->update([
                         'status' => 'Closed'
                     ]);
 
-                    $document = Document::find($item);
-                    $doc_type = is_object($document) && $document->is_bundle ? 'Bundle' : 'Document';
-                    $lookUpOffice = $this->lookUpOffice($document->assigned_to);
-
+                    //Closed Log
                     Log::create([
-                        'action_id' => Action::firstWhere('name', $document->status)->id,
-                        'document_id' => $document->id,
+                        'action_id' => $actions['Closed'],
+                        'document_id' => $attachment->id,
+                        'bundle_id' => $document->id,
                         'user_id' => $this->user['id'],
                         'office_id' => $this->office,
-                        'assigned_to' => $this->office,
-                        'description' => $doc_type . " (" . $document->control_no . ") has been acted upon and closed by " . $lookUpOffice['name'],
+                        'assigned_to' => $attachment->assigned_to,
+                        'description' => "Bundle (" . $document->control_no . ") has been acted upon and closed by " . $lookUpOffice['name'] . ".",
                         'remarks' => $data['remarks']
                     ]);
 
-                    $this->attachments = Document::where('assigned_to', $this->office)->where('status', 'On Process')->where('bundle_id', $item)->orderBy('created_at', 'DESC')->get();
-
                     /** Calculate Turn Around Time */
-                    $turnaroundTime = $this->calculateTurnaroundTime($document->id);
-
-                    Document::find($document->id)->update([
-                        'turnaroundtime' => $turnaroundTime
+                    $attachment->update([
+                        'turnaroundtime' => $this->calculateTurnaroundTime($attachment->id)
                     ]);
+                }
+            }
+        });
 
-                    foreach ($this->attachments as $attachment) {
+        $this->clearSelection();
 
-                        Document::find($attachment->id)->update([
-                            'status' => 'Closed'
-                        ]);
-
-                        //Closed Log
-                        Log::create([
-                            'action_id' => Action::firstWhere('name', 'Closed')->id,
-                            'document_id' => $attachment->id,
-                            'bundle_id' => $document->id,
-                            'user_id' => $this->user['id'],
-                            'office_id' => $this->office,
-                            'assigned_to' => $attachment->assigned_to,
-                            'description' => "Bundle (" . $document->control_no . ") has been acted upon and closed by " . $lookUpOffice['name'] . ".",
-                            'remarks' => $data['remarks']
-                        ]);
-
-                        /** Calculate Turn Around Time */
-                        $turnaroundTime = $this->calculateTurnaroundTime($attachment->id);
-
-                        Document::find($attachment->id)->update([
-                            'turnaroundtime' => $turnaroundTime
-                        ]);
-                    }
-                });
-
-                $this->redirect(Pending::class);
-            });
-
-            $this->showAlert($type = 'success', $message = 'successfully closed!');
-        } else {
-
-            $this->showAlert($type = 'error', $message = 'unsuccessfully closed, please enter the characters correctly!');
-            return $this->redirect(Pending::class);
-        }
+        /**
+         * flash() stores the toast in the session so it survives the redirect. The
+         * old code dispatched a browser event and then redirected immediately, so the
+         * success message never actually appeared.
+         */
+        return $this->flash('success', 'Document successfully closed!', [
+            'position' => 'top-end',
+            'timer' => 10000,
+            'toast' => true
+        ], '/status-pending');
     }
     /** End of Document */
 
     /** Endorsement Document */
     public function endorse()
     {
-        $this->checkApiConnection();
+        /** Validate once, up front — this used to run inside the loop */
+        $data = $this->validate([
+            'endorsedToPersonnel' => 'required',
+            'remarks' => 'required'
+        ]);
 
-        Arr::map($this->selected_item, function ($item) {
+        $documentIds = $this->validatedSelection();
 
-            $data = $this->validate([
-                'endorsedToPersonnel' => 'required',
-                'remarks' => 'required'
-            ]);
-            $document = Document::find($item);
+        if ($documentIds === null) {
+            return;
+        }
 
-            if ($document->endorsed_to != $data['endorsedToPersonnel']) {
+        $actions = $this->actionIds(['Endorsed']);
+
+        if ($actions === null) {
+            return;
+        }
+
+        $lookUpPersonnel = $this->filterUser($data['endorsedToPersonnel']);
+        $endorsed = 0;
+
+        /**
+         * This method previously had no transaction at all — the document update, its
+         * log, and every attachment update and log were each committed independently.
+         */
+        DB::transaction(function () use ($documentIds, $actions, $data, $lookUpPersonnel, &$endorsed) {
+            foreach ($documentIds as $item) {
+                $document = Document::find($item);
+
+                if (!$document) {
+                    continue;
+                }
+
+                /** Already endorsed to this personnel — nothing to record */
+                if ($document->endorsed_to == $data['endorsedToPersonnel']) {
+                    continue;
+                }
+
+                $doc_type = $document->is_bundle ? 'Bundle' : 'Document';
 
                 //Update Document
-                Document::find($item)->update([
+                $document->update([
                     'endorsed_to' => $data['endorsedToPersonnel'],
                     'status' => 'On Process'
                 ]);
 
-                $lookUpPersonnel = $this->filterUser($data['endorsedToPersonnel']);
-                $doc_type = $document->is_bundle ? 'Bundle' : 'Document';
-
                 //Endorse Log
                 Log::create([
-                    'action_id' => Action::firstWhere('name', 'Endorsed')->id,
+                    'action_id' => $actions['Endorsed'],
                     'document_id' => $document->id,
                     'user_id' => $this->user['id'],
                     'office_id' => $this->office,
@@ -357,17 +607,21 @@ class Pending extends Component
                 ]);
 
                 //Add log for Documents endorsed together with this bundle
-                $this->attachments = Document::where('assigned_to', $this->office)->where('status', 'On Process')->where('bundle_id', $item)->orderBy('created_at', 'DESC')->get();
-                foreach ($this->attachments as $attachment) {
+                $attachments = Document::where('assigned_to', $this->office)
+                    ->where('status', 'On Process')
+                    ->where('bundle_id', $item)
+                    ->orderBy('created_at', 'DESC')
+                    ->get();
 
-                    Document::find($attachment->id)->update([
+                foreach ($attachments as $attachment) {
+                    $attachment->update([
                         'endorsed_to' => $data['endorsedToPersonnel'],
                         'status' => 'On Process'
                     ]);
 
-                    //Forward Log
+                    //Endorse Log
                     Log::create([
-                        'action_id' => Action::firstWhere('name', 'Endorsed')->id,
+                        'action_id' => $actions['Endorsed'],
                         'document_id' => $attachment->id,
                         'bundle_id' => $document->id,
                         'user_id' => $this->user['id'],
@@ -378,41 +632,99 @@ class Pending extends Component
                         'remarks' => $data['remarks']
                     ]);
                 }
+
+                $endorsed++;
             }
         });
 
-        $this->dispatch('close-modal', class: '.document-modal');
-        $this->showAlert($type = 'success', $message = 'successfully endorsed!');
-        return redirect()->to('/status-pending');
+        $this->clearSelection();
+
+        /**
+         * Report what actually happened. Documents already endorsed to the chosen
+         * personnel are skipped, and the old code still claimed success even when
+         * every single one was skipped.
+         */
+        if ($endorsed === 0) {
+            $this->dispatch('close-modal', class: '.document-modal');
+
+            $this->alert('info', 'No changes — the selected document(s) are already endorsed to that personnel.', [
+                'position' => 'top-end',
+                'timer' => 10000,
+                'toast' => true
+            ]);
+
+            return;
+        }
+
+        return $this->flash('success', 'Document successfully endorsed!', [
+            'position' => 'top-end',
+            'timer' => 10000,
+            'toast' => true
+        ], '/status-pending');
     }
     /** End of Endorsement Document */
 
     /** Forward Documents */
     public function forward()
     {
-        $this->checkApiConnection();
+        /** Validate once, up front — this used to run inside the loop */
+        $data = $this->validate([
+            'assignedTo' => 'required',
+            'endorsedToOtherPersonnel' => '',
+            'remarks' => ''
+        ]);
 
-        Arr::map($this->selected_item, function ($item) {
-            $data = $this->validate([
-                'assignedTo' => 'required',
-                'endorsedToOtherPersonnel' => '',
-                'remarks' => ''
-            ]);
+        $documentIds = $this->validatedSelection();
 
-            DB::transaction(function () use ($item, $data) {
-                Document::find($item)->update([
+        if ($documentIds === null) {
+            return;
+        }
+
+        $actions = $this->actionIds(['Forwarded', 'For Receiving']);
+
+        if ($actions === null) {
+            return;
+        }
+
+        /**
+         * Destination office, identical for every document in the batch. The old code
+         * read this back from $document->assigned_to *after* updating it, arriving at
+         * the same value by a far less obvious route.
+         */
+        $lookUpOffice = $this->lookUpOffice($data['assignedTo']);
+
+        /**
+         * One transaction for the whole batch. Previously each document had its own
+         * transaction inside the loop, so a failure partway through left some
+         * documents handed to the other office and the rest still here.
+         */
+        DB::transaction(function () use ($documentIds, $actions, $data, $lookUpOffice) {
+            foreach ($documentIds as $item) {
+                $document = Document::find($item);
+
+                if (!$document) {
+                    continue;
+                }
+
+                $doc_type = $document->is_bundle ? 'Bundle' : 'Document';
+
+                //Documents forwarded together with this bundle, read while they are
+                //still keyed to the current office
+                $attachments = Document::where('assigned_to', $this->office)
+                    ->where('status', 'On Process')
+                    ->where('bundle_id', $item)
+                    ->orderBy('created_at', 'DESC')
+                    ->get();
+
+                $document->update([
                     'assigned_to' => $data['assignedTo'],
                     'endorsed_to' => $data['endorsedToOtherPersonnel'],
                     'status' => 'For Receiving'
                 ]);
 
-                $document = Document::find($item);
-                $doc_type = is_object($document) && $document->is_bundle ? 'Bundle' : 'Document';
-                $lookUpOffice = $this->lookUpOffice($document->assigned_to);
-
                 //Forwarded Log by the current office
                 Log::create([
-                    'action_id' => Action::firstWhere('name', 'Forwarded')->id,
+                    'action_id' => $actions['Forwarded'],
                     'document_id' => $document->id,
                     'user_id' => $this->user['id'],
                     'office_id' => $this->office,
@@ -424,7 +736,7 @@ class Pending extends Component
 
                 // For Receiving Log for the next office
                 Log::create([
-                    'action_id' => Action::firstWhere('name', 'For Receiving')->id,
+                    'action_id' => $actions['For Receiving'],
                     'document_id' => $document->id,
                     'user_id' => $this->user['id'],
                     'office_id' => $this->office,
@@ -434,11 +746,8 @@ class Pending extends Component
                     'remarks' => $data['remarks']
                 ]);
 
-                //Add log for Documents forwarded together with this bundle
-                $this->attachments = Document::where('assigned_to', $this->office)->where('status', 'On Process')->where('bundle_id', $item)->orderBy('created_at', 'DESC')->get();
-                foreach ($this->attachments as $attachment) {
-
-                    Document::find($attachment->id)->update([
+                foreach ($attachments as $attachment) {
+                    $attachment->update([
                         'assigned_to' => $data['assignedTo'],
                         'endorsed_to' => $data['endorsedToOtherPersonnel'],
                         'status' => 'For Receiving'
@@ -446,7 +755,7 @@ class Pending extends Component
 
                     //Forward Log
                     Log::create([
-                        'action_id' => Action::firstWhere('name', 'Forwarded')->id,
+                        'action_id' => $actions['Forwarded'],
                         'document_id' => $attachment->id,
                         'bundle_id' => $document->id,
                         'user_id' => $this->user['id'],
@@ -459,7 +768,7 @@ class Pending extends Component
 
                     // For Receiving Log
                     Log::create([
-                        'action_id' => Action::firstWhere('name', 'For Receiving')->id,
+                        'action_id' => $actions['For Receiving'],
                         'document_id' => $attachment->id,
                         'bundle_id' => $document->id,
                         'user_id' => $this->user['id'],
@@ -470,12 +779,16 @@ class Pending extends Component
                         'remarks' => $data['remarks']
                     ]);
                 }
-            });
-
-            return $this->redirect(Pending::class);
+            }
         });
 
-        $this->showAlert($type = 'success', $message = 'successfully forwarded!');
+        $this->clearSelection();
+
+        return $this->flash('success', 'Document successfully forwarded!', [
+            'position' => 'top-end',
+            'timer' => 10000,
+            'toast' => true
+        ], '/status-pending');
     }
     /** End of Forward Documents */
 
@@ -484,15 +797,6 @@ class Pending extends Component
     public function closeModal()
     {
         return $this->redirect(Pending::class);
-    }
-
-    public function showAlert($type, $message)
-    {
-        $this->alert($type, 'Document ' . $message, [
-            'position' => 'top-end',
-            'timer' => 10000,
-            'toast' => true
-        ]);
     }
 
     public function calculateTurnaroundTime($documentId)
@@ -531,6 +835,9 @@ class Pending extends Component
 
             return 0;
         }
+
+        /** Fell through with no dates — return 0 rather than writing null to turnaroundtime */
+        return 0;
     }
 
     public function inputRemarks($statement)
@@ -595,7 +902,18 @@ class Pending extends Component
 
     public function documentTypeFilter($type)
     {
-        return $this->selectFilter = Category::where('name', 'like', '%' . $type . '%')->pluck('id')->toArray();
+        $this->resetPage();
+        $this->clearSelection();
+
+        /**
+         * An empty $type is the "All Documents" choice — clear the filter rather than
+         * matching every category. The old like '%%' pluck returned every category id,
+         * which silently excluded documents with a null category_id and also counted
+         * as an active filter for select-all scoping.
+         */
+        return $this->selectFilter = $type === ''
+            ? []
+            : Category::where('name', 'like', '%' . $type . '%')->pluck('id')->toArray();
     }
 
     public function filterUser($encoded_user)
@@ -640,27 +958,10 @@ class Pending extends Component
 
     public function render()
     {
-        $documents = Document::query()
+        $documents = $this->baseQuery()
             ->with(['logs', 'category'])
-             ->when($this->search, function ($query) {
-                $query->where(function ($q) {
-                    $q->where('control_no', 'like', '%' . $this->search . '%')
-                      ->orWhere('subject', 'like', '%' . $this->search . '%');
-                })
-                ->where('status', 'On Process')
-                ->where('assigned_to', $this->office)
-                ->whereNull('bundle_id');
-            })
-            ->when($this->selectFilter, function ($query) {
-                $query->whereIn('category_id', $this->selectFilter);
-            })
-            ->when($this->startDate, function ($query) {
-                $query->whereBetween('created_at', [Carbon::parse($this->startDate), Carbon::parse($this->endDate)->addDay()]);
-            })
-            ->where('status', 'On Process')
-            ->whereNull('bundle_id')
-            ->where('assigned_to', $this->office)
-            ->orderBy('created_at', 'ASC')->paginate(50);
+            ->orderBy('created_at', 'ASC')
+            ->paginate(50);
 
         return view(
             'livewire.status.pending',

@@ -98,7 +98,8 @@
       "PowerShell(php artisan tinker --execute=\"require 'C:\\\\Users\\\\DOH\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-DOH-Herd-DTISV2\\\\e3cdb66b-8bef-4cce-90ac-5512fa5d4ea5\\\\scratchpad\\\\origin_gap.php';\")",
       "PowerShell(php -l \"c:\\\\Users\\\\DOH\\\\Herd\\\\DTISV2\\\\app\\\\Livewire\\\\Status\\\\Incoming.php\")",
       "PowerShell(php -l \"c:\\\\Users\\\\DOH\\\\Herd\\\\DTISV2\\\\app\\\\Livewire\\\\Views\\\\IncomingDetail.php\")",
-      "PowerShell(git -C \"c:\\\\Users\\\\DOH\\\\Herd\\\\DTISV2\" diff --stat)"
+      "PowerShell(git -C \"c:\\\\Users\\\\DOH\\\\Herd\\\\DTISV2\" diff --stat)",
+      "Bash(php \"C:/Users/DOH/AppData/Local/Temp/claude/c--Users-DOH-Herd-DTISV2/893cceb2-f1ab-44ad-9094-a565c8c2035c/scratchpad/pending_diag.php\")"
     ]
   }
 }

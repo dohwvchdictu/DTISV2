@@ -166,6 +166,44 @@
                                             </div>
                                         </div>
                                     </div>
+                                    {{--
+                                        Running selection count, opening a panel to review exactly what is
+                                        queued before receiving it. Selections survive a change of search or
+                                        filter so a batch can be assembled across several searches, which means
+                                        the selection can include documents that are not on screen.
+
+                                        Rendered unconditionally and hidden with a class, NOT wrapped in @if:
+                                        Preline binds [data-hs-overlay] triggers per element inside autoInit(),
+                                        which runs at page load, so a button injected later by a Livewire morph
+                                        is never bound and silently does nothing when clicked. Keeping it in the
+                                        DOM from the start is how the Receive button beside it already works -
+                                        Blade only toggles its disabled attribute.
+                                    --}}
+                                    <div @class([
+                                        'inline-flex items-center gap-x-2 py-2 px-3 rounded-lg border border-emerald-200 bg-emerald-50 dark:bg-emerald-500/10 dark:border-emerald-500/20',
+                                        'hidden' => count($this->selected_item) === 0,
+                                    ])>
+                                        <button type="button" aria-haspopup="dialog" aria-expanded="false"
+                                            aria-controls="selected-documents-modal"
+                                            data-hs-overlay="#selected-documents-modal"
+                                            class="inline-flex items-center gap-x-1.5 text-sm font-medium text-emerald-800 underline decoration-dotted underline-offset-2 hover:text-emerald-900 focus:outline-none dark:text-emerald-400 dark:hover:text-emerald-300">
+                                            <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg"
+                                                width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                                stroke-linejoin="round">
+                                                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                                                <circle cx="12" cy="12" r="3" />
+                                            </svg>
+                                            {{ count($this->selected_item) }} selected
+                                        </button>
+                                        <span class="text-emerald-300 dark:text-emerald-500/40">|</span>
+                                        <button type="button" wire:click='clearSelection'
+                                            class="text-xs font-medium text-emerald-700 underline hover:text-emerald-900 focus:outline-none dark:text-emerald-400 dark:hover:text-emerald-300">
+                                            Clear
+                                        </button>
+                                    </div>
+
+
                                     <div class="inline-flex rounded-lg shadow-sm">
                                         <div class="hs-tooltip inline-block">
                                             <button type="button" {{
@@ -478,5 +516,6 @@
 
     {{-- Modal --}}
     @include('components.modals.confirmation-modal')
+    @include('components.modals.selected-documents-modal')
     {{-- End of Modal --}}
 </div>

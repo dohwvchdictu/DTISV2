@@ -61,12 +61,14 @@ class Forwarded extends Component
         $this->office = $this->user['office']['id'];
         /** End User Information */
 
-        /** Filter Records Yesterday */
-        $this->startDate = Carbon::now()->subDay(1)->format('Y-m-d');
-        $this->endDate = Carbon::now()->format('Y-m-d');
-
-        $this->startTime = Carbon::now()->subDay(1)->format('h:i');
-        $this->endTime = Carbon::now()->format('h:i');
+        /**
+         * No default date/time range.
+         *
+         * The window is now applied to the table as well as to select-all, so a
+         * one-day default would hide almost everything on load. It also used to be
+         * formatted with 'h:i' - a 12-hour clock with no meridiem - which parsed any
+         * afternoon time as morning. The inputs remain for narrowing on demand.
+         */
     }
 
     /**
@@ -188,45 +190,226 @@ class Forwarded extends Component
     /** End of Track Document */
 
     /** Miscellanous Functions */
-    public function updatedSelectAll($value)
+
+    /**
+     * Which documents belong on this screen: routed through this office, top-level,
+     * plus the active search and date window.
+     *
+     * The date/time window used to be applied *only* inside select-all while render()
+     * ignored it entirely, so the two showed different sets and select-all could put
+     * documents into a logbook that were never on screen.
+     */
+    private function baseQuery()
     {
-        $this->selected_item = $value ? Document::whereNull('bundle_id')
+        return Document::query()
+            ->whereNull('bundle_id')
             ->whereHas('logs', function ($query) {
                 $query->where('assigned_to', $this->office)
-                      ->whereIn('action_id', [3])
-                      ->whereBetween('created_at', [Carbon::parse($this->startDate . ' ' . $this->startTime), Carbon::parse($this->endDate . ' ' . $this->endTime)->addDay()]);
+                    ->whereIn('action_id', [3, 5]);
             })
-            // Eager load logs to prevent N+1 queries
-            ->with(['logs' => function ($query) {
-                $query->where('assigned_to', $this->office)
-                      ->whereIn('action_id', [3])
-                      ->orderBy('created_at', 'DESC');
-            }])
-            ->where('status', 'For Receiving')
-            ->pluck('id')->toArray() : [];
+            ->when($this->search, function ($query) {
+                // Properly scope the OR conditions to avoid query issues
+                $query->where(function ($q) {
+                    $q->where('control_no', 'like', '%' . $this->search . '%')
+                        ->orWhere('subject', 'like', '%' . $this->search . '%');
+                });
+            })
+            /** Bounds applied independently so one blank input still filters sanely */
+            ->when($this->startDate, function ($query) {
+                $query->where('created_at', '>=', $this->boundary($this->startDate, $this->startTime, false));
+            })
+            ->when($this->endDate, function ($query) {
+                $query->where('created_at', '<=', $this->boundary($this->endDate, $this->endTime, true));
+            });
     }
 
-    // public function updatedSelectAll($value)
-    // {
-    //     $this->selected_item = $value ? Document::whereNull('bundle_id')
-    //         ->where('office_id', $this->office)
-    //         ->where('status', 'For Receiving')
-    //         ->pluck('id')->toArray() : [];
-    // }
+    /**
+     * Combine a date input with an optional time input.
+     *
+     * The time defaults were formatted with 'h:i' - a 12-hour clock with no meridiem -
+     * so "3:45 PM" was parsed as 03:45 in the morning. 'H:i' is the 24-hour format the
+     * <input type="time"> element actually submits.
+     */
+    private function boundary($date, $time, bool $isEnd): Carbon
+    {
+        $parsed = Carbon::parse($date);
+
+        if (filled($time)) {
+            [$hour, $minute] = array_pad(explode(':', $time), 2, 0);
+
+            return $parsed->setTime((int) $hour, (int) $minute, $isEnd ? 59 : 0);
+        }
+
+        return $isEnd ? $parsed->endOfDay() : $parsed->startOfDay();
+    }
+
+    /**
+     * What may actually be put into a logbook: the on-screen set, narrowed to the
+     * rows whose checkbox is enabled. Rows in any other status are displayed for
+     * history but cannot be selected.
+     */
+    private function eligibilityQuery()
+    {
+        return Document::query()
+            ->whereNull('bundle_id')
+            ->where('status', 'For Receiving')
+            ->whereHas('logs', function ($query) {
+                $query->where('assigned_to', $this->office)
+                    ->whereIn('action_id', [3, 5]);
+            });
+    }
+
+    /** Has the user actively narrowed the list? */
+    private function hasActiveFilter(): bool
+    {
+        return filled($this->search)
+            || filled($this->startDate)
+            || filled($this->endDate);
+    }
+
+    /**
+     * Scope of a select-all click: the whole filtered set when a filter is active,
+     * otherwise only the current page. Restricted to selectable rows either way.
+     */
+    private function selectableIds(): array
+    {
+        $query = $this->baseQuery()
+            ->where('status', 'For Receiving')
+            ->orderBy('created_at', 'DESC');
+
+        if ($this->hasActiveFilter()) {
+            return $query->pluck('id')->all();
+        }
+
+        /** forPage() mirrors paginate()'s offset, so this is exactly the visible page */
+        return $query->forPage(max(1, (int) $this->getPage()), 50)->pluck('id')->all();
+    }
+
+    /** selected_item arrives from the DOM as strings; the database returns integers. */
+    private function normalizedSelection(): array
+    {
+        return array_values(array_unique(array_map('intval', (array) $this->selected_item)));
+    }
+
+    /** Drop the whole selection. Bound to the toolbar's Clear button. */
+    public function clearSelection()
+    {
+        $this->selected_item = [];
+        $this->selectAll = false;
+    }
+
+    /**
+     * Called whenever a filter changes. Resets pagination (no such hook existed) and
+     * unticks "select all", but keeps hand-picked rows so a logbook can be assembled
+     * across several searches.
+     */
+    private function filterChanged()
+    {
+        $this->resetPage();
+        $this->selectAll = false;
+    }
+
+    public function updatedSearch()
+    {
+        $this->filterChanged();
+    }
+
+    public function updatedStartDate()
+    {
+        $this->filterChanged();
+    }
+
+    public function updatedEndDate()
+    {
+        $this->filterChanged();
+    }
+
+    public function updatedStartTime()
+    {
+        $this->filterChanged();
+    }
+
+    public function updatedEndTime()
+    {
+        $this->filterChanged();
+    }
+
+    public function updatedSelectAll($value)
+    {
+        if (!$value) {
+            $this->selected_item = [];
+
+            return;
+        }
+
+        /** Merge, so select-all does not discard rows picked under an earlier search */
+        $this->selected_item = array_values(array_unique(
+            array_merge($this->normalizedSelection(), $this->selectableIds())
+        ));
+    }
+
+    /** Keep the header checkbox honest about the row checkboxes. */
+    public function updatedSelectedItem()
+    {
+        $this->selected_item = $this->normalizedSelection();
+
+        if (empty($this->selected_item)) {
+            $this->selectAll = false;
+
+            return;
+        }
+
+        $selectable = $this->selectableIds();
+
+        $this->selectAll = !empty($selectable)
+            && empty(array_diff($selectable, $this->selected_item));
+    }
+
+    /**
+     * The documents currently selected, resolved for the review panel — the chance to
+     * check exactly what will go into the logbook before generating it.
+     */
+    public function selectedDocuments()
+    {
+        if (empty($this->selected_item)) {
+            return collect();
+        }
+
+        $selection = $this->normalizedSelection();
+
+        /** Newest pick first, so whatever was just ticked is the top row */
+        $order = array_flip($selection);
+
+        return $this->eligibilityQuery()
+            ->with('category')
+            ->whereIn('id', $selection)
+            ->get()
+            ->sortByDesc(fn ($document) => $order[$document->id] ?? -1)
+            ->values();
+    }
+
+    /** Remove a single document from the selection, from inside the review panel. */
+    public function deselect($id)
+    {
+        $this->selected_item = array_values(
+            array_diff($this->normalizedSelection(), [(int) $id])
+        );
+
+        $this->updatedSelectedItem();
+    }
 
     public function canGenerateSelected()
     {
-        if (empty($this->selected_item)) {
+        $selection = $this->normalizedSelection();
+
+        if (empty($selection)) {
             return false;
         }
 
-        // Check if all selected documents have 'For Receiving' status
-        $totalSelected = count($this->selected_item);
-        $createdCount = Document::whereIn('id', $this->selected_item)
-            ->where('status', 'For Receiving')
+        // Every selected document must still be selectable on this screen
+        return count($selection) === $this->eligibilityQuery()
+            ->whereIn('id', $selection)
             ->count();
-
-        return $totalSelected === $createdCount;
     }
     
     public function colorIndicator($status)
@@ -341,19 +524,7 @@ class Forwarded extends Component
 
     public function render()
     {
-        $documents = Document::query()
-            ->whereNull('bundle_id')
-            ->when($this->search, function ($query) {
-                // Properly scope the OR conditions to avoid query issues
-                $query->where(function ($q) {
-                    $q->where('control_no', 'like', '%' . $this->search . '%')
-                      ->orWhere('subject', 'like', '%' . $this->search . '%');
-                });
-            })
-            ->whereHas('logs', function ($query) {
-                $query->where('assigned_to', $this->office)
-                      ->whereIn('action_id', [3, 5]);
-            })
+        $documents = $this->baseQuery()
             // Eager load logs + category to prevent N+1 queries.
             // ASC so ->first() on the loaded relation returns the earliest matching
             // log — the same record the old per-row query (no order) displayed.

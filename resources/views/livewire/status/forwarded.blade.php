@@ -87,6 +87,41 @@
                                             </div>
                                         </div>
 
+                                        {{--
+                                            Running selection count, opening a panel to review exactly which
+                                            documents will go into the logbook. Selections survive a change of
+                                            search or date window, so the selection can include rows that are
+                                            not currently on screen.
+
+                                            Rendered unconditionally and hidden with a class, NOT wrapped in
+                                            @if: Preline binds [data-hs-overlay] triggers per element inside
+                                            autoInit(), which runs at page load, so a button injected later by
+                                            a Livewire morph is never bound and does nothing when clicked.
+                                        --}}
+                                        <div @class([
+                                            'shrink-0 inline-flex items-center gap-x-2 py-2 px-3 rounded-lg border border-sky-200 bg-sky-50 dark:bg-sky-500/10 dark:border-sky-500/20',
+                                            'hidden' => count($this->selected_item) === 0,
+                                        ])>
+                                            <button type="button" aria-haspopup="dialog" aria-expanded="false"
+                                                aria-controls="selected-documents-modal"
+                                                data-hs-overlay="#selected-documents-modal"
+                                                class="inline-flex items-center gap-x-1.5 text-sm font-medium text-sky-800 underline decoration-dotted underline-offset-2 hover:text-sky-900 focus:outline-none dark:text-sky-400 dark:hover:text-sky-300">
+                                                <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg"
+                                                    width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                                    stroke-linejoin="round">
+                                                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                                                    <circle cx="12" cy="12" r="3" />
+                                                </svg>
+                                                {{ count($this->selected_item) }} selected
+                                            </button>
+                                            <span class="text-sky-300 dark:text-sky-500/40">|</span>
+                                            <button type="button" wire:click='clearSelection'
+                                                class="text-xs font-medium text-sky-700 underline hover:text-sky-900 focus:outline-none dark:text-sky-400 dark:hover:text-sky-300">
+                                                Clear
+                                            </button>
+                                        </div>
+
                                         <div class="shrink-0">
                                             <div class="hs-tooltip inline-block">
                                                 <button type="button" {{ $this->canGenerateSelected() ? '' : 'disabled'
@@ -329,5 +364,6 @@
 
         {{-- End of Processed Table --}}
         @include('components.modals.track-document-modal')
+        @include('components.modals.selected-documents-modal')
     </div>
 </div>

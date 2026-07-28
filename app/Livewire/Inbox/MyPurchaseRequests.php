@@ -8,8 +8,7 @@ use App\Models\Document;
 use App\Models\Log;
 use App\Services\ApiService;
 use Carbon\Carbon;
-use Illuminate\Support\Arr;
-use Illuminate\Support\Sleep;
+use Illuminate\Support\Facades\DB;
 use Jantinnerezo\LivewireAlert\LivewireAlert;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
@@ -137,24 +136,206 @@ class MyPurchaseRequests extends Component
         });
     }
 
+    /**
+     * Resolve an office id to its id/code/name.
+     *
+     * array_filter and array_map both preserve the original keys, so the old
+     * $findOffice[$id - 1] lookup only worked while officeList happened to be
+     * id-ordered and gap-free; a deactivated or reordered office threw "Undefined
+     * array key". It also dereferenced officeList without checking the API responded.
+     */
     public function lookUpOffice($assigned_to)
     {
         $this->assignedTo = $assigned_to;
 
-        $findOffice = array_map(
-            function ($office) {
-                return [
-                    'id' => $office['id'],
-                    'code' => $office['officeCode'],
-                    'name' => $office['officeName']
-                ];
-            },
-            array_filter($this->responseOffices['officeList'], function ($office) {
-                return $office['id'] == $this->assignedTo;
+        $unknown = ['id' => $assigned_to, 'code' => 'UNKNOWN', 'name' => 'Unknown Office'];
+
+        if (!isset($this->responseOffices['officeList']) || !is_array($this->responseOffices['officeList'])) {
+            return $unknown;
+        }
+
+        $findOffice = array_values(array_filter($this->responseOffices['officeList'], function ($office) {
+            return isset($office['id']) && $office['id'] == $this->assignedTo;
+        }));
+
+        if (!isset($findOffice[0])) {
+            return $unknown;
+        }
+
+        return [
+            'id' => $findOffice[0]['id'],
+            'code' => $findOffice[0]['officeCode'] ?? 'UNKNOWN',
+            'name' => $findOffice[0]['officeName'] ?? 'Unknown Office'
+        ];
+    }
+
+    /**
+     * Which documents belong on screen right now: this office's purchase requests,
+     * plus the active filters.
+     *
+     * The search conditions are nested. They used to be chained inline as
+     * where(...)->orWhere(...) with office_id applied afterwards, which SQL reads as
+     * "control_no matches OR (subject matches AND office_id = mine)" - so searching
+     * surfaced other offices' documents.
+     */
+    private function baseQuery()
+    {
+        return Document::query()
+            ->where('office_id', $this->office)
+            ->when($this->search, function ($query) {
+                $query->where(function ($q) {
+                    $q->where('control_no', 'like', '%' . $this->search . '%')
+                        ->orWhere('subject', 'like', '%' . $this->search . '%');
+                });
             })
+            ->when($this->selected_filter, function ($query) {
+                $query->whereIn('status', $this->selected_filter);
+            })
+            ->when($this->categories_array, function ($query) {
+                $query->whereIn('category_id', $this->categories_array);
+            })
+            /** Bounds applied independently so one blank input still filters sanely */
+            ->when($this->startDate, function ($query) {
+                $query->where('created_at', '>=', Carbon::parse($this->startDate)->startOfDay());
+            })
+            ->when($this->endDate, function ($query) {
+                $query->where('created_at', '<=', Carbon::parse($this->endDate)->endOfDay());
+            });
+    }
+
+    /**
+     * What may actually be acted on: the rows whose checkbox is enabled - still
+     * Created or awaiting receipt, and a top-level document rather than an
+     * attachment, since forward() treats every selected id as a bundle parent.
+     */
+    private function eligibilityQuery()
+    {
+        return Document::query()
+            ->whereNull('bundle_id')
+            ->where('office_id', $this->office)
+            ->whereIn('status', ['Created', 'For Receiving'])
+            ->when($this->categories_array, function ($query) {
+                $query->whereIn('category_id', $this->categories_array);
+            });
+    }
+
+    /** Has the user actively narrowed the list? */
+    private function hasActiveFilter(): bool
+    {
+        return filled($this->search)
+            || !empty($this->selected_filter)
+            || filled($this->startDate)
+            || filled($this->endDate);
+    }
+
+    /**
+     * Scope of a select-all click: the whole filtered set when a filter is active,
+     * otherwise only the current page. Restricted to selectable rows either way.
+     */
+    private function selectableIds(): array
+    {
+        $query = $this->baseQuery()
+            ->whereNull('bundle_id')
+            ->whereIn('status', ['Created', 'For Receiving'])
+            ->orderBy('created_at', 'DESC');
+
+        if ($this->hasActiveFilter()) {
+            return $query->pluck('id')->all();
+        }
+
+        /** forPage() mirrors paginate()'s offset — this table pages at 10, not 50 */
+        return $query->forPage(max(1, (int) $this->getPage()), 10)->pluck('id')->all();
+    }
+
+    /** selected_item arrives from the DOM as strings; the database returns integers. */
+    private function normalizedSelection(): array
+    {
+        return array_values(array_unique(array_map('intval', (array) $this->selected_item)));
+    }
+
+    /** Drop the whole selection. Bound to the toolbar's Clear button. */
+    public function clearSelection()
+    {
+        $this->selected_item = [];
+        $this->selectAll = false;
+    }
+
+    /** The documents currently selected, resolved for the review panel. */
+    public function selectedDocuments()
+    {
+        if (empty($this->selected_item)) {
+            return collect();
+        }
+
+        $selection = $this->normalizedSelection();
+
+        /** Newest pick first, so whatever was just ticked is the top row */
+        $order = array_flip($selection);
+
+        return $this->eligibilityQuery()
+            ->with('category')
+            ->whereIn('id', $selection)
+            ->get()
+            ->sortByDesc(fn ($document) => $order[$document->id] ?? -1)
+            ->values();
+    }
+
+    /** Remove a single document from the selection, from inside the review panel. */
+    public function deselect($id)
+    {
+        $this->selected_item = array_values(
+            array_diff($this->normalizedSelection(), [(int) $id])
         );
 
-        return $findOffice[$this->assignedTo - 1];
+        $this->updatedSelectedItem();
+    }
+
+    /**
+     * Called whenever a filter changes. Resets pagination (no such hook existed, so
+     * filtering from a later page could show an empty table) and unticks "select
+     * all", but keeps hand-picked rows so a batch can span several searches.
+     */
+    private function filterChanged()
+    {
+        $this->resetPage();
+        $this->selectAll = false;
+    }
+
+    public function updatedSearch()
+    {
+        $this->filterChanged();
+    }
+
+    public function updatedSelectedFilter()
+    {
+        $this->filterChanged();
+    }
+
+    public function updatedStartDate()
+    {
+        $this->filterChanged();
+    }
+
+    public function updatedEndDate()
+    {
+        $this->filterChanged();
+    }
+
+    /** Keep the header checkbox honest about the row checkboxes. */
+    public function updatedSelectedItem()
+    {
+        $this->selected_item = $this->normalizedSelection();
+
+        if (empty($this->selected_item)) {
+            $this->selectAll = false;
+
+            return;
+        }
+
+        $selectable = $this->selectableIds();
+
+        $this->selectAll = !empty($selectable)
+            && empty(array_diff($selectable, $this->selected_item));
     }
 
     /** Forward Documents */
@@ -176,56 +357,120 @@ class MyPurchaseRequests extends Component
 
     public function forward()
     {
-        Arr::map($this->selected_item, function ($item) {
-            $data = $this->validate([
-                'assignedTo' => 'required',
-                'endorsedTo' => '',
-                'remarks' => ''
+        /** Validate once, up front — this used to run inside the loop */
+        $data = $this->validate([
+            'assignedTo' => 'required',
+            'endorsedTo' => '',
+            'remarks' => ''
+        ]);
+
+        /**
+         * Re-validate against eligibility, not the active filters, so a batch
+         * assembled across several searches survives submission while anything
+         * outside this office or no longer actionable is still rejected.
+         */
+        $documentIds = $this->eligibilityQuery()
+            ->whereIn('id', $this->normalizedSelection())
+            ->pluck('id')
+            ->all();
+
+        if (empty($documentIds)) {
+            $this->clearSelection();
+
+            $this->alert('warning', 'Nothing to forward. The selected request(s) are no longer available.', [
+                'position' => 'top-end',
+                'timer' => 10000,
+                'toast' => true
             ]);
 
-            Document::find($item)->update([
-                'assigned_to' => $data['assignedTo'],
-                'endorsed_to' => $data['endorsedTo'],
-                'status' => 'For Receiving'
+            return;
+        }
+
+        /**
+         * Resolved once instead of on every loop iteration, with a guard.
+         *
+         * The attachment log used to call Action::firstWhere(...)->first(): firstWhere
+         * already returns a model, and calling ->first() on a model forwards to a fresh
+         * query, so it silently logged whichever Action row happened to come first in
+         * the table rather than "For Receiving".
+         */
+        $forwardedActionId = Action::firstWhere('name', 'Forwarded')?->id;
+        $receivingActionId = Action::firstWhere('name', 'For Receiving')?->id;
+
+        if (!$forwardedActionId || !$receivingActionId) {
+            $this->alert('error', 'A required action row is missing. Contact the system administrator.', [
+                'position' => 'center',
+                'toast' => true,
+                'timer' => null,
+                'showConfirmButton' => true,
+                'confirmButtonText' => 'OK',
+                'confirmButtonColor' => '#dc2626',
             ]);
 
-            $document = Document::find($item);
-            $doc_type = is_object($document) && $document->is_bundle ? 'Bundle Purchase Request/Order' : 'Purchase Request/Order';
-            $lookUpOffice = $this->lookUpOffice($document->assigned_to);
+            return;
+        }
 
-            // Forward Log
-            Log::create([
-                'action_id' => Action::firstWhere('name', 'Forwarded')->id,
-                'document_id' => $document->id,
-                'user_id' => $this->user['id'],
-                'office_id' => $this->office,
-                'assigned_to' => $this->office,
-                'endorsed_to' => $data['endorsedTo'],
-                'description' => $doc_type . " forwarded to " . $lookUpOffice['name'] . " for appropriate action.",
-                'remarks' => $data['remarks']
-            ]);
+        /** Destination office, identical for every document in the batch */
+        $lookUpOffice = $this->lookUpOffice($data['assignedTo']);
 
-            Sleep::for(2)->seconds();
+        /**
+         * One transaction for the whole batch; this method previously had none.
+         *
+         * The two Sleep::for(2)->seconds() calls between the log writes are gone.
+         * They cost two seconds per request plus two per attachment, and inside a
+         * transaction they would hold row locks for the entire nap. Logs are ordered
+         * by insertion, so nothing depended on the delay.
+         */
+        DB::transaction(function () use ($documentIds, $data, $lookUpOffice, $forwardedActionId, $receivingActionId) {
+            foreach ($documentIds as $item) {
+                $document = Document::find($item);
 
-            // For Receiving Log
-            Log::create([
-                'action_id' => Action::firstWhere('name', 'For Receiving')->id,
-                'document_id' => $document->id,
-                'user_id' => $this->user['id'],
-                'office_id' => $this->office,
-                'assigned_to' => $data['assignedTo'],
-                'endorsed_to' => $data['endorsedTo'],
-                'description' => $doc_type . " has been transferred and is to be received by " . $lookUpOffice['name'],
-                'remarks' => $data['remarks']
-            ]);
+                if (!$document) {
+                    continue;
+                }
 
-            //Add log for Documents forwarded together with this bundle
-            $this->attachments = Document::where('assigned_to', $this->office)->where('status', 'On Process')->where('bundle_id', $item)->orderBy('created_at', 'DESC')->get();
+                $doc_type = $document->is_bundle ? 'Bundle Purchase Request/Order' : 'Purchase Request/Order';
 
-            if ($this->attachments) {
-                foreach ($this->attachments as $attachment) {
+                //Documents forwarded together with this bundle, read while they are
+                //still keyed to the current office
+                $attachments = Document::where('assigned_to', $this->office)
+                    ->where('status', 'On Process')
+                    ->where('bundle_id', $item)
+                    ->orderBy('created_at', 'DESC')
+                    ->get();
 
-                    Document::find($attachment->id)->update([
+                $document->update([
+                    'assigned_to' => $data['assignedTo'],
+                    'endorsed_to' => $data['endorsedTo'],
+                    'status' => 'For Receiving'
+                ]);
+
+                // Forward Log
+                Log::create([
+                    'action_id' => $forwardedActionId,
+                    'document_id' => $document->id,
+                    'user_id' => $this->user['id'],
+                    'office_id' => $this->office,
+                    'assigned_to' => $this->office,
+                    'endorsed_to' => $data['endorsedTo'],
+                    'description' => $doc_type . " forwarded to " . $lookUpOffice['name'] . " for appropriate action.",
+                    'remarks' => $data['remarks']
+                ]);
+
+                // For Receiving Log
+                Log::create([
+                    'action_id' => $receivingActionId,
+                    'document_id' => $document->id,
+                    'user_id' => $this->user['id'],
+                    'office_id' => $this->office,
+                    'assigned_to' => $data['assignedTo'],
+                    'endorsed_to' => $data['endorsedTo'],
+                    'description' => $doc_type . " has been transferred and is to be received by " . $lookUpOffice['name'],
+                    'remarks' => $data['remarks']
+                ]);
+
+                foreach ($attachments as $attachment) {
+                    $attachment->update([
                         'assigned_to' => $data['assignedTo'],
                         'endorsed_to' => $data['endorsedTo'],
                         'status' => 'For Receiving'
@@ -233,7 +478,7 @@ class MyPurchaseRequests extends Component
 
                     // Forward Log
                     Log::create([
-                        'action_id' => Action::firstWhere('name', 'Forwarded')->id,
+                        'action_id' => $forwardedActionId,
                         'document_id' => $attachment->id,
                         'bundle_id' => $document->id,
                         'user_id' => $this->user['id'],
@@ -244,11 +489,9 @@ class MyPurchaseRequests extends Component
                         'remarks' => $data['remarks']
                     ]);
 
-                    Sleep::for(2)->seconds();
-
                     // For Receiving Log
                     Log::create([
-                        'action_id' => Action::firstWhere('name', 'For Receiving')->first()->id,
+                        'action_id' => $receivingActionId,
                         'document_id' => $attachment->id,
                         'bundle_id' => $document->id,
                         'user_id' => $this->user['id'],
@@ -260,11 +503,16 @@ class MyPurchaseRequests extends Component
                     ]);
                 }
             }
-
-            return $this->redirect(MyPurchaseRequests::class);
         });
 
-        $this->showAlert($type = 'success', $message = 'successfully forwarded!');
+        $this->clearSelection();
+
+        /** flash() survives the redirect; a dispatched alert did not */
+        return $this->flash('success', 'Purchase Request/Order successfully forwarded!', [
+            'position' => 'top-end',
+            'timer' => 10000,
+            'toast' => true
+        ], '/my-purchase-requests');
     }
     /** End of Forward Document */
 
@@ -275,17 +523,13 @@ class MyPurchaseRequests extends Component
         return $this->redirect(MyDocuments::class);
     }
 
-    public function showAlert($type, $message)
-    {
-        $this->alert($type, 'Purchase Request/Order ' . $message, [
-            'position' => 'top-end',
-            'timer' => 10000,
-            'toast' => true
-        ]);
-    }
-
     public function updatedSelectAll($value)
     {
+        if (!$value) {
+            $this->selected_item = [];
+
+            return;
+        }
 
         if (empty($this->selected_filter)) {
             $this->alert('error', 'Please select a status first!', [
@@ -293,50 +537,48 @@ class MyPurchaseRequests extends Component
                 'timer' => 3000,
                 'toast' => true
             ]);
+
+            $this->selectAll = false;
+
             return;
         }
 
-        $this->selected_item = $value ? Document::whereNull('bundle_id')
-            ->where('office_id', $this->office)
-            ->whereIn('status', $this->selected_filter)
-            ->when($this->categories_array, function ($query) {
-                $query->whereIn('category_id', $this->categories_array);
-            })
-            ->when($this->startDate, function ($query) {
-                $query->whereBetween('created_at', [Carbon::parse($this->startDate), Carbon::parse($this->endDate)->addDay()]);
-            })
-            ->pluck('id')->toArray() : [];
-
+        /**
+         * Merge, so select-all does not discard rows picked under an earlier search.
+         * This used to ignore the search box entirely, selecting requests that were
+         * not in the filtered table at all.
+         */
+        $this->selected_item = array_values(array_unique(
+            array_merge($this->normalizedSelection(), $this->selectableIds())
+        ));
     }
 
     public function canForwardSelected()
     {
-        if (empty($this->selected_item)) {
+        $selection = $this->normalizedSelection();
+
+        if (empty($selection)) {
             return false;
         }
 
         // Check if all selected documents have 'Created' status
-        $totalSelected = count($this->selected_item);
-        $createdCount = Document::whereIn('id', $this->selected_item)
+        return count($selection) === Document::whereIn('id', $selection)
             ->where('status', 'Created')
             ->count();
-
-        return $totalSelected === $createdCount;
     }
 
     public function canGenerateSelected()
     {
-        if (empty($this->selected_item)) {
+        $selection = $this->normalizedSelection();
+
+        if (empty($selection)) {
             return false;
         }
 
         // Check if all selected documents have 'For Receiving' status
-        $totalSelected = count($this->selected_item);
-        $createdCount = Document::whereIn('id', $this->selected_item)
+        return count($selection) === Document::whereIn('id', $selection)
             ->where('status', 'For Receiving')
             ->count();
-
-        return $totalSelected === $createdCount;
     }
 
     public function completeName()
@@ -425,23 +667,10 @@ class MyPurchaseRequests extends Component
 
     public function render()
     {
-        $documents = Document::query()
+        $documents = $this->baseQuery()
             ->with('category')
-            ->when($this->search, function ($query) {
-                $query->where('control_no', 'like', '%' . $this->search . '%')
-                    ->orWhere('subject', 'like', '%' . $this->search . '%');
-            })
-            ->when($this->selected_filter, function ($query) {
-                $query->whereIn('status', $this->selected_filter);
-            })
-            ->when($this->categories_array, function ($query) {
-                $query->whereIn('category_id', $this->categories_array);
-            })
-            ->when($this->startDate, function ($query) {
-                $query->whereBetween('created_at', [Carbon::parse($this->startDate), Carbon::parse($this->endDate)->addDay()]);
-            })
-            ->where('office_id', $this->office)
-            ->orderBy('created_at', 'DESC')->paginate(10);
+            ->orderBy('created_at', 'DESC')
+            ->paginate(10);
 
 
         return view(

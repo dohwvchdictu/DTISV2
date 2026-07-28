@@ -70,7 +70,17 @@
                                             {{ count($selected_filter) }}
                                         </span>
                                     </button>
-                                    <div class="hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden divide-y divide-gray-200 min-w-48 z-20 bg-white shadow-md rounded-lg mt-2 dark:divide-neutral-700 dark:bg-neutral-800 dark:border dark:border-neutral-700"
+                                    {{--
+                                        wire:ignore sits on the MENU, not the wrapper. Ticking a status fires
+                                        Preline's auto-close, which sets animationInProcess = true and waits for
+                                        this element's transitionend before resetting it; the wire:model.blur sync
+                                        that follows morphs `hidden` back on, so transitionend never fires, the
+                                        flag stays true, and every later open() bails out. Ignoring only the menu
+                                        lets the transition finish while leaving the toggle button - and its live
+                                        {{ count($selected_filter) }} badge - free to re-render.
+                                    --}}
+                                    <div wire:ignore
+                                        class="hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden divide-y divide-gray-200 min-w-48 z-20 bg-white shadow-md rounded-lg mt-2 dark:divide-neutral-700 dark:bg-neutral-800 dark:border dark:border-neutral-700"
                                         role="menu" aria-orientation="vertical"
                                         aria-labelledby="hs-as-table-table-filter-dropdown">
                                         <div class="divide-y divide-gray-200 dark:divide-neutral-700">
@@ -116,6 +126,39 @@
                                             </label>
                                         </div>
                                     </div>
+                                    {{--
+                                        Running selection count, opening a panel to review exactly what is queued
+                                        before forwarding. Selections survive a change of search or filter, so the
+                                        selection can include documents that are not on screen.
+
+                                        Rendered unconditionally and hidden with a class, NOT wrapped in @if:
+                                        Preline binds [data-hs-overlay] triggers per element inside autoInit(),
+                                        which runs at page load, so a button injected later by a Livewire morph is
+                                        never bound and does nothing when clicked.
+                                    --}}
+                                    <div @class([
+                                        'inline-flex items-center gap-x-2 py-2 px-3 rounded-lg border border-emerald-200 bg-emerald-50 dark:bg-emerald-500/10 dark:border-emerald-500/20',
+                                        'hidden' => count($this->selected_item) === 0,
+                                    ])>
+                                        <button type="button" aria-haspopup="dialog" aria-expanded="false"
+                                            aria-controls="selected-documents-modal"
+                                            data-hs-overlay="#selected-documents-modal"
+                                            class="inline-flex items-center gap-x-1.5 text-sm font-medium text-emerald-800 underline decoration-dotted underline-offset-2 hover:text-emerald-900 focus:outline-none dark:text-emerald-400 dark:hover:text-emerald-300">
+                                            <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24"
+                                                height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                                                <circle cx="12" cy="12" r="3" />
+                                            </svg>
+                                            {{ count($this->selected_item) }} selected
+                                        </button>
+                                        <span class="text-emerald-300 dark:text-emerald-500/40">|</span>
+                                        <button type="button" wire:click='clearSelection'
+                                            class="text-xs font-medium text-emerald-700 underline hover:text-emerald-900 focus:outline-none dark:text-emerald-400 dark:hover:text-emerald-300">
+                                            Clear
+                                        </button>
+                                    </div>
+
                                     <div class="inline-flex rounded-lg shadow-sm gap-x-2">
                                         <div class="hs-tooltip inline-block">
                                             <button type="button" {{ $this->canForwardSelected() ? '' : 'disabled'
@@ -273,7 +316,10 @@
                                     <span class="block">
                                         <div class="px-6">
                                             <div class="flex items-center h-5">
-                                                <input wire:model.lazy='selected_item' type="checkbox" {{ in_array($document->status, ['Created', 'For Receiving']) ? '' : 'disabled'}}
+                                                {{-- is_null(bundle_id) matches the component's eligibility rule:
+                                                     forward() treats every selected id as a bundle parent, so an
+                                                     attachment ticked here would be silently dropped at submit. --}}
+                                                <input wire:model.lazy='selected_item' type="checkbox" {{ in_array($document->status, ['Created', 'For Receiving']) && is_null($document->bundle_id) ? '' : 'disabled'}}
                                                     value="{{ $document->id }}"
                                                     class="border-gray-200 dark:border-neutral-700 rounded text-blue-600 focus:ring-blue-500
                                                 dark:bg-neutral-800 dark:border-neutral-700 dark:checked:bg-blue-500
@@ -452,5 +498,6 @@
 
     {{-- Modal --}}
     @include('components.modals.inbox-modals')
+    @include('components.modals.selected-documents-modal')
     {{-- End of Modal --}}
 </div>

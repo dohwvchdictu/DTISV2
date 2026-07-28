@@ -143,20 +143,31 @@ class Incoming extends Component
     }
 
     /**
-     * Single source of truth for "which documents belong on this screen".
+     * What this office may legally receive, regardless of what is on screen.
      *
-     * render(), updatedSelectAll() and receive() all build from this, so the
-     * select-all set can never drift from the rows the user can actually see.
-     * Previously each one hand-rolled its own filter list and they fell out of
-     * sync, letting select-all pick up documents outside the active category and
-     * date filters.
+     * These are the invariants: the document is assigned here, is still awaiting
+     * receipt, and is a top-level document rather than an attachment. receive()
+     * validates against *this*, not against baseQuery() - whether a document happens
+     * to match the search box the user has typed right now says nothing about
+     * whether receiving it is safe, and validating against the filters made it
+     * impossible to build a batch across several searches.
      */
-    private function baseQuery()
+    private function eligibilityQuery()
     {
         return Document::query()
             ->whereNull('bundle_id')
             ->where('assigned_to', $this->office)
-            ->whereIn('status', ['For Receiving', 'Returned'])
+            ->whereIn('status', ['For Receiving', 'Returned']);
+    }
+
+    /**
+     * Which documents belong on screen right now: eligibility plus the active
+     * filters. Used by render() and by select-all, so the select-all set can never
+     * drift from the rows the user can actually see.
+     */
+    private function baseQuery()
+    {
+        return $this->eligibilityQuery()
             ->when($this->search, function ($query) {
                 // Properly scope the OR conditions within a nested where
                 $query->where(function ($q) {
@@ -176,37 +187,88 @@ class Incoming extends Component
             });
     }
 
-    /**
-     * Drop any pending selection. Called whenever the visible result set changes
-     * so previously selected (now hidden) documents cannot be acted on.
-     */
-    private function clearSelection()
+    /** Drop the whole selection. Bound to the toolbar's Clear button. */
+    public function clearSelection()
     {
         $this->selected_item = [];
         $this->selectAll = false;
     }
 
     /**
-     * Reset pagination whenever a filter changes so results never land on an
-     * out-of-range page, and clear the selection so it always reflects the
-     * currently visible rows.
+     * The documents currently selected, resolved for the review panel.
+     *
+     * Built from eligibilityQuery() rather than baseQuery() on purpose: the whole
+     * point of the panel is to show picks that are off-screen because they were made
+     * under a different search. Anything that has since stopped being eligible simply
+     * drops out, which matches what receive() would do with it.
      */
-    public function updatedSearch()
+    public function selectedDocuments()
+    {
+        if (empty($this->selected_item)) {
+            return collect();
+        }
+
+        $selection = $this->normalizedSelection();
+
+        /**
+         * Newest pick first. selected_item preserves the order rows were ticked, so a
+         * document's position in that array is its selection order. Sorting on it means
+         * whatever was just added appears at the top - the panel's main job is
+         * confirming that a pick registered, now that picks come from several different
+         * searches - and a select-all merge appends its ids, so it lands as one block.
+         *
+         * Sorted in PHP against the array rather than in SQL: the database has no idea
+         * what order the user clicked in, and this costs no extra query.
+         */
+        $order = array_flip($selection);
+
+        return $this->eligibilityQuery()
+            ->with('category')
+            ->whereIn('id', $selection)
+            ->get()
+            ->sortByDesc(fn ($document) => $order[$document->id] ?? -1)
+            ->values();
+    }
+
+    /** Remove a single document from the selection, from inside the review panel. */
+    public function deselect($id)
+    {
+        $this->selected_item = array_values(
+            array_diff($this->normalizedSelection(), [(int) $id])
+        );
+
+        $this->updatedSelectedItem();
+    }
+
+    /**
+     * Called whenever a filter changes.
+     *
+     * Resets pagination so results never land on an out-of-range page, and unticks
+     * "select all" because it described the previous result set - but deliberately
+     * keeps the hand-picked rows. Searching for one document, ticking it, then
+     * searching for another is a normal way to assemble a batch; clearing here made
+     * only the last pick survive. The toolbar shows a running count so a carried-over
+     * selection is never invisible.
+     */
+    private function filterChanged()
     {
         $this->resetPage();
-        $this->clearSelection();
+        $this->selectAll = false;
+    }
+
+    public function updatedSearch()
+    {
+        $this->filterChanged();
     }
 
     public function updatedStartDate()
     {
-        $this->resetPage();
-        $this->clearSelection();
+        $this->filterChanged();
     }
 
     public function updatedEndDate()
     {
-        $this->resetPage();
-        $this->clearSelection();
+        $this->filterChanged();
     }
 
     /** Has the user actively narrowed the list? */
@@ -238,10 +300,31 @@ class Incoming extends Component
         return $query->forPage(max(1, (int) $this->getPage()), 50)->pluck('id')->all();
     }
 
+    /**
+     * selected_item arrives from the DOM as strings while the database returns
+     * integers. Normalise so array_diff and array_unique compare like with like.
+     */
+    private function normalizedSelection(): array
+    {
+        return array_values(array_unique(array_map('intval', (array) $this->selected_item)));
+    }
+
     /** Multiple Receive */
     public function updatedSelectAll($value)
     {
-        $this->selected_item = $value ? $this->selectableIds() : [];
+        if (!$value) {
+            $this->selected_item = [];
+
+            return;
+        }
+
+        /**
+         * Merge rather than replace: select-all adds everything currently in scope
+         * without discarding rows the user picked under an earlier search.
+         */
+        $this->selected_item = array_values(array_unique(
+            array_merge($this->normalizedSelection(), $this->selectableIds())
+        ));
     }
 
     /**
@@ -249,11 +332,14 @@ class Incoming extends Component
      *
      * Without this, unticking a single row left "select all" visually ticked, and
      * clicking it again did nothing because Livewire skips updated* hooks when the
-     * value has not changed - so the row could not be re-added. A single EXISTS
-     * query asks whether anything in the filtered set is still unselected.
+     * value has not changed - so the row could not be re-added. "All selected" means
+     * every row currently in scope is in the selection; the selection may legitimately
+     * hold more than that, carried over from an earlier search.
      */
     public function updatedSelectedItem()
     {
+        $this->selected_item = $this->normalizedSelection();
+
         if (empty($this->selected_item)) {
             $this->selectAll = false;
 
@@ -297,15 +383,17 @@ class Incoming extends Component
         }
 
         /**
-         * Re-validate the selection against the current filters before touching
-         * anything. Guards against a stale selection - filters changed after
-         * selecting, another user already received the document, or client-side
-         * tampering - so we never act on rows outside the visible set.
+         * Re-validate against eligibility, not against the active filters. This still
+         * blocks anything that is not ours, is no longer awaiting receipt, or was
+         * received by someone else in the meantime - while allowing a batch that was
+         * assembled across several different searches. Filtering on baseQuery() here
+         * silently dropped every pick that did not match the search box as it stood
+         * at the moment of submission.
          */
-        $documentIds = $this->baseQuery()
-            ->whereIn('id', $this->selected_item)
+        $documentIds = $this->eligibilityQuery()
+            ->whereIn('id', $this->normalizedSelection())
             ->pluck('id')
-            ->toArray();
+            ->all();
 
         if (empty($documentIds)) {
             $this->clearSelection();
@@ -463,8 +551,7 @@ class Incoming extends Component
 
     public function documentTypeFilter($type)
     {
-        $this->resetPage();
-        $this->clearSelection();
+        $this->filterChanged();
 
         /**
          * An empty $type is the "All Documents" choice — clear the filter rather than

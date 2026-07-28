@@ -59,11 +59,8 @@
 
                         <div class="sm:col-span-10">
                             <div class="max-w-sm space-y-3">
-                                {{-- $control_no is the component property, assigned once in
-                                     mount(). It used to be passed in as a separate view
-                                     variable that render() regenerated on every pass. --}}
                                 <input wire:model="control_no" type="text" id="control_no" name="control_no"
-                                    value="{{ $this->control_no }}"
+                                    value="{{ $control_no }}"
                                     class="py-3 px-4 block w-full border-gray-200 bg-slate-100 text-slate-600 shadow rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
                                     placeholder="Document Tracking No." readonly>
                             </div>
@@ -88,9 +85,6 @@
                                     <option value="internal">Internal</option>
                                     <option value="external">External</option>
                                 </select>
-                                @error('source')
-                                    <p class="text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                                @enderror
                             </div>
                         </div>
                         <!-- End Col -->
@@ -211,45 +205,29 @@
                         <!-- End Col -->
 
                         <div class="sm:col-span-10">
-                            {{--
-                                A plain native <select>, deliberately NOT Preline's
-                                data-hs-select advanced select.
-
-                                The advanced select does not decorate its element, it
-                                relocates it: buildWrapper() creates a div.hs-select, inserts
-                                it before the <select>, then moves the <select> inside and
-                                renders a toggle and dropdown as siblings. The server emits
-                                none of that, so the server's markup and the live DOM never
-                                agree on this subtree, and every re-render put the element
-                                wire:model was bound to at risk. Clicking a Document Type
-                                radio (wire:model.live) triggered exactly that: the binding
-                                was lost, so choosing a category afterwards never reached the
-                                server and category_id failed its 'required' rule.
-
-                                wire:ignore, keyed wrappers and server-rendered "selected"
-                                attributes were all tried and none held. A native select has
-                                no wrapper to relocate, so the server's HTML and the live DOM
-                                match and Livewire's binding is never disturbed — the same
-                                reason the Document Source select above has worked throughout.
-
-                                The trade is Preline's search box. The radios still narrow the
-                                list to 19-33 entries, and native selects have built-in
-                                type-ahead, so the loss is small.
-                            --}}
                             <div class="max-w-sm space-y-3">
-                                <select wire:model='category_id' id="category_id" name="category_id"
-                                    class="py-3 px-4 pe-9 block w-full border-gray-200 shadow rounded-lg text-sm text-gray-700 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
-                                    <option value="">Select Category</option>
+                                <!-- Select -->
+                                <select wire:model='category_id' id="category_id" name="category_id" data-hs-select='{
+                                    "hasSearch": true,
+                                    "searchPlaceholder": "Search...",
+                                    "searchClasses": "block w-full text-sm border-gray-200 rounded-lg focus:border-blue-500 focus:ring-blue-500 before:absolute before:inset-0 before:z-[1] dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 py-2 px-3",
+                                    "searchWrapperClasses": "bg-white p-2 -mx-1 sticky top-0 dark:bg-neutral-800",
+                                    "placeholder": "Select Category",
+                                    "toggleTag": "<button type=\"button\" aria-expanded=\"false\"><span class=\"me-2\" data-icon></span><span class=\"text-gray-800 dark:text-neutral-200 \" data-title></span></button>",
+                                    "toggleClasses": "hs-select-disabled:pointer-events-none hs-select-disabled:opacity-50 relative shadow text-gray-700 py-3 ps-4 pe-9 flex gap-x-2 text-nowrap w-full cursor-pointer bg-white border border-gray-200 rounded-lg text-start text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:focus:outline-none dark:focus:ring-1 dark:focus:ring-neutral-600",
+                                    "dropdownClasses": "mt-2 max-h-72 pb-1 px-1 space-y-0.5 z-20 w-full bg-white border border-gray-200 rounded-lg text-sm overflow-hidden overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-track]:bg-neutral-700 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500 dark:bg-neutral-800 dark:border-neutral-700",
+                                    "optionClasses": "py-2 px-4 w-full text-sm text-slate-600 cursor-pointer hover:bg-gray-100 rounded-lg focus:outline-none focus:bg-gray-100 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:text-neutral-200 dark:focus:bg-neutral-700",
+                                    "optionTemplate": "<div><div class=\"flex items-center\"><div class=\"me-2\" data-icon></div><div class=\"text-gray-800 dark:text-neutral-200 \" data-title></div></div></div>",
+                                    "extraMarkup": "<div class=\"absolute top-1/2 end-3 -translate-y-1/2\"><svg class=\"shrink-0 size-3.5 text-gray-500 dark:text-neutral-500 \" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m7 15 5 5 5-5\"/><path d=\"m7 9 5-5 5 5\"/></svg></div>"
+                                }' class="hidden">
+                                    <option value="">Choose</option>
                                     @forelse ($this->categories as $category)
-                                        <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                    <option value="{{ $category->id }}"> {{ $category->name }}</option>
                                     @empty
-                                        <option value="">No records found.</option>
+                                    <option value=""> No records found. </option>
                                     @endforelse
                                 </select>
                             </div>
-                            @error('category_id')
-                                <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                            @enderror
                         </div>
                         <!-- End Col -->
 
@@ -266,14 +244,9 @@
                         <div class="sm:col-span-10">
                             <p class="mb-2 text-sm text-gray-500 dark:text-neutral-500" id="hs-textarea-helper-text">
                                 {{ $this->subject_placeholder }}</p>
-                            {{-- The value goes in the element body: a textarea has no value
-                                 attribute, and this rendered empty on every re-render. --}}
-                            <textarea wire:model='subject' id="subject" name="subject" placeholder="Minimum of 8 characters"
+                            <textarea wire:model='subject' id="subject" name="subject" placeholder="Minimum of 8 charaters"
                                 class="py-2 px-3 block w-full border-gray-200 shadow text-sm rounded-lg text-slate-600 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
-                                rows="5">{{ $this->subject }}</textarea>
-                            @error('subject')
-                                <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                            @enderror
+                                rows="5"></textarea>
                         </div>
                         <!-- End Col -->
 
@@ -307,29 +280,15 @@
 
                         <div class="sm:col-span-10">
                             <div class="max-w-sm space-y-3">
-                                {{--
-                                    No wire:model here. This used to carry
-                                    wire:model="user['id']", which Livewire 3 cannot resolve
-                                    (it wants dot notation, user.id) so it logged
-                                    "property does not exist on component" on every page
-                                    load. The binding was pointless anyway: the field is
-                                    readonly and displays a name, not the id it pointed at.
-                                --}}
-                                <input type="text" readonly
+                                <input wire:model="user['id']" type="text"
                                     class="py-3 px-4 block w-full border-gray-200 dark:border-neutral-700 bg-slate-100 dark:bg-neutral-800 text-slate-500 dark:text-neutral-400 shadow rounded-lg text-sm disabled:opacity-50 disabled:pointer-events-none"
-                                    value="{{ $this->completeName() }}">
+                                    value="{{ $this->completeName() }}" readonly="">
                             </div>
                         </div>
                         <!-- End Col -->
                     </div>
                     <!-- End Grid -->
 
-                    {{--
-                        No summary block here: create() dispatches a toast listing every
-                        reason a save was refused (see alertValidationErrors()). The
-                        per-field @error messages above remain, because a toast cannot
-                        point at which input is at fault.
-                    --}}
                     <div class="mt-5 flex justify-end gap-x-2">
                         <button type="button"
                             class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none focus:outline-none focus:bg-gray-50 dark:bg-transparent dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:focus:bg-neutral-800">

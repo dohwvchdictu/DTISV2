@@ -9,7 +9,7 @@ use App\Models\Document;
 use App\Models\Log;
 use App\Services\ApiService;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Sleep;
 use Jantinnerezo\LivewireAlert\LivewireAlert;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
@@ -43,10 +43,10 @@ class PendingDetail extends Component
     public $passphrase = '';
 
     /** Forward Variables */
-    public ?int $id = null;
-    public ?int $assignedTo = null;
-    public ?int $endorsedToPersonnel = null;
-    public ?int $endorsedToOtherPersonnel = null;
+    public int $id;
+    public int $assignedTo;
+    public int $endorsedToPersonnel;
+    public int $endorsedToOtherPersonnel;
     public $office;
     public $control_no = '';
     public $selected_office;
@@ -76,7 +76,7 @@ class PendingDetail extends Component
     public $parent_bundle;
 
     /** Photo */
-    public ?int $employeePhoto = null;
+    public int $employeePhoto;
     public $photoUrl;
     public $jwtToken;
     public $image;
@@ -164,48 +164,16 @@ class PendingDetail extends Component
         ]);
     }
 
-    /**
-     * Resolve an office id to its office name.
-     *
-     * array_filter preserves the original keys, so the old $result[$id - 1] lookup
-     * only worked while officeList happened to be id-ordered and gap-free; a
-     * deactivated or reordered office threw "Undefined array key". The argument is
-     * now authoritative — it used to be silently overridden by $this->assignedTo,
-     * which meant every call after a forward resolved the destination office
-     * regardless of what was passed in.
-     */
     public function lookUpOffice($assigned_to)
     {
-        $this->selected_office = $assigned_to;
+        $this->selected_office = $this->assignedTo ?? $assigned_to;
 
-        $result = array_values(array_filter($this->responseOffices['officeList'] ?? [], function ($office) {
-            return isset($office['id']) && $office['id'] == $this->selected_office;
-        }));
+        $result = array_filter($this->responseOffices['officeList'], function ($office) {
+            return $office['id'] == $this->selected_office;
+        });
 
-        return $result[0]['officeName'] ?? 'Unknown Office';
-    }
-
-    /**
-     * Resolve an action row's id once, alerting and returning null when it is
-     * missing. These used to be re-queried on every loop iteration with an unguarded
-     * ->id, so a missing row crashed part-way through a write.
-     */
-    private function actionId(string $name): ?int
-    {
-        $id = Action::firstWhere('name', $name)?->id;
-
-        if (!$id) {
-            $this->alert('error', 'The "' . $name . '" action is missing. Contact the system administrator.', [
-                'position' => 'center',
-                'toast' => true,
-                'timer' => null,
-                'showConfirmButton' => true,
-                'confirmButtonText' => 'OK',
-                'confirmButtonColor' => '#dc2626',
-            ]);
-        }
-
-        return $id;
+        $findOffice = $result[$this->selected_office - 1];
+        return $findOffice['officeName'];
     }
 
     public function forwardDocument()
@@ -218,129 +186,88 @@ class PendingDetail extends Component
         ]);
 
         $document = Document::find($data['document_to_forward']);
-
-        if (!$document) {
-            $this->alert('warning', 'That document is no longer available.', [
-                'position' => 'top-end',
-                'timer' => 10000,
-                'toast' => true
-            ]);
-
-            return;
-        }
-
-        /** Resolved once, with guards, instead of re-queried inside the loop */
-        $forwardedActionId = $this->actionId('Forwarded');
-        $receivingActionId = $this->actionId('For Receiving');
-
-        if (!$forwardedActionId || !$receivingActionId) {
-            return;
-        }
-
-        /**
-         * Where to send the user afterwards. The original read $document->endorsed_to
-         * *after* the update, so it was really testing the value just written - keep
-         * that exact meaning, and the strict === null with it, rather than the
-         * document's previous state.
-         */
-        $landsOnEndorsed = $data['endorsedToOtherPersonnel'] !== null;
+        $document->update([
+            'assigned_to' => $data['assignedTo'],
+            'endorsed_to' => $data['endorsedToOtherPersonnel'],
+            'status' => 'For Receiving'
+        ]);
 
         $this->assignedTo = $data['assignedTo'];
         $doc_type = $document->is_bundle ? 'Bundle' : 'Document';
-        $lookUpOffice = $this->lookUpOffice($data['assignedTo']);
+        $lookUpOffice = $this->lookUpOffice($this->assignedTo);
 
-        /**
-         * One transaction for the parent and its attachments; this method had none.
-         *
-         * The two Sleep::for(2)->seconds() calls that sat between the log writes are
-         * gone. They cost two seconds for the parent plus two per attachment, and
-         * inside a transaction they would hold row locks for the entire nap. Logs are
-         * ordered by insertion, so nothing depended on the delay.
-         */
-        DB::transaction(function () use ($document, $data, $doc_type, $lookUpOffice, $forwardedActionId, $receivingActionId) {
-            /**
-             * Read fresh rather than trusting the hydrated property, which was
-             * populated by whichever render last ran and can be stale by now.
-             */
-            $attachments = Document::where('assigned_to', $this->office)
-                ->where('bundle_id', $document->id)
-                ->orderBy('created_at', 'DESC')
-                ->get();
+        // Forward Log
+        Log::create([
+            'action_id' => Action::firstWhere('name', 'Forwarded')->id,
+            'document_id' => $document->id,
+            'user_id' => $this->user['id'],
+            'office_id' => $this->office,
+            'assigned_to' => $this->office,
+            'endorsed_to' => $data['endorsedToOtherPersonnel'],
+            'description' => $doc_type . " forwarded to " . $lookUpOffice . " for appropriate action.",
+            'remarks' => $data['remarks']
+        ]);
 
-            $document->update([
+        Sleep::for(2)->seconds();
+
+        // For Receiving Log
+        Log::create([
+            'action_id' => Action::firstWhere('name', 'For Receiving')->id,
+            'document_id' => $document->id,
+            'user_id' => $this->user['id'],
+            'office_id' => $this->office,
+            'assigned_to' => $data['assignedTo'],
+            'endorsed_to' => $data['endorsedToOtherPersonnel'],
+            'description' => $doc_type . " has been transferred and is to be received by " . $lookUpOffice,
+            'remarks' => $data['remarks']
+        ]);
+
+        //Add log for Documents forwarded together with this bundle
+        foreach ($this->documents_attached as $attachment) {
+
+            Document::find($attachment->id)->update([
                 'assigned_to' => $data['assignedTo'],
                 'endorsed_to' => $data['endorsedToOtherPersonnel'],
                 'status' => 'For Receiving'
             ]);
 
-            // Forward Log
+            //Forward Log
             Log::create([
-                'action_id' => $forwardedActionId,
-                'document_id' => $document->id,
+                'action_id' => Action::firstWhere('name', 'Forwarded')->id,
+                'document_id' => $attachment->id,
+                'bundle_id' => $document->id,
                 'user_id' => $this->user['id'],
                 'office_id' => $this->office,
                 'assigned_to' => $this->office,
                 'endorsed_to' => $data['endorsedToOtherPersonnel'],
-                'description' => $doc_type . " forwarded to " . $lookUpOffice . " for appropriate action.",
+                'description' => "Bundle (" . $document->control_no . ") forwarded to " . $lookUpOffice . " for appropriate action.",
                 'remarks' => $data['remarks']
             ]);
 
+            Sleep::for(2)->seconds();
+
             // For Receiving Log
             Log::create([
-                'action_id' => $receivingActionId,
-                'document_id' => $document->id,
+                'action_id' => Action::firstWhere('name', 'For Receiving')->id,
+                'document_id' => $attachment->id,
+                'bundle_id' => $document->id,
                 'user_id' => $this->user['id'],
                 'office_id' => $this->office,
                 'assigned_to' => $data['assignedTo'],
                 'endorsed_to' => $data['endorsedToOtherPersonnel'],
-                'description' => $doc_type . " has been transferred and is to be received by " . $lookUpOffice,
+                'description' => "Bundle (" . $document->control_no . ")" . " has been transferred and is to be received by " . $lookUpOffice . ".",
                 'remarks' => $data['remarks']
             ]);
+        }
 
-            //Add log for Documents forwarded together with this bundle
-            foreach ($attachments as $attachment) {
-                $attachment->update([
-                    'assigned_to' => $data['assignedTo'],
-                    'endorsed_to' => $data['endorsedToOtherPersonnel'],
-                    'status' => 'For Receiving'
-                ]);
-
-                //Forward Log
-                Log::create([
-                    'action_id' => $forwardedActionId,
-                    'document_id' => $attachment->id,
-                    'bundle_id' => $document->id,
-                    'user_id' => $this->user['id'],
-                    'office_id' => $this->office,
-                    'assigned_to' => $this->office,
-                    'endorsed_to' => $data['endorsedToOtherPersonnel'],
-                    'description' => "Bundle (" . $document->control_no . ") forwarded to " . $lookUpOffice . " for appropriate action.",
-                    'remarks' => $data['remarks']
-                ]);
-
-                // For Receiving Log
-                Log::create([
-                    'action_id' => $receivingActionId,
-                    'document_id' => $attachment->id,
-                    'bundle_id' => $document->id,
-                    'user_id' => $this->user['id'],
-                    'office_id' => $this->office,
-                    'assigned_to' => $data['assignedTo'],
-                    'endorsed_to' => $data['endorsedToOtherPersonnel'],
-                    'description' => "Bundle (" . $document->control_no . ")" . " has been transferred and is to be received by " . $lookUpOffice . ".",
-                    'remarks' => $data['remarks']
-                ]);
-            }
-        });
 
         $this->dispatch('close-modal', class: '.document-modal');
+        $this->showAlert($type = 'success', $message = 'successfully forwarded!');
 
-        /** flash() so the toast survives the redirect; alert() was discarded by it */
-        return $this->flash('success', 'Document successfully forwarded!', [
-            'position' => 'top-end',
-            'timer' => 10000,
-            'toast' => true
-        ], $landsOnEndorsed ? '/status-endorsed' : '/status-pending');
+        if ($document->endorsed_to === null) {
+            return redirect('/status-pending');
+        }
+        return redirect('/status-endorsed');
     }
     /** End of Forward Document */
 
@@ -377,84 +304,53 @@ class PendingDetail extends Component
             'remarks' => 'required'
         ]);
 
+        //Update Document
         $document = Document::find($data['document_to_endorse']);
-
-        if (!$document) {
-            $this->alert('warning', 'That document is no longer available.', [
-                'position' => 'top-end',
-                'timer' => 10000,
-                'toast' => true
-            ]);
-
-            return;
-        }
-
-        /** Resolved once, with a guard, instead of re-queried inside the loop */
-        $endorsedActionId = $this->actionId('Endorsed');
-
-        if (!$endorsedActionId) {
-            return;
-        }
+        $document->update([
+            'endorsed_to' => $data['endorsedToPersonnel'],
+            'status' => 'On Process'
+        ]);
 
         $lookUpPersonnel = $this->filterUser($data['endorsedToPersonnel']);
         $doc_type = $document->is_bundle ? 'Bundle' : 'Document';
 
-        /** One transaction for the parent and its attachments; this method had none */
-        DB::transaction(function () use ($document, $data, $doc_type, $lookUpPersonnel, $endorsedActionId) {
-            //Update Document
-            $document->update([
+        //Endorse Log
+        Log::create([
+            'action_id' => Action::firstWhere('name', 'Endorsed')->id,
+            'document_id' => $document->id,
+            'user_id' => $this->user['id'],
+            'office_id' => $this->office,
+            'assigned_to' => $this->office,
+            'endorsed_to' => $data['endorsedToPersonnel'],
+            'description' => $doc_type . " endorsed to " . $lookUpPersonnel . " for appropriate action.",
+            'remarks' => $data['remarks']
+        ]);
+
+        //Add log for Documents endorsed together with this bundle
+        foreach ($this->documents_attached as $attachment) {
+
+            Document::find($attachment->id)->update([
                 'endorsed_to' => $data['endorsedToPersonnel'],
                 'status' => 'On Process'
             ]);
 
-            //Endorse Log
+            //Forward Log
             Log::create([
-                'action_id' => $endorsedActionId,
-                'document_id' => $document->id,
+                'action_id' => Action::firstWhere('name', 'Endorsed')->id,
+                'document_id' => $attachment->id,
+                'bundle_id' => $document->id,
                 'user_id' => $this->user['id'],
                 'office_id' => $this->office,
                 'assigned_to' => $this->office,
                 'endorsed_to' => $data['endorsedToPersonnel'],
-                'description' => $doc_type . " endorsed to " . $lookUpPersonnel . " for appropriate action.",
+                'description' => "Bundle (" . $document->control_no . ") endorsed to " . $lookUpPersonnel . " for appropriate action.",
                 'remarks' => $data['remarks']
             ]);
-
-            /** Read fresh rather than trusting the hydrated property */
-            $attachments = Document::where('assigned_to', $this->office)
-                ->where('bundle_id', $document->id)
-                ->orderBy('created_at', 'DESC')
-                ->get();
-
-            //Add log for Documents endorsed together with this bundle
-            foreach ($attachments as $attachment) {
-                $attachment->update([
-                    'endorsed_to' => $data['endorsedToPersonnel'],
-                    'status' => 'On Process'
-                ]);
-
-                //Endorse Log
-                Log::create([
-                    'action_id' => $endorsedActionId,
-                    'document_id' => $attachment->id,
-                    'bundle_id' => $document->id,
-                    'user_id' => $this->user['id'],
-                    'office_id' => $this->office,
-                    'assigned_to' => $this->office,
-                    'endorsed_to' => $data['endorsedToPersonnel'],
-                    'description' => "Bundle (" . $document->control_no . ") endorsed to " . $lookUpPersonnel . " for appropriate action.",
-                    'remarks' => $data['remarks']
-                ]);
-            }
-        });
+        }
 
         $this->dispatch('close-modal', class: '.document-modal');
-
-        /** flash() so the toast survives the redirect; alert() was discarded by it */
-        return $this->flash('success', 'Document successfully endorsed!', [
-            'position' => 'top-end',
-            'timer' => 10000,
-            'toast' => true
-        ], '/status-pending');
+        $this->showAlert($type = 'success', $message = 'successfully endorsed!');
+        return redirect()->to('/status-pending');
     }
     /** End of Endorsement Document */
 
@@ -513,51 +409,21 @@ class PendingDetail extends Component
             'remarks' => 'required'
         ]);
 
-        if ($data['phrase'] !== $data['passphrase']) {
-            $this->showAlert($type = 'error', $message = 'unsuccessfully closed, enter the phrase correctly!');
+        if ($data['phrase'] === $data['passphrase']) {
 
-            return redirect()->route('document.pending', $this->document->control_no);
-        }
+            $document = Document::find($this->document_to_close);
 
-        $document = Document::find($this->document_to_close);
-
-        if (!$document) {
-            $this->alert('warning', 'That document is no longer available.', [
-                'position' => 'top-end',
-                'timer' => 10000,
-                'toast' => true
-            ]);
-
-            return;
-        }
-
-        /**
-         * Resolved once, with a guard. The parent log used Action::firstWhere('name',
-         * $document->status) — correct only because status had just been set to
-         * 'Closed' two lines earlier. Named explicitly now.
-         */
-        $closedActionId = $this->actionId('Closed');
-
-        if (!$closedActionId) {
-            return;
-        }
-
-        /** Decides the redirect below; unchanged by the close */
-        $landsOnEndorsed = $document->endorsed_to !== null;
-
-        $this->assignedTo = $document->assigned_to;
-        $doc_type = $document->is_bundle == '1' ? 'Bundle' : 'Document';
-        $lookUpOffice = $this->lookUpOffice($document->assigned_to);
-
-        /** One transaction for the parent and its attachments; this method had none */
-        DB::transaction(function () use ($document, $data, $doc_type, $lookUpOffice, $closedActionId) {
             $document->update([
                 'status' => 'Closed',
             ]);
 
+            $this->assignedTo = $document->assigned_to;
+            $doc_type = $document->is_bundle == '1' ? 'Bundle' : 'Document';
+            $lookUpOffice = $this->lookUpOffice($this->assignedTo);
+
             // Close Log
             Log::create([
-                'action_id' => $closedActionId,
+                'action_id' => Action::firstWhere('name', $document->status)->id,
                 'document_id' => $document->id,
                 'user_id' => $this->user['id'],
                 'office_id' => $this->office,
@@ -566,47 +432,45 @@ class PendingDetail extends Component
                 'remarks' => $data['remarks']
             ]);
 
-            /** Reads the Closed log written above */
             $document->update([
                 'turnaroundtime' => $this->calculateTurnaroundTime($document->id)
             ]);
 
-            /** Read fresh rather than trusting the hydrated property */
-            $attachments = Document::where('assigned_to', $this->office)
-                ->where('bundle_id', $document->id)
-                ->orderBy('created_at', 'DESC')
-                ->get();
+            if ($this->documents_attached) {
+                //Add log for Documents closed together with this bundle
+                foreach ($this->documents_attached as $attachment) {
 
-            //Add log for Documents closed together with this bundle
-            foreach ($attachments as $attachment) {
-                $attachment->update([
-                    'status' => 'Closed',
-                ]);
+                    Document::find($attachment->id)->update([
+                        'status' => 'Closed',
+                    ]);
 
-                //Closed Log
-                Log::create([
-                    'action_id' => $closedActionId,
-                    'document_id' => $attachment->id,
-                    'bundle_id' => $document->id,
-                    'user_id' => $this->user['id'],
-                    'office_id' => $this->office,
-                    'assigned_to' => $attachment->assigned_to,
-                    'description' => "Bundle (" . $document->control_no . ") has been acted upon and closed by " . $lookUpOffice . ".",
-                    'remarks' => $data['remarks']
-                ]);
+                    //Closed Log
+                    Log::create([
+                        'action_id' => Action::firstWhere('name', 'Closed')->id,
+                        'document_id' => $attachment->id,
+                        'bundle_id' => $document->id,
+                        'user_id' => $this->user['id'],
+                        'office_id' => $this->office,
+                        'assigned_to' => $attachment->assigned_to,
+                        'description' => "Bundle (" . $document->control_no . ") has been acted upon and closed by " . $lookUpOffice . ".",
+                        'remarks' => $data['remarks']
+                    ]);
 
-                $attachment->update([
-                    'turnaroundtime' =>  $this->calculateTurnaroundTime($attachment->id)
-                ]);
+                    Document::find($attachment->id)->update([
+                        'turnaroundtime' =>  $this->calculateTurnaroundTime($attachment->id)
+                    ]);
+                }
             }
-        });
 
-        /** flash() so the toast survives the redirect; alert() was discarded by it */
-        return $this->flash('success', 'Document successfully closed!', [
-            'position' => 'top-end',
-            'timer' => 10000,
-            'toast' => true
-        ], $landsOnEndorsed ? '/status-endorsed' : '/status-pending');
+            $this->showAlert($type = 'success', $message = 'successfully closed!');
+            if ($document->endorsed_to === null) {
+                return redirect('/status-pending');
+            }
+            return redirect('/status-endorsed');
+        } else {
+            $this->showAlert($type = 'error', $message = 'unsuccessfully closed, enter the phrase correctly!');
+            return redirect()->route('document.pending', $this->document->control_no);
+        }
     }
     /** End of Close Document */
 

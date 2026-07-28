@@ -45,7 +45,7 @@ class MyPurchaseRequests extends Component
 
     /** Forward Document Variables */
     public $document;
-    public ?int $id = null;
+    public int $id;
     public $remarks;
     public $attachments;
 
@@ -74,14 +74,9 @@ class MyPurchaseRequests extends Component
         $this->office = $this->user['office']['id'];
         /** End User Information */
 
-        /**
-         * No default date range.
-         *
-         * A one-month default silently hid every request older than that - including
-         * ones still sitting at Created, waiting to be forwarded. This is a work list,
-         * not a report: it has to show the whole backlog. The date inputs remain
-         * available for narrowing on demand.
-         */
+        /** Filter Records last 1 month */
+        $this->startDate = Carbon::now()->subMonth(1)->format('Y-m-d');
+        $this->endDate = Carbon::now()->format('Y-m-d');
 
         $categories_obj = Category::where('name', 'like', '%' . 'Purchase' . '%')->select('id')->get();
         foreach ($categories_obj->toArray() as $value) {

@@ -60,28 +60,21 @@ class MiscController extends Controller
         return true;
     }
 
-    /**
-     * Resolve an office id to its office name.
-     *
-     * array_filter preserves the original keys, so the old $result[$id - 1] lookup
-     * only worked while officeList happened to be id-ordered and gap-free; a
-     * deactivated or reordered office threw "Undefined array key". The argument is
-     * now authoritative — it used to be silently overridden by $this->assigned_to.
-     */
     public function lookUpOffice($assigned_to)
     {
-        $this->selected_office = $assigned_to;
+        $this->selected_office = $this->assigned_to ?? $assigned_to;
 
         // Ensure responseOffices is loaded
         if (!$this->responseOffices) {
             $this->responseOffices = Http::get(config('services.api.base_url') . 'public/get-offices')->json();
         }
 
-        $result = array_values(array_filter($this->responseOffices['officeList'] ?? [], function ($office) {
-            return isset($office['id']) && $office['id'] == $this->selected_office;
-        }));
+        $result = array_filter($this->responseOffices['officeList'], function ($office) {
+            return $office['id'] == $this->selected_office;
+        });
 
-        return $result[0]['officeName'] ?? 'Unknown Office';
+        $findOffice = $result[$this->selected_office - 1];
+        return $findOffice['officeName'];
     }
 
     public function printTransmittalForm($control_no)
@@ -188,7 +181,7 @@ class MiscController extends Controller
         
         // Default to last 30 days if no dates provided
         if (!$startDate || !$endDate) {
-            $startDate = now()->subMonths(1)->format('Y-m-d');
+            $startDate = now()->subMonth(1)->format('Y-m-d');
             $endDate = now()->format('Y-m-d');
         }
 
@@ -199,25 +192,25 @@ class MiscController extends Controller
         $reportData['overall'] = [
             'incoming' => Document::whereIn('status', ['For Receiving', 'Returned'])
                 ->whereBetween('created_at', [
-                    \Carbon\Carbon::parse($startDate)->addDays(1),
-                    \Carbon\Carbon::parse($endDate)->addDays(1)
+                    \Carbon\Carbon::parse($startDate)->addDay(1),
+                    \Carbon\Carbon::parse($endDate)->addDay(1)
                 ])->count(),
             'pending' => Document::whereIn('status', ['On Process'])
                 ->whereBetween('created_at', [
-                    \Carbon\Carbon::parse($startDate)->addDays(1),
-                    \Carbon\Carbon::parse($endDate)->addDays(1)
+                    \Carbon\Carbon::parse($startDate)->addDay(1),
+                    \Carbon\Carbon::parse($endDate)->addDay(1)
                 ])->count(),
             'processed' => Log::whereIn('action_id', [3, 5])
                 ->whereBetween('created_at', [
-                    \Carbon\Carbon::parse($startDate)->addDays(1),
-                    \Carbon\Carbon::parse($endDate)->addDays(1)
+                    \Carbon\Carbon::parse($startDate)->addDay(1),
+                    \Carbon\Carbon::parse($endDate)->addDay(1)
                 ])->count(),
         ];
 
         // Generate office-wise data. Pre-aggregate the counts in three grouped
         // queries instead of running 3 count queries per office (~150 queries).
-        $rangeStart = \Carbon\Carbon::parse($startDate)->addDays(1);
-        $rangeEnd = \Carbon\Carbon::parse($endDate)->addDays(1);
+        $rangeStart = \Carbon\Carbon::parse($startDate)->addDay(1);
+        $rangeEnd = \Carbon\Carbon::parse($endDate)->addDay(1);
 
         $incomingByOffice = Document::whereIn('status', ['For Receiving', 'Returned'])
             ->whereBetween('created_at', [$rangeStart, $rangeEnd])
@@ -276,7 +269,7 @@ class MiscController extends Controller
         
         // Default to last 30 days if no dates provided
         if (!$startDate || !$endDate) {
-            $startDate = now()->subMonths(1)->format('Y-m-d');
+            $startDate = now()->subMonth(1)->format('Y-m-d');
             $endDate = now()->format('Y-m-d');
         }
 
@@ -288,14 +281,14 @@ class MiscController extends Controller
             'incoming' => Document::where('source', 'external')
                 ->whereIn('status', ['For Receiving', 'Returned'])
                 ->whereBetween('created_at', [
-                    \Carbon\Carbon::parse($startDate)->addDays(1),
-                    \Carbon\Carbon::parse($endDate)->addDays(1)
+                    \Carbon\Carbon::parse($startDate)->addDay(1),
+                    \Carbon\Carbon::parse($endDate)->addDay(1)
                 ])->count(),
             'pending' => Document::where('source', 'external')
                 ->whereIn('status', ['On Process'])
                 ->whereBetween('created_at', [
-                    \Carbon\Carbon::parse($startDate)->addDays(1),
-                    \Carbon\Carbon::parse($endDate)->addDays(1)
+                    \Carbon\Carbon::parse($startDate)->addDay(1),
+                    \Carbon\Carbon::parse($endDate)->addDay(1)
                 ])->count(),
             'processed' => Document::where('source', 'external')
                 ->whereNull('bundle_id')
@@ -303,15 +296,15 @@ class MiscController extends Controller
                     $query->whereIn('action_id', [3, 5]);
                 })
                 ->whereBetween('created_at', [
-                    \Carbon\Carbon::parse($startDate)->addDays(1),
-                    \Carbon\Carbon::parse($endDate)->addDays(1)
+                    \Carbon\Carbon::parse($startDate)->addDay(1),
+                    \Carbon\Carbon::parse($endDate)->addDay(1)
                 ])->count(),
         ];
 
         // Generate office-wise data for external documents. Pre-aggregate the
         // counts in three grouped queries instead of 3 count queries per office.
-        $rangeStart = \Carbon\Carbon::parse($startDate)->addDays(1);
-        $rangeEnd = \Carbon\Carbon::parse($endDate)->addDays(1);
+        $rangeStart = \Carbon\Carbon::parse($startDate)->addDay(1);
+        $rangeEnd = \Carbon\Carbon::parse($endDate)->addDay(1);
 
         $incomingByOffice = Document::where('source', 'external')
             ->whereIn('status', ['For Receiving', 'Returned'])

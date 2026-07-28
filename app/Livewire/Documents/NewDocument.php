@@ -58,6 +58,31 @@ class NewDocument extends Component
         foreach ($payment_obj->toArray() as $value) {
             $this->payment_array[] = $value['id'];
         }
+
+        /**
+         * Seed the Document Type so the Category dropdown has options on first paint.
+         *
+         * $categories is only ever filled by updatedSelectedType(), so until a radio was
+         * clicked the select rendered a single "No records found." option — there was no
+         * category to choose and category_id could never satisfy its 'required' rule.
+         */
+        $this->selectedType = 'All';
+        $this->updatedSelectedType();
+
+        /**
+         * Generated once per form, here rather than in render().
+         *
+         * render() used to assign $this->control_no from Carbon::now(), so every
+         * re-render — including the one a failed validation causes — silently minted a
+         * new control number. The one the user was reading was not the one being saved.
+         */
+        $this->control_no = $this->generateControlNo();
+    }
+
+    /** Control number for this form: DC + office + user + timestamp */
+    private function generateControlNo(): string
+    {
+        return 'DC' . $this->office . $this->user['id'] . Carbon::now()->format('Ymdhis');
     }
 
     public function create()
@@ -180,9 +205,13 @@ class NewDocument extends Component
     public function render()
     {
 
+        /**
+         * control_no is deliberately NOT regenerated here — it is assigned once in
+         * mount(). Doing it in render() meant every re-render replaced it with a fresh
+         * timestamp, so a failed validation changed the control number under the user.
+         */
         return view('livewire.documents.new-document', [
             'citizen_charters' => CitizenCharter::where('is_active', true)->get(),
-            'control_no' => $this->control_no = 'DC' . $this->office . $this->user['id'] . Carbon::now()->format('Ymdhis')
         ]);
     }
 }

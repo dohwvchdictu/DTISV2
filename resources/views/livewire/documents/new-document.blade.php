@@ -59,8 +59,11 @@
 
                         <div class="sm:col-span-10">
                             <div class="max-w-sm space-y-3">
+                                {{-- $control_no is the component property, assigned once in
+                                     mount(). It used to be passed in as a separate view
+                                     variable that render() regenerated on every pass. --}}
                                 <input wire:model="control_no" type="text" id="control_no" name="control_no"
-                                    value="{{ $control_no }}"
+                                    value="{{ $this->control_no }}"
                                     class="py-3 px-4 block w-full border-gray-200 bg-slate-100 text-slate-600 shadow rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
                                     placeholder="Document Tracking No." readonly>
                             </div>
@@ -220,9 +223,25 @@
                                     "optionTemplate": "<div><div class=\"flex items-center\"><div class=\"me-2\" data-icon></div><div class=\"text-gray-800 dark:text-neutral-200 \" data-title></div></div></div>",
                                     "extraMarkup": "<div class=\"absolute top-1/2 end-3 -translate-y-1/2\"><svg class=\"shrink-0 size-3.5 text-gray-500 dark:text-neutral-500 \" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m7 15 5 5 5-5\"/><path d=\"m7 9 5-5 5 5\"/></svg></div>"
                                 }' class="hidden">
+                                    {{--
+                                        @selected is load-bearing, not decoration.
+
+                                        Preline's advanced select moves this <select> into a
+                                        wrapper div it creates and renders its own toggle
+                                        button alongside. A Livewire re-render morphs that
+                                        subtree back to the server's markup, so the instance
+                                        is rebuilt from whatever the server sent — and the
+                                        server previously sent no `selected` attribute, so
+                                        the rebuilt toggle showed its "Select Category"
+                                        placeholder even though category_id still held a
+                                        value. Marking the option selected server-side makes
+                                        the HTML authoritative, so the display survives a
+                                        failed validation regardless of Preline's timing.
+                                    --}}
                                     <option value="">Choose</option>
                                     @forelse ($this->categories as $category)
-                                    <option value="{{ $category->id }}"> {{ $category->name }}</option>
+                                    <option value="{{ $category->id }}" @selected($category->id == $this->category_id)>
+                                        {{ $category->name }}</option>
                                     @empty
                                     <option value=""> No records found. </option>
                                     @endforelse
@@ -280,9 +299,17 @@
 
                         <div class="sm:col-span-10">
                             <div class="max-w-sm space-y-3">
-                                <input wire:model="user['id']" type="text"
+                                {{--
+                                    No wire:model here. This used to carry
+                                    wire:model="user['id']", which Livewire 3 cannot resolve
+                                    (it wants dot notation, user.id) so it logged
+                                    "property does not exist on component" on every page
+                                    load. The binding was pointless anyway: the field is
+                                    readonly and displays a name, not the id it pointed at.
+                                --}}
+                                <input type="text" readonly
                                     class="py-3 px-4 block w-full border-gray-200 dark:border-neutral-700 bg-slate-100 dark:bg-neutral-800 text-slate-500 dark:text-neutral-400 shadow rounded-lg text-sm disabled:opacity-50 disabled:pointer-events-none"
-                                    value="{{ $this->completeName() }}" readonly="">
+                                    value="{{ $this->completeName() }}">
                             </div>
                         </div>
                         <!-- End Col -->

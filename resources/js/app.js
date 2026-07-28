@@ -50,6 +50,48 @@ function repairStalePrelineState() {
     });
 }
 
+/**
+ * Discard advanced-select instances whose markup a morph pulled apart, so the autoInit
+ * pass that follows rebuilds them from the server's HTML.
+ *
+ * HSSelect does not merely decorate its <select>: buildWrapper() creates a div, inserts
+ * it before the element, then moves the <select> inside it and renders a toggle button
+ * and dropdown as siblings. None of that exists in the server's markup, so a Livewire
+ * re-render tears the subtree apart and leaves the instance describing a DOM that is no
+ * longer there -- the toggle either vanishes or keeps showing a stale title.
+ *
+ * autoInit() alone will not fix it (it skips elements already in its collection), and
+ * unlike a dropdown there is no forceClearState() to call, so the instance has to be
+ * destroyed and dropped from the collection first.
+ */
+function discardDetachedPrelineSelects() {
+    if (!Array.isArray(window.$hsSelectCollection)) return;
+
+    const detached = window.$hsSelectCollection.filter(({ element }) => {
+        if (!element || !element.el) return true;
+
+        // Healthy state: the select still sits inside the wrapper Preline built for it,
+        // and that wrapper is still attached to the document.
+        return !element.wrapper
+            || !element.wrapper.contains(element.el)
+            || !document.contains(element.wrapper);
+    });
+
+    if (!detached.length) return;
+
+    detached.forEach((item) => {
+        try {
+            if (typeof item.element.destroy === 'function') item.element.destroy();
+        } catch (e) {
+            // Markup was already removed by the morph; nothing left to unbind.
+        }
+    });
+
+    window.$hsSelectCollection = window.$hsSelectCollection.filter(
+        (item) => !detached.includes(item)
+    );
+}
+
 document.addEventListener('livewire:navigated', () => {
     /**
      * 'morphed' fires once per component update, after the DOM is settled.
@@ -57,10 +99,13 @@ document.addEventListener('livewire:navigated', () => {
      * This previously used 'element.init', which fires per *element* and ran seven
      * separate autoInit() calls -- each a full-document querySelectorAll -- for every
      * element in every update.
+     *
+     * Order matters: clear out stale instances first, then let autoInit rebuild.
      */
     Livewire.hook('morphed', () => {
-        initPrelineElements();
         repairStalePrelineState();
+        discardDetachedPrelineSelects();
+        initPrelineElements();
     });
 }, { once: true });
 

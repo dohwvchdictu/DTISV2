@@ -12,6 +12,7 @@ use App\Models\Document;
 use App\Models\Log;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Jantinnerezo\LivewireAlert\LivewireAlert;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -85,18 +86,52 @@ class NewDocument extends Component
         return 'DC' . $this->office . $this->user['id'] . Carbon::now()->format('Ymdhis');
     }
 
+    /**
+     * Surface a refused save as a toast, listing every reason.
+     *
+     * The exception is caught rather than left to bubble so this can run: Livewire would
+     * otherwise handle it internally and the refusal was completely silent — the spinner
+     * ran, the request completed, and nothing said why. A four-character subject looked
+     * identical to a broken save.
+     *
+     * setErrorBag() puts the messages back where Livewire expects them, so the per-field
+     * @error output under each input keeps working; the toast just makes the refusal
+     * impossible to miss without hunting for the field at fault.
+     */
+    private function alertValidationErrors(ValidationException $e): void
+    {
+        $messages = $e->validator->errors()->all();
+
+        $this->setErrorBag($e->validator->errors());
+
+        $this->alert('error', 'Document not saved', [
+            'position' => 'top-end',
+            'timer' => 10000,
+            'toast' => true,
+            'html' => '<ul class="text-start ps-4 list-disc">'
+                . collect($messages)->map(fn ($message) => '<li>' . e($message) . '</li>')->implode('')
+                . '</ul>',
+        ]);
+    }
+
     public function create()
     {
-        $data = $this->validate([
-            'control_no' => 'required',
-            'source' => 'required|max:8',
-            'category_id' => 'required',
-            'subject' => 'required|min:8|max:500',
-            'user' => 'required',
-            'is_arta' => 'nullable',
-            'is_bundle' => 'nullable',
-            'citizen_charter_id' => 'nullable'
-        ]);
+        try {
+            $data = $this->validate([
+                'control_no' => 'required',
+                'source' => 'required|max:8',
+                'category_id' => 'required',
+                'subject' => 'required|min:8|max:500',
+                'user' => 'required',
+                'is_arta' => 'nullable',
+                'is_bundle' => 'nullable',
+                'citizen_charter_id' => 'nullable'
+            ]);
+        } catch (ValidationException $e) {
+            $this->alertValidationErrors($e);
+
+            return;
+        }
 
         /** Resolved before the write, so a missing action row cannot leave a document with no log */
         $createdActionId = Action::firstWhere('name', 'Created')?->id;

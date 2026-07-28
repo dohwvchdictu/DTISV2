@@ -51,63 +51,74 @@ function repairStalePrelineState() {
 }
 
 /**
- * Discard advanced-select instances whose markup a morph pulled apart, so the autoInit
- * pass that follows rebuilds them from the server's HTML.
+ * Advanced selects ([data-hs-select]) are deliberately NOT repaired here.
  *
- * HSSelect does not merely decorate its <select>: buildWrapper() creates a div, inserts
- * it before the element, then moves the <select> inside it and renders a toggle button
- * and dropdown as siblings. None of that exists in the server's markup, so a Livewire
- * re-render tears the subtree apart and leaves the instance describing a DOM that is no
- * longer there -- the toggle either vanishes or keeps showing a stale title.
+ * An earlier version of this file destroyed instances whose wrapper a morph had pulled
+ * apart, expecting autoInit() to rebuild them. That was actively harmful. HSSelect's
+ * destroy() ends with:
  *
- * autoInit() alone will not fix it (it skips elements already in its collection), and
- * unlike a dropdown there is no forceClearState() to call, so the instance has to be
- * destroyed and dropped from the collection first.
+ *     const t = this.el.parentElement.parentElement;
+ *     t.prepend(this.el);
+ *     t.querySelector('.hs-select').remove();
+ *
+ * It assumes the wrapper is still intact -- the exact opposite of the condition that
+ * triggered the call. With the wrapper already gone, parentElement.parentElement is the
+ * wrong node, so prepend() *relocated the <select>* into a div the server never renders
+ * it in, and the querySelector('.hs-select').remove() then threw on null. Livewire's
+ * wire:model stayed bound to a displaced element, so choosing an option no longer
+ * reached the server and the field failed its 'required' rule.
+ *
+ * Nothing is needed in its place:
+ *   - HSSelect fires a native 'change' on the underlying <select>
+ *     (triggerChangeEventForNativeSelect), which is what wire:model listens for.
+ *   - Rendering `selected` on the matching <option> server-side makes any rebuild show
+ *     the right value.
+ *   - Preline's own autoInit() already prunes dead instances via
+ *     filter(({element}) => document.contains(element.el)), so a replaced element is
+ *     re-initialised without help.
  */
-function discardDetachedPrelineSelects() {
-    if (!Array.isArray(window.$hsSelectCollection)) return;
 
-    const detached = window.$hsSelectCollection.filter(({ element }) => {
-        if (!element || !element.el) return true;
-
-        // Healthy state: the select still sits inside the wrapper Preline built for it,
-        // and that wrapper is still attached to the document.
-        return !element.wrapper
-            || !element.wrapper.contains(element.el)
-            || !document.contains(element.wrapper);
-    });
-
-    if (!detached.length) return;
-
-    detached.forEach((item) => {
-        try {
-            if (typeof item.element.destroy === 'function') item.element.destroy();
-        } catch (e) {
-            // Markup was already removed by the morph; nothing left to unbind.
-        }
-    });
-
-    window.$hsSelectCollection = window.$hsSelectCollection.filter(
-        (item) => !detached.includes(item)
-    );
+/** Clear stale dropdown state, then let autoInit pick up anything new. Order matters. */
+function refreshPreline() {
+    repairStalePrelineState();
+    initPrelineElements();
 }
 
+/**
+ * Three separate moments need Preline initialised, and they need different hooks:
+ *
+ *   hard page load        - Preline's own window-load listener already covers it
+ *   wire:navigate         - 'livewire:navigated', below
+ *   component re-render   - Livewire's 'morphed' hook, below
+ *
+ * The middle one is easy to miss. A wire:navigate transition swaps the DOM in place, so
+ * window's 'load' event never fires again -- and several Preline components (HSSelect
+ * among them) only self-initialise from that event. Arriving at a page through one of the
+ * sidebar's wire:navigate links therefore leaves every Preline component unbuilt, which
+ * for HSSelect means the <select class="hidden"> it would have replaced stays invisible
+ * and the field appears to be missing entirely.
+ *
+ * Note this listener is NOT { once: true } -- it has to run on every navigation. The
+ * 'morphed' hook registration is guarded separately so it is only added once.
+ */
+let morphedHookRegistered = false;
+
 document.addEventListener('livewire:navigated', () => {
-    /**
-     * 'morphed' fires once per component update, after the DOM is settled.
-     *
-     * This previously used 'element.init', which fires per *element* and ran seven
-     * separate autoInit() calls -- each a full-document querySelectorAll -- for every
-     * element in every update.
-     *
-     * Order matters: clear out stale instances first, then let autoInit rebuild.
-     */
-    Livewire.hook('morphed', () => {
-        repairStalePrelineState();
-        discardDetachedPrelineSelects();
-        initPrelineElements();
-    });
-}, { once: true });
+    if (!morphedHookRegistered) {
+        morphedHookRegistered = true;
+
+        /**
+         * 'morphed' fires once per component update, after the DOM has settled.
+         *
+         * This replaced an 'element.init' hook, which fired per *element* and ran seven
+         * separate autoInit() calls -- each a full-document querySelectorAll -- for every
+         * element of every update.
+         */
+        Livewire.hook('morphed', refreshPreline);
+    }
+
+    refreshPreline();
+});
 
 // Keyboard shortcut for document search modal
 document.addEventListener('keydown', (event) => {

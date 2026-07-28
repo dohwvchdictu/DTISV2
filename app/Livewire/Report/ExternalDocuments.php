@@ -49,7 +49,7 @@ class ExternalDocuments extends Component
         $this->office = $this->user['office']['id'];
 
         /** Filter Records last 30 days */
-        $this->startDate = Carbon::now()->subMonth(1)->format('Y-m-d');
+        $this->startDate = Carbon::now()->subMonths(1)->format('Y-m-d');
         $this->endDate = Carbon::now()->format('Y-m-d');
     }
 

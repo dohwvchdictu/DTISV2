@@ -11,6 +11,7 @@ use App\Models\CitizenCharter;
 use App\Models\Document;
 use App\Models\Log;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use Jantinnerezo\LivewireAlert\LivewireAlert;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -72,29 +73,50 @@ class NewDocument extends Component
             'citizen_charter_id' => 'nullable'
         ]);
 
-        $document = Document::create([
-            'control_no' => $data['control_no'],
-            'source' => $data['source'],
-            'category_id' => $data['category_id'],
-            'subject' => $data['subject'],
-            'user_id' => $this->user['id'],
-            'office_id' => $this->office,
-            'is_arta' => $data['is_arta'],
-            'is_bundle' => $data['is_bundle'],
-            'citizen_charter_id' => $data['citizen_charter_id'],
-            'status' => "Created",
-        ]);
+        /** Resolved before the write, so a missing action row cannot leave a document with no log */
+        $createdActionId = Action::firstWhere('name', 'Created')?->id;
+
+        if (!$createdActionId) {
+            $this->alert('error', 'The "Created" action is missing. Contact the system administrator.', [
+                'position' => 'center',
+                'toast' => true,
+                'timer' => null,
+                'showConfirmButton' => true,
+                'confirmButtonText' => 'OK',
+                'confirmButtonColor' => '#dc2626',
+            ]);
+
+            return;
+        }
 
         $type = $data['is_bundle'] == '1' ? 'Bundle' : 'Document';
 
-        $log = Log::create([
-            'action_id' => Action::where('name', 'Created')->first()->id,
-            'document_id' => $document->id,
-            'user_id' => $this->user['id'],
-            'office_id' => $this->office,
-            'assigned_to' => null,
-            'description' => $type . " is created. Preparing to print tracking form."
-        ]);
+        /** Document and its creation log are one unit — never one without the other */
+        $document = DB::transaction(function () use ($data, $type, $createdActionId) {
+            $document = Document::create([
+                'control_no' => $data['control_no'],
+                'source' => $data['source'],
+                'category_id' => $data['category_id'],
+                'subject' => $data['subject'],
+                'user_id' => $this->user['id'],
+                'office_id' => $this->office,
+                'is_arta' => $data['is_arta'],
+                'is_bundle' => $data['is_bundle'],
+                'citizen_charter_id' => $data['citizen_charter_id'],
+                'status' => "Created",
+            ]);
+
+            Log::create([
+                'action_id' => $createdActionId,
+                'document_id' => $document->id,
+                'user_id' => $this->user['id'],
+                'office_id' => $this->office,
+                'assigned_to' => null,
+                'description' => $type . " is created. Preparing to print tracking form."
+            ]);
+
+            return $document;
+        });
 
         $this->reset('control_no', 'source', 'category_id', 'subject', 'citizen_charter_id');
 

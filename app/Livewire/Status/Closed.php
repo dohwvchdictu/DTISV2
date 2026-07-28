@@ -7,9 +7,18 @@ use App\Models\Log;
 use App\Services\ApiService;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 class Closed extends Component
 {
+    /**
+     * This component paginated without the trait, so $documents->links() rendered
+     * plain ?page= anchors that triggered a full page load, and resetPage() did not
+     * exist at all - searching from a later page left you on an out-of-range page
+     * looking at an empty table.
+     */
+    use WithPagination;
+
     #[Title('Closed Documents | Document Tracking Information System')]
     /** Constant Variables */
     public $user = [];
@@ -71,6 +80,12 @@ class Closed extends Component
         $this->offices = app(ApiService::class)->getActiveOffices($this->responseOffices);
 
         return true;
+    }
+
+    /** Reset pagination when the search changes so results never land on an out-of-range page */
+    public function updatedSearch()
+    {
+        $this->resetPage();
     }
 
     /** Miscellanous Functions */

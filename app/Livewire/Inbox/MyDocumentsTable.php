@@ -69,9 +69,14 @@ class MyDocumentsTable extends Component
         $this->office = $this->user['office']['id'];
         /** End User Information */
 
-        /** Filter Records last 1 month */
-        $this->startDate = Carbon::now()->subMonth(1)->format('Y-m-d');
-        $this->endDate = Carbon::now()->format('Y-m-d');
+        /**
+         * No default date range.
+         *
+         * A one-month default silently hid every document older than that - including
+         * ones still sitting at Created, waiting to be forwarded. This is a work list,
+         * not a report: it has to show the whole backlog. The date inputs remain
+         * available for narrowing on demand.
+         */
 
         $this->categories_array = Category::where(function ($query) {
             $query->where('name', 'like', '%' . 'Payment' . '%')

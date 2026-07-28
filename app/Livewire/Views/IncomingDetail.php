@@ -8,6 +8,7 @@ use App\Models\Document;
 use App\Models\Log;
 use App\Services\ApiService;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use Jantinnerezo\LivewireAlert\LivewireAlert;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
@@ -40,20 +41,20 @@ class IncomingDetail extends Component
     public $parent_bundle;
 
     /** Forward Variables */
-    public int $id;
-    public int $assigned_to;
+    public ?int $id = null;
+    public ?int $assigned_to = null;
     public $control_no = '';
     protected $offices = [];
     public $selected_office;
 
     /** Return Variables */
     public $returnedDocument;
-    public int $returnTo;
+    public ?int $returnTo = null;
     public $remarks;
 
     /** Receive Variables */
-    public int $document_id;
-    public int $return_office;
+    public ?int $document_id = null;
+    public ?int $return_office = null;
     public $office;
 
     /** Timeline Variables */
@@ -150,45 +151,78 @@ class IncomingDetail extends Component
     {
         $document = Document::find($this->document_id);
 
-        $document->update([
-            'assigned_to' => $this->office,
-            'status' => 'On Process'
-        ]);
+        if (!$document) {
+            $this->alert('warning', 'That document is no longer available.', [
+                'position' => 'top-end',
+                'timer' => 10000,
+                'toast' => true
+            ]);
 
-        $this->assigned_to = $document->assigned_to;
+            return;
+        }
+
+        /** Resolved once, with a guard, instead of re-queried inside the loop */
+        $receivedActionId = $this->actionId('Received');
+
+        if (!$receivedActionId) {
+            return;
+        }
+
+        $this->assigned_to = $this->office;
         $doc_type = $document->is_bundle ? 'Bundle' : 'Document';
-        $lookUpOffice = $this->lookUpOffice($this->assigned_to);
+        $lookUpOffice = $this->lookUpOffice($this->office);
 
-        // Receive Log
-        Log::create([
-            'action_id' => Action::firstWhere('name', 'Received')->id,
-            'document_id' => $document->id,
-            'user_id' => $this->user['id'],
-            'office_id' => $this->office,
-            'assigned_to' => $this->office,
-            'endorsed_to' => $document->endorsed_to,
-            'description' =>  $doc_type . " (" . $document->control_no . ") has been received and being process by " . $lookUpOffice . "."
-        ]);
-
-        foreach ($this->documents_attached as $attachment) {
-
-            Document::find($attachment->id)->update([
+        /**
+         * One transaction for the parent and its attachments. Without it, a failure
+         * part-way left the parent On Process while its children stayed behind - the
+         * bundle-desync bug already fixed on the list screens.
+         */
+        DB::transaction(function () use ($document, $receivedActionId, $doc_type, $lookUpOffice) {
+            $document->update([
                 'assigned_to' => $this->office,
                 'status' => 'On Process'
             ]);
 
             // Receive Log
             Log::create([
-                'action_id' => Action::firstWhere('name', 'Received')->id,
-                'document_id' => $attachment->id,
-                'bundle_id' =>  $document->id,
+                'action_id' => $receivedActionId,
+                'document_id' => $document->id,
                 'user_id' => $this->user['id'],
                 'office_id' => $this->office,
                 'assigned_to' => $this->office,
                 'endorsed_to' => $document->endorsed_to,
                 'description' =>  $doc_type . " (" . $document->control_no . ") has been received and being process by " . $lookUpOffice . "."
             ]);
-        }
+
+            /**
+             * Read fresh rather than trusting the hydrated property, which was
+             * populated by whichever render last ran and can be stale by now.
+             */
+            $attachments = Document::where('assigned_to', $this->office)
+                ->whereIn('status', ['For Receiving', 'Returned'])
+                ->where('bundle_id', $document->id)
+                ->orderBy('created_at', 'DESC')
+                ->get();
+
+            foreach ($attachments as $attachment) {
+                $attachment->update([
+                    'assigned_to' => $this->office,
+                    'status' => 'On Process'
+                ]);
+
+                // Receive Log
+                Log::create([
+                    'action_id' => $receivedActionId,
+                    'document_id' => $attachment->id,
+                    'bundle_id' =>  $document->id,
+                    'user_id' => $this->user['id'],
+                    'office_id' => $this->office,
+                    'assigned_to' => $this->office,
+                    'endorsed_to' => $document->endorsed_to,
+                    'description' =>  $doc_type . " (" . $document->control_no . ") has been received and being process by " . $lookUpOffice . "."
+                ]);
+            }
+        });
 
         /** flash() so the toast survives the redirect; alert() was discarded by it */
         $this->flash('success', 'Document successfully received!', [
@@ -198,6 +232,29 @@ class IncomingDetail extends Component
         ]);
 
         $this->redirect(Pending::class);
+    }
+
+    /**
+     * Resolve an action row's id once, alerting and returning null when it is
+     * missing. These used to be re-queried on every loop iteration with an unguarded
+     * ->id, so a missing row crashed part-way through a write.
+     */
+    private function actionId(string $name): ?int
+    {
+        $id = Action::firstWhere('name', $name)?->id;
+
+        if (!$id) {
+            $this->alert('error', 'The "' . $name . '" action is missing. Contact the system administrator.', [
+                'position' => 'center',
+                'toast' => true,
+                'timer' => null,
+                'showConfirmButton' => true,
+                'confirmButtonText' => 'OK',
+                'confirmButtonColor' => '#dc2626',
+            ]);
+        }
+
+        return $id;
     }
     /** End of Receive Document */
 
@@ -265,10 +322,23 @@ class IncomingDetail extends Component
         ]);
 
         $document = Document::find($data['returnedDocument']);
-        $document->update([
-            'assigned_to' => $data['returnTo'],
-            'status' => 'Returned'
-        ]);
+
+        if (!$document) {
+            $this->alert('warning', 'That document is no longer available.', [
+                'position' => 'top-end',
+                'timer' => 10000,
+                'toast' => true
+            ]);
+
+            return;
+        }
+
+        /** Resolved once, with a guard, instead of re-queried inside the loop */
+        $returnedActionId = $this->actionId('Returned');
+
+        if (!$returnedActionId) {
+            return;
+        }
 
         $this->assigned_to = $this->user['office']['id'];
         $doc_type = $document->is_bundle == '1' ? 'Bundle' : 'Document';
@@ -281,37 +351,51 @@ class IncomingDetail extends Component
         $this->return_office = $data['returnTo'];
         $returnOfficeName = $this->lookUpOffice($data['returnTo']);
 
-        // Return to Owner Log
-        Log::create([
-            'action_id' => Action::firstWhere('name', 'Returned')->id,
-            'document_id' => $document->id,
-            'user_id' => $this->user['id'],
-            'office_id' => $this->user['office']['id'],
-            'assigned_to' => $data['returnTo'],
-            'remarks' => $data['remarks'],
-            'description' => $doc_type . " has been returned to " . $returnOfficeName . " by " . $lookUpOffice . "."
-        ]);
-
-        // Return Attached Documents
-        $this->documents_attached = Document::where('assigned_to', $this->office)->where('bundle_id', $data['returnedDocument'])->orderBy('created_at', 'DESC')->get();
-        foreach ($this->documents_attached as $attachment) {
-
-            Document::find($attachment->id)->update([
+        /**
+         * One transaction for the parent and its attachments, so a returned bundle
+         * cannot end up split between two offices.
+         */
+        DB::transaction(function () use ($document, $data, $returnedActionId, $doc_type, $lookUpOffice, $returnOfficeName) {
+            $document->update([
                 'assigned_to' => $data['returnTo'],
                 'status' => 'Returned'
             ]);
 
-            // Return Log
+            // Return to Owner Log
             Log::create([
-                'action_id' => Action::firstWhere('name', 'Returned')->id,
-                'document_id' => $attachment->id,
+                'action_id' => $returnedActionId,
+                'document_id' => $document->id,
                 'user_id' => $this->user['id'],
                 'office_id' => $this->user['office']['id'],
                 'assigned_to' => $data['returnTo'],
                 'remarks' => $data['remarks'],
                 'description' => $doc_type . " has been returned to " . $returnOfficeName . " by " . $lookUpOffice . "."
             ]);
-        }
+
+            // Return Attached Documents
+            $attachments = Document::where('assigned_to', $this->office)
+                ->where('bundle_id', $data['returnedDocument'])
+                ->orderBy('created_at', 'DESC')
+                ->get();
+
+            foreach ($attachments as $attachment) {
+                $attachment->update([
+                    'assigned_to' => $data['returnTo'],
+                    'status' => 'Returned'
+                ]);
+
+                // Return Log
+                Log::create([
+                    'action_id' => $returnedActionId,
+                    'document_id' => $attachment->id,
+                    'user_id' => $this->user['id'],
+                    'office_id' => $this->user['office']['id'],
+                    'assigned_to' => $data['returnTo'],
+                    'remarks' => $data['remarks'],
+                    'description' => $doc_type . " has been returned to " . $returnOfficeName . " by " . $lookUpOffice . "."
+                ]);
+            }
+        });
 
         /** flash() so the toast survives the redirect; alert() was discarded by it */
         return $this->flash('success', 'Document successfully returned to ' . $returnOfficeName . '!', [

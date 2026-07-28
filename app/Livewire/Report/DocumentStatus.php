@@ -38,7 +38,7 @@ class DocumentStatus extends Component
     public function mount()
     {
         /** Filter Records last 30 days */
-        $this->startDate = Carbon::now()->subMonth(1)->format('Y-m-d');
+        $this->startDate = Carbon::now()->subMonths(1)->format('Y-m-d');
         $this->endDate = Carbon::now()->format('Y-m-d');
     }
 
@@ -75,8 +75,8 @@ class DocumentStatus extends Component
 
     public function render()
     {
-        $start = Carbon::parse($this->startDate)->addDay(1);
-        $end = Carbon::parse($this->endDate)->addDay(1);
+        $start = Carbon::parse($this->startDate)->addDays(1);
+        $end = Carbon::parse($this->endDate)->addDays(1);
 
         /**
          * Pre-aggregate the per-office counts in three grouped queries instead

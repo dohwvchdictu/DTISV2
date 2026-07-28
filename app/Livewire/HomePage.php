@@ -52,7 +52,7 @@ class HomePage extends Component
         /** End User Information */
 
         /** Filter Records last 30 Days */
-        $this->startDate = Carbon::now()->subMonth(1)->format('Y-m-d');
+        $this->startDate = Carbon::now()->subMonths(1)->format('Y-m-d');
         $this->endDate = Carbon::now()->format('Y-m-d');
 
         /** Purchase request & Payments */

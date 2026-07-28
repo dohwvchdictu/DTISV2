@@ -65,7 +65,7 @@ class Endorsed extends Component
     public $endorsedToOtherPersonnel;
 
     /** Forward Variables */
-    public int $document_id;
+    public ?int $document_id = null;
     public $remarks;
     public $attachments;
     public $selected_office;
@@ -852,20 +852,29 @@ class Endorsed extends Component
             : Category::where('name', 'like', '%' . $type . '%')->pluck('id')->toArray();
     }
 
+    /**
+     * Resolve a user id to a display name.
+     *
+     * The ?? [] guard is load-bearing: checkApiConnection() sets responseEmployees to
+     * null when the directory API is down, and this method is called once per row
+     * from the Blade. Without it, array_filter(null, ...) threw a TypeError and an
+     * outage took out the whole table instead of degrading to "Unknown User".
+     */
     public function filterUser($encoded_user)
     {
         $this->endorsedID = $encoded_user;
 
-        $result = array_filter($this->responseEmployees['employeesList'], function ($employee) {
-            return $employee['id'] == $this->endorsedID;
-        });
+        $result = array_values(array_filter($this->responseEmployees['employeesList'] ?? [], function ($employee) {
+            return isset($employee['id']) && $employee['id'] == $this->endorsedID;
+        }));
 
-        $result = array_values($result); // reindex array
         if (empty($result)) {
             return 'Unknown User';
         }
+
         $findUser = $result[0];
-        return $findUser['firstName'] . ' ' . $findUser['lastName'] . ' ' . $findUser['suffix'];
+
+        return trim($findUser['firstName'] . ' ' . $findUser['lastName'] . ' ' . ($findUser['suffix'] ?? ''));
     }
 
     public function filterOffice($id)

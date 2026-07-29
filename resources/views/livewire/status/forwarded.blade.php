@@ -71,20 +71,59 @@
                                             </div>
                                         </div>
 
+                                        {{--
+                                            Date range only - no time inputs. The range is applied by the
+                                            Filter button rather than on change: wire:model is deferred in
+                                            Livewire 3, so both dates reach the server together and picking
+                                            a start date no longer queries before an end date is chosen.
+                                        --}}
                                         <div class="min-w-[130px]">
                                             <label for="startDate" class="sr-only">Start Date</label>
                                             <div class="relative">
-                                                <input type="date" wire:model="startDate"
+                                                <input type="date" wire:model="startDate" id="startDate"
                                                     name='startDate'
                                                     class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full py-3 px-3 dark:bg-neutral-800 dark:border-neutral-600 dark:placeholder-neutral-400 dark:text-neutral-200 dark:[color-scheme:dark] dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                                                    placeholder="Select date">
+                                                    placeholder="Start date">
                                             </div>
                                         </div>
-                                        <div class="min-w-[110px]">
-                                            <label for="EndDate" class="sr-only">Start Time</label>
+                                        <div class="min-w-[130px]">
+                                            <label for="endDate" class="sr-only">End Date</label>
                                             <div class="relative">
-                                                <input type="time" wire:model="startTime" name="startTime" class="py-2.5 sm:py-3 px-4 block w-full bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-600 dark:text-neutral-200 dark:placeholder-neutral-400 dark:[color-scheme:dark] dark:focus:ring-neutral-600" placeholder="Select Time">
+                                                <input type="date" wire:model="endDate" id="endDate"
+                                                    name='endDate'
+                                                    class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full py-3 px-3 dark:bg-neutral-800 dark:border-neutral-600 dark:placeholder-neutral-400 dark:text-neutral-200 dark:[color-scheme:dark] dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                                    placeholder="End date">
                                             </div>
+                                        </div>
+
+                                        <div class="shrink-0 flex items-center gap-x-2">
+                                            <button type="button" wire:click="applyFilter"
+                                                class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium
+                                                rounded-lg border border-transparent bg-emerald-600 text-white
+                                                hover:bg-emerald-700 focus:outline-none focus:bg-emerald-700
+                                                disabled:opacity-50 disabled:pointer-events-none">
+                                                <svg wire:loading.remove wire:target="applyFilter"
+                                                    class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg"
+                                                    width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                                    stroke-linejoin="round">
+                                                    <path d="M3 6h18" />
+                                                    <path d="M7 12h10" />
+                                                    <path d="M10 18h4" />
+                                                </svg>
+                                                <span wire:loading wire:target="applyFilter"
+                                                    class="animate-spin inline-block size-4 border-[2px] border-current border-t-transparent rounded-full"
+                                                    role="status" aria-label="loading"></span>
+                                                Filter
+                                            </button>
+
+                                            {{-- Only offered once a range is actually applied --}}
+                                            @if ($startDate || $endDate)
+                                                <button type="button" wire:click="clearFilter"
+                                                    class="text-xs font-medium text-gray-600 underline hover:text-gray-900 focus:outline-none dark:text-neutral-400 dark:hover:text-neutral-200">
+                                                    Reset
+                                                </button>
+                                            @endif
                                         </div>
 
                                         {{--

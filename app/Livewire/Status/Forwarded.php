@@ -51,8 +51,6 @@ class Forwarded extends Component
     /** Filter Date Variables */
     public $startDate;
     public $endDate;
-    public $startTime;
-    public $endTime;
 
     public function mount()
     {
@@ -62,12 +60,11 @@ class Forwarded extends Component
         /** End User Information */
 
         /**
-         * No default date/time range.
+         * No default date range.
          *
          * The window is now applied to the table as well as to select-all, so a
-         * one-day default would hide almost everything on load. It also used to be
-         * formatted with 'h:i' - a 12-hour clock with no meridiem - which parsed any
-         * afternoon time as morning. The inputs remain for narrowing on demand.
+         * one-day default would hide almost everything on load. The two date inputs
+         * remain for narrowing on demand, applied by the Filter button.
          */
     }
 
@@ -192,6 +189,36 @@ class Forwarded extends Component
     /** Miscellanous Functions */
 
     /**
+     * The processing logs this screen is built on: routed through this office, and
+     * — when a window is set — processed inside it.
+     *
+     * The date/time window belongs on the log, not on documents.created_at. This
+     * table renders the log's timestamp (see filterLog), so filtering the document's
+     * creation date meant the column users read and the column the filter tested
+     * were different ones: about 64% of rows display a date on a different calendar
+     * day from the one the filter used. A document processed at 5:17 PM but created
+     * at 1:42 PM disappeared the moment its own displayed time was typed into the
+     * filter.
+     *
+     * Shared by the existence check, the eager load and the per-row lookups so the
+     * set that matches, the set that renders and the set select-all collects cannot
+     * drift apart again.
+     */
+    private function processedLogScope($query)
+    {
+        return $query
+            ->where('assigned_to', $this->office)
+            ->whereIn('action_id', [3, 5])
+            /** Bounds applied independently so one blank input still filters sanely */
+            ->when($this->startDate, function ($q) {
+                $q->where('created_at', '>=', Carbon::parse($this->startDate)->startOfDay());
+            })
+            ->when($this->endDate, function ($q) {
+                $q->where('created_at', '<=', Carbon::parse($this->endDate)->endOfDay());
+            });
+    }
+
+    /**
      * Which documents belong on this screen: routed through this office, top-level,
      * plus the active search and date window.
      *
@@ -203,44 +230,14 @@ class Forwarded extends Component
     {
         return Document::query()
             ->whereNull('bundle_id')
-            ->whereHas('logs', function ($query) {
-                $query->where('assigned_to', $this->office)
-                    ->whereIn('action_id', [3, 5]);
-            })
+            ->whereHas('logs', fn ($query) => $this->processedLogScope($query))
             ->when($this->search, function ($query) {
                 // Properly scope the OR conditions to avoid query issues
                 $query->where(function ($q) {
                     $q->where('control_no', 'like', '%' . $this->search . '%')
                         ->orWhere('subject', 'like', '%' . $this->search . '%');
                 });
-            })
-            /** Bounds applied independently so one blank input still filters sanely */
-            ->when($this->startDate, function ($query) {
-                $query->where('created_at', '>=', $this->boundary($this->startDate, $this->startTime, false));
-            })
-            ->when($this->endDate, function ($query) {
-                $query->where('created_at', '<=', $this->boundary($this->endDate, $this->endTime, true));
             });
-    }
-
-    /**
-     * Combine a date input with an optional time input.
-     *
-     * The time defaults were formatted with 'h:i' - a 12-hour clock with no meridiem -
-     * so "3:45 PM" was parsed as 03:45 in the morning. 'H:i' is the 24-hour format the
-     * <input type="time"> element actually submits.
-     */
-    private function boundary($date, $time, bool $isEnd): Carbon
-    {
-        $parsed = Carbon::parse($date);
-
-        if (filled($time)) {
-            [$hour, $minute] = array_pad(explode(':', $time), 2, 0);
-
-            return $parsed->setTime((int) $hour, (int) $minute, $isEnd ? 59 : 0);
-        }
-
-        return $isEnd ? $parsed->endOfDay() : $parsed->startOfDay();
     }
 
     /**
@@ -314,23 +311,20 @@ class Forwarded extends Component
         $this->filterChanged();
     }
 
-    public function updatedStartDate()
+    /**
+     * The date range is applied on demand, from the Filter button, instead of on every
+     * change. wire:model is deferred in Livewire 3, so both inputs travel to the server
+     * together when this runs - picking a start date no longer runs a query before the
+     * end date has been chosen.
+     */
+    public function applyFilter()
     {
         $this->filterChanged();
     }
 
-    public function updatedEndDate()
+    public function clearFilter()
     {
-        $this->filterChanged();
-    }
-
-    public function updatedStartTime()
-    {
-        $this->filterChanged();
-    }
-
-    public function updatedEndTime()
-    {
+        $this->reset('startDate', 'endDate');
         $this->filterChanged();
     }
 
@@ -463,10 +457,9 @@ class Forwarded extends Component
         }
         
         // Fallback to querying if not eager-loaded (for backward compatibility)
-        $log = Log::where('document_id', is_object($document) ? $document->id : $document)
-            ->whereIn('action_id', [3, 5])
-            ->where('assigned_to', $this->office)
-            ->first();
+        $log = $this->processedLogScope(
+            Log::where('document_id', is_object($document) ? $document->id : $document)
+        )->orderBy('created_at', 'ASC')->first();
 
         return $log ? $log->created_at : '';
     }
@@ -482,10 +475,9 @@ class Forwarded extends Component
             $log = $document->logs->first();
         } else {
             // Fallback to querying if not eager-loaded
-            $log = Log::where('document_id', is_object($document) ? $document->id : $document)
-                ->whereIn('action_id', [3, 5])
-                ->where('assigned_to', $this->office)
-                ->first();
+            $log = $this->processedLogScope(
+                Log::where('document_id', is_object($document) ? $document->id : $document)
+            )->orderBy('created_at', 'ASC')->first();
         }
 
         if (!$log) {
@@ -529,9 +521,7 @@ class Forwarded extends Component
             // ASC so ->first() on the loaded relation returns the earliest matching
             // log — the same record the old per-row query (no order) displayed.
             ->with(['category', 'logs' => function ($query) {
-                $query->where('assigned_to', $this->office)
-                      ->whereIn('action_id', [3, 5])
-                      ->orderBy('created_at', 'ASC');
+                $this->processedLogScope($query)->orderBy('created_at', 'ASC');
             }])
             ->orderBy('created_at', 'DESC')
             ->paginate(50);

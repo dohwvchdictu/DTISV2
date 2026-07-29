@@ -49,8 +49,9 @@ class Forwarded extends Component
     public $dt2;
 
     /** Filter Date Variables */
-    public $startDate;
-    public $endDate;
+    public $filterDate;
+    public $startTime;
+    public $endTime;
 
     public function mount()
     {
@@ -209,13 +210,39 @@ class Forwarded extends Component
         return $query
             ->where('assigned_to', $this->office)
             ->whereIn('action_id', [3, 5])
-            /** Bounds applied independently so one blank input still filters sanely */
-            ->when($this->startDate, function ($q) {
-                $q->where('created_at', '>=', Carbon::parse($this->startDate)->startOfDay());
-            })
-            ->when($this->endDate, function ($q) {
-                $q->where('created_at', '<=', Carbon::parse($this->endDate)->endOfDay());
+            /**
+             * One day, optionally narrowed to a time range inside it. Both time
+             * inputs are optional and resolved independently: a blank From means
+             * midnight and a blank To means end of day, so "From 2:00 PM" on its own
+             * still reads as "2:00 PM until the end of that day". With no date at all
+             * the whole window is off - a time range spanning every day in the table
+             * would not mean anything useful.
+             */
+            ->when($this->filterDate, function ($q) {
+                $q->where('created_at', '>=', $this->windowBound($this->startTime, false))
+                    ->where('created_at', '<=', $this->windowBound($this->endTime, true));
             });
+    }
+
+    /**
+     * Combine the chosen date with one end of the optional time range.
+     *
+     * <input type="time"> submits a 24-hour "HH:MM", so the parts are read straight
+     * off it. An earlier version formatted these with 'h:i' - a 12-hour clock with no
+     * meridiem - which silently parsed any afternoon time as morning.
+     */
+    private function windowBound(?string $time, bool $isEnd): Carbon
+    {
+        $date = Carbon::parse($this->filterDate);
+
+        if (blank($time)) {
+            return $isEnd ? $date->endOfDay() : $date->startOfDay();
+        }
+
+        [$hour, $minute] = array_pad(explode(':', $time), 2, 0);
+
+        /** :59 on the closing bound so the minute the user typed is included whole */
+        return $date->setTime((int) $hour, (int) $minute, $isEnd ? 59 : 0);
     }
 
     /**
@@ -260,8 +287,7 @@ class Forwarded extends Component
     private function hasActiveFilter(): bool
     {
         return filled($this->search)
-            || filled($this->startDate)
-            || filled($this->endDate);
+            || filled($this->filterDate);
     }
 
     /**
@@ -312,10 +338,10 @@ class Forwarded extends Component
     }
 
     /**
-     * The date range is applied on demand, from the Filter button, instead of on every
-     * change. wire:model is deferred in Livewire 3, so both inputs travel to the server
-     * together when this runs - picking a start date no longer runs a query before the
-     * end date has been chosen.
+     * The window is applied on demand, from the Filter button, instead of on every
+     * change. wire:model is deferred in Livewire 3, so the date and both times travel
+     * to the server together when this runs - choosing a date no longer runs a query
+     * before the time range has been filled in.
      */
     public function applyFilter()
     {
@@ -324,7 +350,7 @@ class Forwarded extends Component
 
     public function clearFilter()
     {
-        $this->reset('startDate', 'endDate');
+        $this->reset('filterDate', 'startTime', 'endTime');
         $this->filterChanged();
     }
 

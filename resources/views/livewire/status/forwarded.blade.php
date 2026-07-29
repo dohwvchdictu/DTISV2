@@ -72,27 +72,46 @@
                                         </div>
 
                                         {{--
-                                            Date range only - no time inputs. The range is applied by the
-                                            Filter button rather than on change: wire:model is deferred in
-                                            Livewire 3, so both dates reach the server together and picking
-                                            a start date no longer queries before an end date is chosen.
+                                            One date, optionally narrowed to a time range within it. Both
+                                            time inputs are optional: From alone reads as "until end of day",
+                                            To alone as "from midnight".
+
+                                            Applied by the Filter button rather than on change - wire:model
+                                            is deferred in Livewire 3, so the date and both times reach the
+                                            server together instead of firing a query per field.
+
+                                            The times are meaningless without a day to anchor them to, so
+                                            Alpine disables them until a date is picked. Tracked client-side
+                                            because the deferred date does not reach the server until Filter
+                                            is pressed.
                                         --}}
-                                        <div class="min-w-[130px]">
-                                            <label for="startDate" class="sr-only">Start Date</label>
-                                            <div class="relative">
-                                                <input type="date" wire:model="startDate" id="startDate"
-                                                    name='startDate'
+                                        <div class="flex flex-wrap gap-2 items-center"
+                                            x-data="{ hasDate: @js(filled($filterDate)) }">
+                                            <div class="min-w-[130px]">
+                                                <label for="filterDate" class="sr-only">Date Processed</label>
+                                                <input type="date" wire:model="filterDate" id="filterDate"
+                                                    name='filterDate'
+                                                    x-on:input="hasDate = !! $event.target.value"
                                                     class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full py-3 px-3 dark:bg-neutral-800 dark:border-neutral-600 dark:placeholder-neutral-400 dark:text-neutral-200 dark:[color-scheme:dark] dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                                                    placeholder="Start date">
+                                                    placeholder="Select date">
                                             </div>
-                                        </div>
-                                        <div class="min-w-[130px]">
-                                            <label for="endDate" class="sr-only">End Date</label>
-                                            <div class="relative">
-                                                <input type="date" wire:model="endDate" id="endDate"
-                                                    name='endDate'
-                                                    class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full py-3 px-3 dark:bg-neutral-800 dark:border-neutral-600 dark:placeholder-neutral-400 dark:text-neutral-200 dark:[color-scheme:dark] dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                                                    placeholder="End date">
+
+                                            <div class="min-w-[110px]">
+                                                <label for="startTime" class="sr-only">From Time</label>
+                                                <input type="time" wire:model="startTime" id="startTime"
+                                                    name="startTime" x-bind:disabled="!hasDate"
+                                                    class="py-2.5 sm:py-3 px-4 block w-full bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-600 dark:text-neutral-200 dark:placeholder-neutral-400 dark:[color-scheme:dark] dark:focus:ring-neutral-600"
+                                                    placeholder="From">
+                                            </div>
+
+                                            <span class="text-sm text-gray-400 dark:text-neutral-500">to</span>
+
+                                            <div class="min-w-[110px]">
+                                                <label for="endTime" class="sr-only">To Time</label>
+                                                <input type="time" wire:model="endTime" id="endTime"
+                                                    name="endTime" x-bind:disabled="!hasDate"
+                                                    class="py-2.5 sm:py-3 px-4 block w-full bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-600 dark:text-neutral-200 dark:placeholder-neutral-400 dark:[color-scheme:dark] dark:focus:ring-neutral-600"
+                                                    placeholder="To">
                                             </div>
                                         </div>
 
@@ -117,8 +136,8 @@
                                                 Filter
                                             </button>
 
-                                            {{-- Only offered once a range is actually applied --}}
-                                            @if ($startDate || $endDate)
+                                            {{-- Only offered once a window is actually applied --}}
+                                            @if ($filterDate)
                                                 <button type="button" wire:click="clearFilter"
                                                     class="text-xs font-medium text-gray-600 underline hover:text-gray-900 focus:outline-none dark:text-neutral-400 dark:hover:text-neutral-200">
                                                     Reset

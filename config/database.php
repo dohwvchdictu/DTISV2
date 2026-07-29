@@ -58,6 +58,17 @@ return [
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
+            // created_at/updated_at are TIMESTAMP columns, which MySQL converts
+            // between the session time zone and UTC on every write and read.
+            // Without this, the session zone falls back to the host's clock, so
+            // the same row renders 08:39 on a UTC host (Docker) and 16:39 on a
+            // UTC+8 host (Herd). Every existing row was written against a UTC
+            // session, so pinning UTC here keeps reads and writes matching the
+            // stored data. Do not switch this to +08:00 without also shifting
+            // every stored timestamp back 8 hours. Hard-coded on purpose: making
+            // it env-configurable is what allowed the two environments to
+            // disagree in the first place.
+            'timezone' => '+00:00',
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],

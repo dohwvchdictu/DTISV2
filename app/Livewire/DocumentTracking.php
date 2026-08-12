@@ -84,13 +84,19 @@ class DocumentTracking extends Component
         $this->isLoading = true;
 
         try {
-            $document = Document::with(['logs' => function ($query) {
+            $document = Document::with(['category', 'logs' => function ($query) {
                 $query->with(['user', 'action'])
                     ->orderBy('created_at', 'desc')
                     ->orderBy('id', 'desc'); // tiebreaker for entries sharing a timestamp (Forwarded + For Receiving)
             }])
                 ->where('id', $this->document['id'])
                 ->first();
+
+            // Callers may pass a flattened document array without the category
+            // relation; backfill it so the modal renders on its own.
+            if ($document && !isset($this->document['category'])) {
+                $this->document['category'] = $document->category?->toArray();
+            }
 
             if ($document && $document->logs) {
                 $this->trackingData = $document->logs->map(function ($log) {

@@ -39,6 +39,12 @@
                 {{-- Document Details --}}
                 <div class="p-4 border-b dark:border-neutral-700 bg-gray-50 dark:bg-neutral-900">
                     <div class="mb-2">
+                        <p class="text-xs text-gray-500 dark:text-neutral-400 uppercase">Category</p>
+                        <p class="text-md text-gray-800 dark:text-neutral-200 break-words">
+                            {{ $document['category']['name'] ?? 'N/A' }}
+                        </p>
+                    </div>
+                    <div class="mb-2">
                         <p class="text-xs text-gray-500 dark:text-neutral-400 uppercase">Status</p>
                         <p class="text-md font-medium {{ $this->colorIndicator($document['status']) }} break-words">
                             {{ $document['status'] ?? 'N/A' }}
@@ -90,21 +96,28 @@
                                             @if(isset($log['office_id']))
                                                 @php
                                                     $actionName = $log['action']['name'] ?? null;
-                                                    // Make the forward direction explicit: a "Forwarded" entry
-                                                    // shows the sending office (From), while its paired
-                                                    // "For Receiving" entry shows the destination (To).
-                                                    if ($actionName === 'For Receiving') {
-                                                        $officeLabel = 'To';
-                                                        $officeName = $this->filterOffice($log['assigned_to']);
+                                                    // Make routing direction explicit. "Forwarded" shows the sending
+                                                    // office and its paired "For Receiving" shows the destination.
+                                                    // A "Returned" entry carries both: office_id is the office
+                                                    // sending it back, assigned_to is where it is going.
+                                                    if ($actionName === 'Returned') {
+                                                        $officeRows = [
+                                                            'From' => $this->filterOffice($log['office_id']),
+                                                            'To' => $this->filterOffice($log['assigned_to'] ?? null),
+                                                        ];
+                                                    } elseif ($actionName === 'For Receiving') {
+                                                        $officeRows = ['To' => $this->filterOffice($log['assigned_to'])];
                                                     } elseif ($actionName === 'Forwarded') {
-                                                        $officeLabel = 'From';
-                                                        $officeName = $this->filterOffice($log['office_id']);
+                                                        $officeRows = ['From' => $this->filterOffice($log['office_id'])];
                                                     } else {
-                                                        $officeLabel = 'Office';
-                                                        $officeName = $this->filterOffice($log['office_id']);
+                                                        $officeRows = ['Office' => $this->filterOffice($log['office_id'])];
                                                     }
                                                 @endphp
-                                                <p><span class="font-medium">{{ $officeLabel }}:</span> {{ $officeName }}</p>
+                                                @foreach($officeRows as $officeLabel => $officeName)
+                                                    @if($officeName)
+                                                        <p><span class="font-medium">{{ $officeLabel }}:</span> {{ $officeName }}</p>
+                                                    @endif
+                                                @endforeach
                                             @endif
                                             @if(isset($log['user']['name']))
                                                 <p><span class="font-medium">By:</span> {{ $log['user']['name'] }}</p>

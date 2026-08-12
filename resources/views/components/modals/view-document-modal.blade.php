@@ -204,23 +204,30 @@
 
                                 @php
                                     $actionName = $log->action->name ?? null;
-                                    // Make the forward direction explicit: a "Forwarded" entry shows the
-                                    // sending office (From); its paired "For Receiving" entry shows the
-                                    // destination office (To). Other actions show the acting office.
-                                    if ($actionName === 'For Receiving') {
-                                        $officeLabel = 'To';
-                                        $officeName = $this->lookUpOffice($log['assigned_to']);
+                                    // Make routing direction explicit. "Forwarded" shows the sending
+                                    // office and its paired "For Receiving" shows the destination.
+                                    // A "Returned" entry carries both: office_id is the office
+                                    // sending it back, assigned_to is where it is going.
+                                    if ($actionName === 'Returned') {
+                                        $officeRows = [
+                                            'From' => $this->lookUpOffice($log['office_id']),
+                                            'To' => $this->lookUpOffice($log['assigned_to'] ?? null),
+                                        ];
+                                    } elseif ($actionName === 'For Receiving') {
+                                        $officeRows = ['To' => $this->lookUpOffice($log['assigned_to'])];
                                     } elseif ($actionName === 'Forwarded') {
-                                        $officeLabel = 'From';
-                                        $officeName = $this->lookUpOffice($log['office_id']);
+                                        $officeRows = ['From' => $this->lookUpOffice($log['office_id'])];
                                     } else {
-                                        $officeLabel = 'Office';
-                                        $officeName = $this->lookUpOffice($log['office_id']);
+                                        $officeRows = ['Office' => $this->lookUpOffice($log['office_id'])];
                                     }
                                 @endphp
-                                <p class="mt-1 text-sm text-gray-600 dark:text-neutral-400">
-                                    <span class="font-medium">{{ $officeLabel }}:</span> {{ $officeName }}
-                                </p>
+                                @foreach($officeRows as $officeLabel => $officeName)
+                                    @if($officeName)
+                                    <p class="mt-1 text-sm text-gray-600 dark:text-neutral-400">
+                                        <span class="font-medium">{{ $officeLabel }}:</span> {{ $officeName }}
+                                    </p>
+                                    @endif
+                                @endforeach
                                 <button type="button"
                                     class="mt-1 -ms-1 p-1 inline-flex items-center gap-x-2 text-xs rounded-lg border border-transparent text-gray-500 bg-gray-100 dark:bg-neutral-700 focus:outline-none focus:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:text-neutral-400 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700">
                                     {{ $this->filterUser($log['user_id']) }}

@@ -856,8 +856,14 @@ class Endorsed extends Component
     {
         $this->endorsedID = $encoded_user;
 
-        $result = array_filter($this->responseEmployees['employeesList'], function ($employee) {
-            return $employee['id'] == $this->endorsedID;
+        /**
+         * The ?? [] is load-bearing. checkApiConnection() sets responseEmployees to
+         * null when the directory API is down, and this runs once per row from the
+         * view, so array_filter(null, ...) turned an API outage into a 500 on the
+         * whole table.
+         */
+        $result = array_filter($this->responseEmployees['employeesList'] ?? [], function ($employee) {
+            return isset($employee['id']) && $employee['id'] == $this->endorsedID;
         });
 
         $result = array_values($result); // reindex array
@@ -865,7 +871,13 @@ class Endorsed extends Component
             return 'Unknown User';
         }
         $findUser = $result[0];
-        return $findUser['firstName'] . ' ' . $findUser['lastName'] . ' ' . $findUser['suffix'];
+
+        /** suffix is optional in the directory payload; reading it raw was a 500 */
+        return trim(
+            ($findUser['firstName'] ?? '') . ' '
+            . ($findUser['lastName'] ?? '') . ' '
+            . ($findUser['suffix'] ?? '')
+        );
     }
 
     public function filterOffice($id)

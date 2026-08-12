@@ -432,7 +432,7 @@
                                             <span class="block relative z-10">
                                                 <div class="px-6 flex gap-x-1 text-sm text-gray-600 dark:text-neutral-400">
                                                     {{
-                                                        $this->filterOffice($document->logs->sortByDesc('id')->where('office_id', '!=', $this->office)->first()->office_id)
+                                                        $this->filterOffice($document->logs->sortByDesc('id')->where('office_id', '!=', $this->office)->first()->office_id ?? '')
                                                     }}
                                                 </div>
                                             </span>
@@ -442,7 +442,7 @@
                                             <span class="block p-6">
                                                 <span
                                                     class="block text-sm font-semibold text-gray-800 dark:text-neutral-200">{{
-                                                    $document->category->name }}</span>
+                                                    $document->category->name ?? 'Uncategorised' }}</span>
                                                 <span class="block text-sm text-gray-500 dark:text-neutral-500 break-words">{{
                                                     $document->subject }}</span>
                                                 <div class="flex gap-x-1 my-2">
@@ -454,7 +454,7 @@
                                                     <span
                                                         class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium bg-gray-100 dark:bg-neutral-700 text-gray-800 dark:text-neutral-200">
                                                         {{
-                                                        \App\Models\CitizenCharter::find($document->citizen_charter_id)->name
+                                                        \App\Models\CitizenCharter::find($document->citizen_charter_id)?->name
                                                         }}
                                                     </span>
                                                     @endif

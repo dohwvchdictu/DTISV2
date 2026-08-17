@@ -37,6 +37,64 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Absolute Session Lifetime
+    |--------------------------------------------------------------------------
+    |
+    | 'lifetime' above is an *idle* timeout: it resets on every request, so a
+    | user who browses daily is never signed out. This is a hard ceiling
+    | measured from the moment of login, in minutes, after which the user must
+    | authenticate again no matter how active they have been. Set to 0 to
+    | disable. Enforced by App\Http\Middleware\JwtMiddleware.
+    |
+    */
+
+    'absolute_lifetime' => env('SESSION_ABSOLUTE_LIFETIME', 720),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Account Re-validation Interval
+    |--------------------------------------------------------------------------
+    |
+    | How often (in minutes) a signed-in user is re-checked against the API's
+    | employee directory, so an account that has been removed or deactivated
+    | loses access mid-session instead of surviving until the session expires.
+    | A changed office assignment is picked up at the same time. The check
+    | reads the already-cached directory, so it normally costs no API call.
+    | Set to 0 to disable. Enforced by App\Http\Middleware\JwtMiddleware.
+    |
+    */
+
+    'revalidate_minutes' => env('SESSION_REVALIDATE_MINUTES', 15),
+
+    /*
+    | Whether an employee the directory flags as inactive (employmentStatus
+    | === false) should be signed out. Off by default: the flag is false for
+    | 119 of 737 employees in the live directory and its exact meaning has not
+    | been confirmed with the HRIS team, so enabling it blind risks locking out
+    | working staff. While it is off, such accounts are only recorded in the
+    | log ("employee flagged inactive (not enforced)"), which is what you use
+    | to confirm the flag before switching this on.
+    */
+
+    'revalidate_employment' => env('SESSION_REVALIDATE_EMPLOYMENT', false),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Login Throttling
+    |--------------------------------------------------------------------------
+    |
+    | Failed logins are throttled per email + client IP before the request is
+    | ever sent to the API. This keeps one person's bad password from tripping
+    | the API's per-IP rate limit, which is shared by every user of this app.
+    |
+    */
+
+    'login_max_attempts' => env('LOGIN_MAX_ATTEMPTS', 5),
+
+    'login_decay_seconds' => env('LOGIN_DECAY_SECONDS', 60),
+
+    /*
+    |--------------------------------------------------------------------------
     | Session Encryption
     |--------------------------------------------------------------------------
     |

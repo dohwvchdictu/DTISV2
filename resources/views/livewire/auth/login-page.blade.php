@@ -102,6 +102,22 @@
                             <h1 class="block text-2xl font-bold text-gray-800 dark:text-white">Login Account</h1>
                         </div>
 
+                        {{-- Messages redirected here from elsewhere, e.g. an expired
+                             session or an account that is no longer active. --}}
+                        @if (session('error'))
+                            <div class="mt-4 p-3 rounded-lg bg-red-50 border border-red-200 dark:bg-red-900/30 dark:border-red-800"
+                                role="alert">
+                                <p class="text-sm text-red-700 dark:text-red-300">{{ session('error') }}</p>
+                            </div>
+                        @endif
+
+                        @if (session('status'))
+                            <div class="mt-4 p-3 rounded-lg bg-blue-50 border border-blue-200 dark:bg-blue-900/30 dark:border-blue-800"
+                                role="status">
+                                <p class="text-sm text-blue-700 dark:text-blue-300">{{ session('status') }}</p>
+                            </div>
+                        @endif
+
                         <div class="mt-5">
                             <!-- Form -->
                             <form wire:submit.prevent="authenticate">
@@ -122,6 +138,9 @@
                                                 </svg>
                                             </div>
                                         </div>
+                                        @error('email')
+                                            <p class="text-xs text-red-600 mt-2">{{ $message }}</p>
+                                        @enderror
                                         @if ($errorMessage)
                                             <p class="text-xs text-red-600 mt-2" id="email-error">{{ $errorMessage }}
                                             </p>
@@ -153,6 +172,9 @@
                                                 </svg>
                                             </button>
                                         </div>
+                                        @error('password')
+                                            <p class="text-xs text-red-600 mt-2" id="password-error">{{ $message }}</p>
+                                        @enderror
                                     </div>
                                     <!-- End Form Group -->
 

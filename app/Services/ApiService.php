@@ -82,14 +82,34 @@ class ApiService
                 // The API signals business errors (bad password, locked/disabled
                 // account, etc.) via a `message` in the body — capture it so it
                 // can be logged and shown to the user instead of a generic line.
-                $apiMessage = is_array($body) ? ($body['message'] ?? null) : null;
+                // Always normalised to a string: validation errors come back as
+                // an array of messages, which would otherwise blow up when the
+                // view echoes it.
+                $apiMessage = self::normalizeApiMessage(is_array($body) ? ($body['message'] ?? null) : null);
                 $bodyStatus = is_array($body) ? ($body['statusCode'] ?? null) : null;
 
-                // Success.
-                if ($statusCode === 200 && isset($body['token'])) {
+                // Success. `employee` is required as well as `token`: without
+                // it the caller has no identity to put in the session and would
+                // fatal on the missing key.
+                if ($statusCode === 200 && isset($body['token'], $body['employee'])) {
                     return [
                         'success' => true,
                         'data' => $body,
+                    ];
+                }
+
+                // Token but no employee profile — a response-shape problem on
+                // the API side, not something a retry or the user can fix.
+                if ($statusCode === 200 && isset($body['token'])) {
+                    \Log::error('Login succeeded but returned no employee profile', [
+                        'attempt' => $attempt,
+                        'body_keys' => is_array($body) ? array_keys($body) : null,
+                    ]);
+
+                    return [
+                        'success' => false,
+                        'error' => 'api_error',
+                        'message' => 'Your account signed in but no employee profile was returned. Please contact the DTIS administrator.',
                     ];
                 }
 
@@ -215,6 +235,66 @@ class ApiService
     }
 
     /**
+     * Reduce whatever the API put in `message` to a single display string.
+     *
+     * Most errors send a plain string ("Your account has been temporarily
+     * locked", "User not found"). Validation failures send an array of
+     * messages instead, and passing that straight to a Blade echo is a fatal
+     * TypeError — so flatten it here, once, rather than guarding at every
+     * call site.
+     */
+    protected static function normalizeApiMessage($message): ?string
+    {
+        if (is_string($message)) {
+            return trim($message) !== '' ? trim($message) : null;
+        }
+
+        if (is_array($message)) {
+            $parts = array_filter(array_map(
+                fn ($part) => is_scalar($part) ? trim((string) $part) : null,
+                $message
+            ));
+
+            return $parts ? implode('. ', $parts) : null;
+        }
+
+        return is_scalar($message) ? (string) $message : null;
+    }
+
+    /**
+     * Look a signed-in user up in the employee directory so their access can
+     * be re-checked mid-session.
+     *
+     * The distinction between "the directory says this person is gone" and
+     * "we could not reach the directory" matters — the first should end the
+     * session, the second must never do so. Hence the explicit `available`
+     * flag rather than a bare null.
+     *
+     * @return array{available: bool, employee: array|null}
+     */
+    public function lookupEmployee($employeeId): array
+    {
+        if ($employeeId === null || $employeeId === '') {
+            return ['available' => false, 'employee' => null];
+        }
+
+        $data = $this->getEmployeesData();
+
+        // API unreachable or the cache could not be warmed — fail open.
+        if (!is_array($data) || !isset($data['employeesList'])) {
+            return ['available' => false, 'employee' => null];
+        }
+
+        foreach ($data['employeesList'] as $employee) {
+            if (isset($employee['id']) && (string) $employee['id'] === (string) $employeeId) {
+                return ['available' => true, 'employee' => $employee];
+            }
+        }
+
+        return ['available' => true, 'employee' => null];
+    }
+
+    /**
      * Office/employee directory data barely changes but was previously
      * fetched fresh from the external API on every module load. Cached so
      * only the first request per window pays the network round-trip; a
@@ -226,17 +306,50 @@ class ApiService
     public function getEmployeesData(): ?array
     {
         return Cache::remember('api.employees', now()->addMinutes(self::DIRECTORY_CACHE_MINUTES), function () {
-            $response = Http::timeout(10)->get(config('services.api.base_url') . 'public/get-employees');
-            return $response->ok() ? $response->json() : null;
+            return $this->fetchDirectory('public/get-employees');
         });
     }
 
     public function getOfficesData(): ?array
     {
         return Cache::remember('api.offices', now()->addMinutes(self::DIRECTORY_CACHE_MINUTES), function () {
-            $response = Http::timeout(10)->get(config('services.api.base_url') . 'public/get-offices');
-            return $response->ok() ? $response->json() : null;
+            return $this->fetchDirectory('public/get-offices');
         });
+    }
+
+    /**
+     * Fetch a directory endpoint, returning null on any failure.
+     *
+     * A connection error throws out of the HTTP client, so without this the
+     * "return null when the lookup fails" contract every caller relies on was
+     * only honoured for HTTP error responses — an API that was down produced
+     * an uncaught ConnectionException and a 500 instead. Null is not
+     * effectively cached (Cache::remember re-runs the callback for a null
+     * value), so recovery is automatic once the API answers again.
+     */
+    protected function fetchDirectory(string $path): ?array
+    {
+        try {
+            $response = Http::timeout(10)->get(config('services.api.base_url') . $path);
+
+            if (!$response->ok()) {
+                \Log::warning('Directory lookup failed', [
+                    'path' => $path,
+                    'status' => $response->status(),
+                ]);
+
+                return null;
+            }
+
+            return $response->json();
+        } catch (\Throwable $e) {
+            \Log::warning('Directory lookup unreachable', [
+                'path' => $path,
+                'message' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
     }
 
     /**

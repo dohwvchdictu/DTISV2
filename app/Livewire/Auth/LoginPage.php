@@ -4,8 +4,8 @@ namespace App\Livewire\Auth;
 
 use Livewire\Component;
 use App\Services\ApiService;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Storage;
+use App\Support\EmployeePhoto;
+use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 
@@ -41,6 +41,13 @@ class LoginPage extends Component
 
         $this->errorMessage = null;
 
+        // Throttle before the request leaves this server. Every user's login
+        // is proxied from one IP, so without this one person's repeated bad
+        // password trips the API's per-IP limit and locks out everybody.
+        if ($this->isThrottled()) {
+            return;
+        }
+
         $credentials = [
             'email' => $this->email,
             'password' => $this->password,
@@ -50,6 +57,7 @@ class LoginPage extends Component
 
         // Check if the response is valid
         if (!$response || !is_array($response)) {
+            RateLimiter::hit($this->throttleKey(), config('session.login_decay_seconds', 60));
             $this->errorMessage = 'An unexpected error occurred. Please try again.';
             return;
         }
@@ -57,22 +65,45 @@ class LoginPage extends Component
         // Handle successful authentication
         if (isset($response['success']) && $response['success'] === true) {
             $data = $response['data'];
+
+            RateLimiter::clear($this->throttleKey());
+
+            // Issue a fresh session id now that this session is becoming
+            // privileged, so a session id fixed before login cannot be reused
+            // afterwards. Existing session data (including url.intended) is
+            // carried over to the new id.
+            session()->regenerate();
+
             session([
                 'jwt_token' => $data['token'],
                 'user' => $data['employee'],
                 'auth_email' => $this->email,
                 'token_created_at' => time(),
+                'revalidated_at' => time(),
             ]);
 
-            // The API token is only ever used to fetch the profile photo, and
-            // it expires in 5 minutes — so fetch and cache the photo now,
-            // while it is fresh. After this the app never needs the token
-            // again for the rest of the session.
-            $this->cacheEmployeePhoto($data['employee'], $data['token']);
+            // If this employee's photo was cached by an earlier login it can
+            // be resolved right away, at no cost.
+            if ($cached = EmployeePhoto::cachedUrl($data['employee'])) {
+                session(['user_photo' => $cached]);
+            }
+
+            // Otherwise fetch it after the response has been sent. The token
+            // is only good for five minutes and is used for nothing else, so
+            // it has to happen now — but it must not sit between the user and
+            // their dashboard. The navbar reads the cached file from disk, so
+            // no session write is needed here (and none would survive).
+            $this->cacheEmployeePhotoAfterResponse($data['employee'], $data['token']);
 
             $this->dispatch('save-login-email', email: $this->email);
             $intended = session()->pull('url.intended', route('dashboard'));
             return redirect()->to($intended);
+        }
+
+        // Count rejected credentials, but not the API being unreachable —
+        // nobody should be locked out of retrying because of an outage.
+        if (!in_array($response['error'] ?? null, ['connection_error', 'server_error', 'rate_limited'], true)) {
+            RateLimiter::hit($this->throttleKey(), config('session.login_decay_seconds', 60));
         }
 
         // Handle specific error cases with user-friendly messages
@@ -108,47 +139,56 @@ class LoginPage extends Component
     }
 
     /**
-     * Fetch the employee's profile photo while the just-issued API token is
-     * still valid and cache it locally, storing the public URL in the session
-     * as 'user_photo'. The photo is the only thing the token is used for, so
-     * doing it here means the app never re-authenticates mid-session just to
-     * show an avatar. Failures are non-fatal — the navbar falls back to a
-     * default avatar.
+     * Rate-limiter key for this attempt. Scoped to the email *and* the client
+     * IP so that one workstation hammering an account cannot lock that account
+     * out from everywhere else, and one person cannot exhaust the budget for
+     * the whole office.
      */
-    protected function cacheEmployeePhoto(array $employee, ?string $token): void
+    protected function throttleKey(): string
     {
-        $photoUrl = $employee['photoUrl'] ?? null;
+        return 'login|' . sha1(mb_strtolower(trim((string) $this->email))) . '|' . request()->ip();
+    }
 
-        // Nothing to fetch, or it is already a full external URL.
-        if (!$photoUrl || filter_var($photoUrl, FILTER_VALIDATE_URL)) {
-            if ($photoUrl) {
-                session(['user_photo' => $photoUrl]);
-            }
-            return;
+    /**
+     * True when this email/IP pair has failed too often recently. Sets the
+     * message and leaves the caller to return.
+     */
+    protected function isThrottled(): bool
+    {
+        $maxAttempts = (int) config('session.login_max_attempts', 5);
+
+        if ($maxAttempts <= 0 || !RateLimiter::tooManyAttempts($this->throttleKey(), $maxAttempts)) {
+            return false;
         }
 
-        $imagePath = 'photos/' . basename($photoUrl);
+        $seconds = RateLimiter::availableIn($this->throttleKey());
 
-        // Reuse an already-cached copy from a previous login.
-        if (Storage::disk('public')->exists($imagePath)) {
-            session(['user_photo' => asset('storage/' . $imagePath)]);
-            return;
-        }
+        \Log::warning('Login throttled locally', [
+            'email' => $this->email,
+            'ip' => request()->ip(),
+            'available_in' => $seconds,
+        ]);
 
-        try {
-            $response = Http::withToken($token)
-                ->timeout(10)
-                ->get(config('services.api.base_url') . 'employee/image/' . urlencode($photoUrl));
+        $this->errorMessage = 'Too many failed sign-in attempts. Please wait '
+            . ($seconds > 60 ? ceil($seconds / 60) . ' minute(s)' : $seconds . ' second(s)')
+            . ' and try again.';
 
-            if ($response->successful() && strlen($response->body()) > 100) {
-                Storage::disk('public')->put($imagePath, $response->body());
-                session(['user_photo' => asset('storage/' . $imagePath)]);
-            }
-        } catch (\Exception $e) {
-            \Log::warning('Could not cache employee photo at login', [
-                'message' => $e->getMessage(),
-            ]);
-        }
+        return true;
+    }
+
+    /**
+     * Cache the profile photo once the response has already been sent, so a
+     * slow or unresponsive image endpoint costs the user nothing at sign-in.
+     *
+     * Runs during the framework's terminate phase, which is *after* the
+     * session has been written — so this writes to disk only. The navbar
+     * resolves the file from disk on the next request.
+     */
+    protected function cacheEmployeePhotoAfterResponse(array $employee, ?string $token): void
+    {
+        app()->terminating(function () use ($employee, $token) {
+            EmployeePhoto::cache($employee, $token);
+        });
     }
 
     public function render()

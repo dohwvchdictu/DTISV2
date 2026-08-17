@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Partials;
 
+use App\Support\EmployeePhoto;
 use Illuminate\Http\Request;
 use Livewire\Component;
 use Illuminate\Support\Facades\Storage;
@@ -47,19 +48,10 @@ class Navbar extends Component
             return $cached;
         }
 
-        // Fall back to a file cached under photos/ by an earlier login.
-        $photoUrl = $this->user['photoUrl'] ?? null;
-        if ($photoUrl && !filter_var($photoUrl, FILTER_VALIDATE_URL)) {
-            $imagePath = 'photos/' . basename($photoUrl);
-            if (Storage::disk('public')->exists($imagePath)) {
-                return asset('storage/' . $imagePath);
-            }
-        }
-
-        // Nothing cached — use an external URL as-is, else the default avatar.
-        return $photoUrl && filter_var($photoUrl, FILTER_VALIDATE_URL)
-            ? $photoUrl
-            : $this->photoUrl;
+        // Otherwise read from disk. On a first-ever login the file may still
+        // be arriving in the background, in which case the default avatar
+        // shows until the next page load.
+        return EmployeePhoto::cachedUrl($this->user) ?? $this->photoUrl;
     }
 
     public function getEmployeePhoto(Request $request, string $filename)

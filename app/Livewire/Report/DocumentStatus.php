@@ -15,13 +15,11 @@ use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
 
+#[Title('Status of Documents | Document Tracking Information System')]
 class DocumentStatus extends Component
 {
     use WithPagination;
     use LivewireAlert;
-
-    #[Title('Status of Documents | Document Tracking Information System')]
-
     /**
      * Action ids. "Received" is what an office logs when it takes custody;
      * "Forwarded" and "Closed" are the two ways it finishes with a document.

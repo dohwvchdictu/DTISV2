@@ -8,6 +8,7 @@ use App\Models\Action;
 use App\Models\Document;
 use App\Models\Log;
 use App\Services\ApiService;
+use App\Support\Concerns\BuildsDocumentTimeline;
 use Carbon\Carbon;
 use Illuminate\Support\Sleep;
 use Jantinnerezo\LivewireAlert\LivewireAlert;
@@ -20,6 +21,7 @@ class PendingDetail extends Component
 {
     use WithPagination;
     use LivewireAlert;
+    use BuildsDocumentTimeline;
 
     #[Title('Status View | Document Tracking Information System')]
 
@@ -357,7 +359,11 @@ class PendingDetail extends Component
     /** Track Document */
     public function trackDocument(int $id)
     {
-        $logs = Log::where('document_id', $id)->orderBy('created_at', 'DESC')->get();
+        $logs = Log::with(['action', 'user'])
+            ->where('document_id', $id)
+            ->orderBy('created_at', 'DESC')
+            ->orderBy('id', 'DESC') // tiebreaker for entries sharing a timestamp (Forwarded + For Receiving)
+            ->get();
         $document = Document::find($id);
 
         $this->calculateTurnaroundTime($document->id);

@@ -7,6 +7,7 @@ use App\Models\Action;
 use App\Models\Document;
 use App\Models\Log;
 use App\Services\ApiService;
+use App\Support\Concerns\BuildsDocumentTimeline;
 use Carbon\Carbon;
 use Illuminate\Support\Sleep;
 use Jantinnerezo\LivewireAlert\LivewireAlert;
@@ -20,6 +21,7 @@ class DocumentDetail extends Component
 {
     use WithPagination;
     use LivewireAlert;
+    use BuildsDocumentTimeline;
 
     #[Title('Document View | Document Tracking Information System')]
 

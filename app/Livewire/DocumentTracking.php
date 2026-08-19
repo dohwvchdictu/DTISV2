@@ -4,27 +4,27 @@ namespace App\Livewire;
 
 use App\Models\Document;
 use App\Services\ApiService;
+use App\Support\Concerns\BuildsDocumentTimeline;
 use Livewire\Component;
 
 class DocumentTracking extends Component
 {
+    use BuildsDocumentTimeline;
+
     /** Constant Variables */
     /**
      * Large, rarely-changing directory data. Kept protected so it is NOT
      * serialized into the Livewire snapshot on every request; reloaded from
      * cache each request via boot().
+     *
+     * Both are keyed by id: the timeline resolves an office and an employee
+     * name for every row, so a linear scan per row added up.
      */
     protected $offices = [];
-    public $user = [];
-    public $endorsedID;
-    protected $responseOffices;
-    protected $responseEmployees;
     protected $employees = [];
 
     public $document;
     public $trackingData = [];
-    public $isLoading = true;
-    public $id;
 
     /**
      * Runs on every request (before mount and before public-prop hydration).
@@ -48,31 +48,26 @@ class DocumentTracking extends Component
      */
     private function checkApiConnection()
     {
-        $this->responseEmployees = app(ApiService::class)->getEmployeesData();
-        $this->responseOffices = app(ApiService::class)->getOfficesData();
+        $responseEmployees = app(ApiService::class)->getEmployeesData();
+        $responseOffices = app(ApiService::class)->getOfficesData();
 
-        if (!$this->responseEmployees || !$this->responseOffices) {
+        if (!$responseEmployees || !$responseOffices) {
             $this->employees = [];
             $this->offices = [];
-            $this->responseEmployees = null;
-            $this->responseOffices = null;
 
             return false;
         }
 
-        $this->employees = collect($this->responseEmployees['employeesList'] ?? [])
-            ->sortBy('lastName')
-            ->values()
+        $this->employees = collect($responseEmployees['employeesList'] ?? [])
+            ->keyBy('id')
             ->all();
 
-        $this->offices = collect($this->responseOffices['officeList'] ?? [])
-            ->sortBy('officeName')
-            ->values()
+        $this->offices = collect($responseOffices['officeList'] ?? [])
+            ->keyBy('id')
             ->all();
 
         return true;
     }
-
 
     public function openModal()
     {
@@ -81,8 +76,6 @@ class DocumentTracking extends Component
 
     public function loadTrackingData()
     {
-        $this->isLoading = true;
-
         try {
             $document = Document::with(['category', 'logs' => function ($query) {
                 $query->with(['user', 'action'])
@@ -113,8 +106,6 @@ class DocumentTracking extends Component
         } catch (\Exception $e) {
             $this->trackingData = [];
             session()->flash('error', 'Error loading tracking data: ' . $e->getMessage());
-        } finally {
-            $this->isLoading = false;
         }
     }
 
@@ -142,41 +133,28 @@ class DocumentTracking extends Component
         }
     }
 
-    public function completeName()
-    {
-        return $this->user['firstName'] . ' ' . $this->user['lastName'] . ' ' . $this->user['suffix'];
-    }
-
     public function filterUser($id)
     {
-        $result = array_values(array_filter($this->employees, function ($employee) use ($id) {
-            return $employee['id'] == $id;
-        }));
+        $employee = $this->employees[$id] ?? null;
 
-        if (!isset($result[0])) {
+        if (!$employee) {
             return '';
         }
 
-        $findUser = $result[0];
-        return $findUser['firstName'] . ' ' . $findUser['lastName'] . ' ' . $findUser['suffix'];
+        return $employee['firstName'] . ' ' . $employee['lastName'] . ' ' . $employee['suffix'];
     }
 
     public function filterOffice($id)
     {
-        if (!isset($id)) {
-            return '';
-        }
+        $office = $this->offices[$id] ?? null;
 
-        $result = array_values(array_filter($this->offices, function ($office) use ($id) {
-            return $office['id'] == $id;
-        }));
+        return $office['officeName'] ?? '';
+    }
 
-        if (!isset($result[0])) {
-            return '';
-        }
-
-        $findOffice = $result[0];
-        return $findOffice['officeName'] ?? '';
+    /** The search modal looks offices up by its own helper name. */
+    protected function resolveTimelineOffice($id): ?string
+    {
+        return $this->filterOffice($id);
     }
 
     public function render()

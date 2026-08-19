@@ -1,4 +1,8 @@
 <div wire:init="openModal">
+    @php
+        $timelineRows = $this->timelineRows($trackingData);
+        $currentLocation = $this->timelineLocation($timelineRows);
+    @endphp
     {{-- Document Tracking Modal --}}
     <div id="document-tracking-modal"
         class="hs-overlay hidden size-full fixed top-0 start-0 z-[90] overflow-x-hidden overflow-y-auto "
@@ -22,6 +26,15 @@
                                 <span class="text-gray-400 dark:text-neutral-500">· {{ $document['turnaroundtime'] }}</span>
                             @endisset
                         </p>
+                        @if($currentLocation)
+                            {{-- Saves the reader inferring the current holder from the newest entry. --}}
+                            <p class="mt-1 text-xs text-gray-500 dark:text-neutral-400">
+                                <span class="font-medium">Currently:</span> {{ $currentLocation }}
+                                <span class="{{ $this->colorIndicator($document['status'] ?? null) }}">
+                                    · {{ $document['status'] ?? 'N/A' }}
+                                </span>
+                            </p>
+                        @endif
                     </div>
                     <button type="button" wire:click="closeModal"
                         class="size-8 inline-flex justify-center items-center gap-x-2 rounded-full border border-transparent bg-gray-100 text-gray-800 hover:bg-gray-200 focus:outline-none focus:bg-gray-200 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-neutral-400 dark:focus:bg-neutral-600"
@@ -46,7 +59,7 @@
                     </div>
                     <div class="mb-2">
                         <p class="text-xs text-gray-500 dark:text-neutral-400 uppercase">Status</p>
-                        <p class="text-md font-medium {{ $this->colorIndicator($document['status']) }} break-words">
+                        <p class="text-md font-medium {{ $this->colorIndicator($document['status'] ?? null) }} break-words">
                             {{ $document['status'] ?? 'N/A' }}
                         </p>
                     </div>
@@ -60,78 +73,8 @@
 
                 {{-- Tracking Timeline --}}
                 <div class="p-4 overflow-y-auto max-h-[500px]">
-                    @if($isLoading)
-                        {{-- Loading State --}}
-                        <div class="flex justify-center items-center py-8">
-                            <div class="animate-spin inline-block size-8 border-[3px] border-current border-t-transparent text-emerald-600 rounded-full"
-                                role="status" aria-label="loading">
-                                <span class="sr-only">Loading...</span>
-                            </div>
-                            <span class="ml-3 text-gray-600 dark:text-neutral-400">Loading tracking data...</span>
-                        </div>
-                    @elseif(count($trackingData) > 0)
-                        {{-- Timeline --}}
-                        <div class="space-y-4">
-                            @foreach($trackingData as $index => $log)
-                                <div class="flex gap-x-3">
-                                    {{-- Timeline Icon --}}
-                                    <div class="relative last:after:hidden after:absolute after:top-7 after:bottom-0 after:start-3.5 after:w-px after:-translate-x-[0.5px] after:bg-gray-200 dark:after:bg-neutral-700">
-                                        <div class="relative z-10 size-7 flex justify-center items-center">
-                                            <div class="size-2 rounded-full {{ $loop->first ? 'bg-emerald-400' : 'bg-gray-400 dark:bg-neutral-600' }}"></div>
-                                        </div>
-                                    </div>
-
-                                    {{-- Content --}}
-                                    <div class="grow pt-0.5 pb-8">
-                                        <div class="flex gap-x-1.5 items-center mb-1">
-                                            <h3 class="font-semibold {{ $loop->first ? 'text-emerald-800' : 'text-gray-800'}} dark:text-white">
-                                                {{ $log['action']['name'] ?? ($log['description'] ?? 'Document Activity') }}
-                                            </h3>
-                                            <span class="text-xs {{ $loop->first ? 'text-emerald-500' : 'text-gray-500'}} dark:text-neutral-400">
-                                                {{ isset($log['created_at']) ? \Carbon\Carbon::parse($log['created_at'])->tz('Asia/Manila')->format('M d, Y h:i A') : 'N/A' }}
-                                            </span>
-                                        </div>
-                                        
-                                        <div class="mt-1 text-sm {{ $loop->first ? 'text-emerald-700' : 'text-gray-600'}} dark:text-neutral-400">
-                                            @if(isset($log['office_id']))
-                                                @php
-                                                    $actionName = $log['action']['name'] ?? null;
-                                                    // Make routing direction explicit. "Forwarded" shows the sending
-                                                    // office and its paired "For Receiving" shows the destination.
-                                                    // A "Returned" entry carries both: office_id is the office
-                                                    // sending it back, assigned_to is where it is going.
-                                                    if ($actionName === 'Returned') {
-                                                        $officeRows = [
-                                                            'From' => $this->filterOffice($log['office_id']),
-                                                            'To' => $this->filterOffice($log['assigned_to'] ?? null),
-                                                        ];
-                                                    } elseif ($actionName === 'For Receiving') {
-                                                        $officeRows = ['To' => $this->filterOffice($log['assigned_to'])];
-                                                    } elseif ($actionName === 'Forwarded') {
-                                                        $officeRows = ['From' => $this->filterOffice($log['office_id'])];
-                                                    } else {
-                                                        $officeRows = ['Office' => $this->filterOffice($log['office_id'])];
-                                                    }
-                                                @endphp
-                                                @foreach($officeRows as $officeLabel => $officeName)
-                                                    @if($officeName)
-                                                        <p><span class="font-medium">{{ $officeLabel }}:</span> {{ $officeName }}</p>
-                                                    @endif
-                                                @endforeach
-                                            @endif
-                                            @if(isset($log['user']['name']))
-                                                <p><span class="font-medium">By:</span> {{ $log['user']['name'] }}</p>
-                                            @elseif(isset($log['user_id']))
-                                                <p><span class="font-medium">User:</span> {{ $this->filterUser($log['user_id']) }}</p>
-                                            @endif
-                                            @if(isset($log['remarks']) && $log['remarks'])
-                                                <p class="mt-1"><span class="font-medium">Remarks:</span> {{ $log['remarks'] }}</p>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
+                    @if(count($timelineRows) > 0)
+                        <x-document-timeline :rows="$timelineRows" />
                     @else
                         {{-- No Tracking Data --}}
                         <div class="text-center py-8">
@@ -191,15 +134,20 @@
         Livewire.dispatch('closeTracking');
     });
 
-    // Listen for modal close/escape events
-    document.addEventListener('DOMContentLoaded', () => {
-        const modal = document.getElementById('document-tracking-modal');
-        if (modal) {
-            // Triggered when modal is closed (button click, ESC, or backdrop click)
-            modal.addEventListener('close.hs.overlay', function() {
-                Livewire.dispatch('closeTracking');
-            });
-        }
-    });
+    // Catch closes that bypass the buttons (backdrop click, HSOverlay's own
+    // handlers). This component is injected by Livewire long after
+    // DOMContentLoaded has fired, so the listener has to be bound here —
+    // otherwise the parent was left thinking the modal was still open and
+    // the search modal never came back.
+    const trackingModal = document.getElementById('document-tracking-modal');
+    if (trackingModal) {
+        trackingModal.addEventListener('close.hs.overlay', () => {
+            const searchModal = document.getElementById('document-search-modal');
+            if (searchModal && window.HSOverlay) {
+                window.HSOverlay.open(searchModal);
+            }
+            Livewire.dispatch('closeTracking');
+        });
+    }
 </script>
 @endscript

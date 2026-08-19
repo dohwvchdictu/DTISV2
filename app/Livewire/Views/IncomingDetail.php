@@ -7,6 +7,7 @@ use App\Models\Action;
 use App\Models\Document;
 use App\Models\Log;
 use App\Services\ApiService;
+use App\Support\Concerns\BuildsDocumentTimeline;
 use Carbon\Carbon;
 use Jantinnerezo\LivewireAlert\LivewireAlert;
 use Livewire\Attributes\On;
@@ -19,6 +20,7 @@ class IncomingDetail extends Component
 {
     use WithPagination;
     use LivewireAlert;
+    use BuildsDocumentTimeline;
 
     #[Title('Status View | Document Tracking Information System')]
 
@@ -204,7 +206,11 @@ class IncomingDetail extends Component
     /** Track Document */
     public function trackDocument(int $id)
     {
-        $logs = Log::where('document_id', $id)->orderBy('created_at', 'DESC')->get();
+        $logs = Log::with(['action', 'user'])
+            ->where('document_id', $id)
+            ->orderBy('created_at', 'DESC')
+            ->orderBy('id', 'DESC') // tiebreaker for entries sharing a timestamp (Forwarded + For Receiving)
+            ->get();
         $document = Document::find($id);
 
         $this->dt1 = $logs->firstWhere('action_id', 1)->created_at ?? false;

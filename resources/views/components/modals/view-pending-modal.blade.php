@@ -284,68 +284,16 @@
                 <div class="space-y-4">
                     <!-- Timeline -->
                     <div>
-                        @forelse ($logs as $key => $log)
-                        <!-- Item -->
-                        <div wire:key='{{ $log->id }}' class="flex gap-x-3">
-                            <!-- Left Content -->
-                            <div class="w-28     text-end">
-                                <span class="text-xs text-gray-500 dark:text-neutral-400">{{
-                                    Carbon\Carbon::parse($log['created_at'])->format('d M')}}</span>
-                                <span class="text-xs text-gray-500 dark:text-neutral-400">{{
-                                    Carbon\Carbon::parse($log['created_at'])->format('h:i A')}}</span>
-                                <div class="mt-1 my-1">
-                                    @php($logAction = \App\Models\Action::find($log->action_id))
-                                    <span
-                                        class="inline-flex items-center gap-1.5 py-1 px-3 rounded-lg text-xs {{ $logAction->color }} dark:{{ str_replace('-100', '-500/20', $logAction->color) }} font-medium text-gray-800 dark:text-neutral-200">
-                                        {{ Str::title($logAction->name) }}
-                                    </span>
-                                </div>
-                            </div>
-                            <!-- End Left Content -->
-
-                            <!-- Icon -->
-                            <div
-                                class="relative last:after:hidden after:absolute after:top-7 after:bottom-0 after:start-3.5 after:w-px after:-translate-x-[0.5px] after:bg-gray-200 dark:after:bg-neutral-700">
-                                <div class="relative z-10 size-7 flex justify-center items-center">
-                                    <div
-                                        class="size-2 rounded-full {{ $loop->first ? 'bg-emerald-400' : 'bg-gray-400 dark:bg-neutral-600' }}">
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- End Icon -->
-
-                            <!-- Right Content -->
-                            <div class="grow pt-0.5 pb-8">
-                                <h3
-                                    class="flex gap-x-1.5 max-wl-xl text-sm font-semibold text-gray-800 dark:text-white">
-                                    {{ $log['description'] }}
-                                </h3>
-                                @if($log['endorsed_to'])
-                                <p class="mt-1 text-sm text-gray-600 dark:text-neutral-400">
-                                    Endorsed to {{ $this->filterUser($log['endorsed_to']) }}
-                                </p>
-                                @endif
-                                <em class="mt-1 text-xs text-gray-600 dark:text-neutral-400">
-                                    {{ $log['remarks'] }}
-                                </em>
-                                <p class="mt-1 text-xs text-gray-700 dark:text-neutral-400">
-                                    {{ $this->lookupOffice($log['office_id']) }}
-                                </p>
-                                <button type="button"
-                                    class="mt-1 -ms-1 p-1 inline-flex items-center gap-x-2 text-xs rounded-lg border border-transparent text-gray-500 bg-gray-100 dark:bg-neutral-700 focus:outline-none focus:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:text-neutral-400 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700">
-                                    {{ $this->filterUser($log['user_id']) }}
-                                </button>
-                            </div>
-                            <!-- End Right Content -->
-                        </div>
-                        <!-- End Item -->
-                        @empty
+                        @php($timelineRows = $this->timelineRows($logs))
+                        @if (count($timelineRows))
+                        <x-document-timeline :rows="$timelineRows" />
+                        @else
                         <div class="mt-2 text-center bg-gray-50 border border-gray-200 text-sm text-gray-600 rounded-lg p-4 dark:bg-white/10 dark:border-white/10 dark:text-neutral-400"
                             role="alert" tabindex="-1" aria-labelledby="hs-soft-color-secondary-label">
                             <span id="hs-soft-color-secondary-label" class="font-bold">Result:</span> No logs were found
                             for this document!
                         </div>
-                        @endforelse
+                        @endif
                         <!-- End Timeline -->
                     </div>
                 </div>

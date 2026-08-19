@@ -62,13 +62,20 @@ return [
             // between the session time zone and UTC on every write and read.
             // Without this, the session zone falls back to the host's clock, so
             // the same row renders 08:39 on a UTC host (Docker) and 16:39 on a
-            // UTC+8 host (Herd). Every existing row was written against a UTC
-            // session, so pinning UTC here keeps reads and writes matching the
-            // stored data. Do not switch this to +08:00 without also shifting
-            // every stored timestamp back 8 hours. Hard-coded on purpose: making
-            // it env-configurable is what allowed the two environments to
-            // disagree in the first place.
-            'timezone' => '+00:00',
+            // UTC+8 host (Herd).
+            //
+            // This MUST stay equal to config('app.timezone'). When the two
+            // disagree, reads and writes still cancel out — the screens keep
+            // looking right while the stored instant drifts by the difference,
+            // which is exactly how every row up to Aug 2026 came to be filed
+            // 8 hours ahead of when it actually happened. The one-time fix is
+            // 2026_08_19_000000_shift_timestamps_to_true_utc, which shifted the
+            // stored values to match this pin; `php artisan dtis:check-timezone`
+            // asserts the invariant still holds. Do not change this value alone.
+            //
+            // Hard-coded on purpose: making it env-configurable is what allowed
+            // the two environments to disagree in the first place.
+            'timezone' => '+08:00',
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],

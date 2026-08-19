@@ -21,23 +21,29 @@ class TurnaroundTime extends Component
     use WithPagination;
 
     /**
-     * Action ids. A hop starts when an office receives a document and ends the
-     * moment the *next* office receives it — so the holding office is charged for
-     * both its own processing and the transit that follows, and no time between
-     * two receipts goes unaccounted for.
+     * Action ids. A hop is one office's own custody window: it starts when that
+     * office logs "Received" and ends when the document is logged "Forwarded".
+     * The office is therefore charged only for the time the document actually sat
+     * with it — the transit that follows, until the next office takes receipt, is
+     * charged to nobody.
      *
-     * "Closed" is the terminal fallback: nobody receives a closed document, so
-     * without it the last office in every chain would never be measured. All other
-     * actions (Forwarded, Endorsed, Returned, For Receiving, ...) leave the hop
-     * open — a document forwarded but not yet received is still in transit, and
-     * its hop stays incomplete until someone receives it.
+     * "Closed" is the terminal fallback: a document closed where it sits is never
+     * forwarded, so without it the last office in every chain would never be
+     * measured.
+     *
+     * A receive is never a hop *end*. If the next office takes receipt while a hop
+     * is still open, the document moved without a "Forwarded" log — which is what
+     * "Endorsed" and "Returned" do — and that open hop is abandoned rather than
+     * measured, with the clock restarting at the new office. "For Receiving" is
+     * ignored entirely: it marks a document in transit, not in anyone's custody.
      *
      * The origin office only "Created" the document, so it is never a hop start
      * and is excluded — dwell is counted per receiving office.
      */
     private const ACTION_RECEIVED = 1;
+    private const ACTION_FORWARDED = 3;
     private const ACTION_CLOSED = 5;
-    private const HOP_BOUNDARIES = [self::ACTION_RECEIVED, self::ACTION_CLOSED];
+    private const HOP_BOUNDARIES = [self::ACTION_RECEIVED, self::ACTION_FORWARDED, self::ACTION_CLOSED];
 
     /** Constant Variables */
     /** Office directory kept protected so it is not serialized into the Livewire snapshot; reloaded from cache in boot(). */
@@ -71,8 +77,8 @@ class TurnaroundTime extends Component
 
     public function mount()
     {
-        /** Filter Records from the start of the current year to today */
-        $this->startDate = Carbon::now()->startOfYear()->format('Y-m-d');
+        /** Filter Records from the start of the current month to today */
+        $this->startDate = Carbon::now()->startOfMonth()->format('Y-m-d');
         $this->endDate = Carbon::now()->format('Y-m-d');
 
         $this->applyFilters();
@@ -197,7 +203,7 @@ class TurnaroundTime extends Component
 
     /**
      * Walk every in-scope document's logs and accumulate, per office, the dwell
-     * time of each completed hop (Received → next Received, or → Closed).
+     * time of each completed hop (Received → Forwarded, or → Closed).
      * Returns [office stats keyed by office_id, overall summary].
      *
      * Only source and date drive the heavy walk, so the result is cached under
@@ -212,8 +218,8 @@ class TurnaroundTime extends Component
             'end' => $this->applied['endDate'] ?? $this->endDate,
         ]));
 
-        /** _v2 = receive-to-receive dwell; bumped so pre-change results are not served. */
-        return Cache::remember('turnaround_dwell_v2_' . $signature, now()->addMinutes(5), function () {
+        /** _v3 = receive-to-forward dwell; bumped so pre-change results are not served. */
+        return Cache::remember('turnaround_dwell_v3_' . $signature, now()->addMinutes(5), function () {
             return $this->walkDwell();
         });
     }
@@ -265,19 +271,25 @@ class TurnaroundTime extends Component
             }
 
             /**
+             * A receive starts the clock for the receiving office. It never ends
+             * the hop in progress: if one is still open the document left without
+             * a "Forwarded" log, so that window is abandoned unmeasured.
+             *
              * Offices routinely log the same receipt several times in a burst
              * (batch scans). A repeat receive by the office already holding the
              * document is not a handoff — keep the original custody timestamp.
              */
-            if ((int) $log->action_id === self::ACTION_RECEIVED
-                && $openHop !== null
-                && $openHop['office'] === (int) $log->office_id) {
+            if ((int) $log->action_id === self::ACTION_RECEIVED) {
+                if ($openHop === null || $openHop['office'] !== (int) $log->office_id) {
+                    $openHop = ['office' => (int) $log->office_id, 'time' => $log->created_at];
+                }
+
                 continue;
             }
 
             /**
-             * Either boundary closes the hop in progress: the next office taking
-             * receipt, or the document being closed where it sits.
+             * Anything left is Forwarded or Closed (the query admits nothing
+             * else), and either one ends the holding office's custody window.
              */
             if ($openHop !== null) {
                 $office = $openHop['office'];
@@ -299,11 +311,6 @@ class TurnaroundTime extends Component
 
                 $documentsWithHop[$documentId] = true;
                 $openHop = null;
-            }
-
-            /** A receive hands the clock straight to the receiving office. */
-            if ((int) $log->action_id === self::ACTION_RECEIVED) {
-                $openHop = ['office' => (int) $log->office_id, 'time' => $log->created_at];
             }
         }
 
@@ -329,7 +336,7 @@ class TurnaroundTime extends Component
             'end' => $this->applied['endDate'] ?? $this->endDate,
         ]));
 
-        return Cache::remember('turnaround_detail_v2_' . $signature, now()->addMinutes(5), function () use ($officeId) {
+        return Cache::remember('turnaround_detail_v3_' . $signature, now()->addMinutes(5), function () use ($officeId) {
             return $this->walkOfficeDetail($officeId);
         });
     }
@@ -381,14 +388,20 @@ class TurnaroundTime extends Component
                 $openHop = null;
             }
 
-            /** Repeat receives by the holding office are duplicate scans, not handoffs. */
-            if ((int) $log->action_id === self::ACTION_RECEIVED
-                && $openHop !== null
-                && $openHop['office'] === (int) $log->office_id) {
+            /**
+             * A receive only starts a window. Repeat receives by the holding
+             * office are duplicate scans, not handoffs; a receive by a different
+             * office abandons the open window, which never got a "Forwarded".
+             */
+            if ((int) $log->action_id === self::ACTION_RECEIVED) {
+                if ($openHop === null || $openHop['office'] !== (int) $log->office_id) {
+                    $openHop = ['office' => (int) $log->office_id, 'time' => $log->created_at];
+                }
+
                 continue;
             }
 
-            /** Either boundary closes the hop; only credit the office being detailed. */
+            /** Forwarded or Closed ends the window; only credit the office being detailed. */
             if ($openHop !== null) {
                 if ($openHop['office'] === $officeId) {
                     $categoryId = (int) ($categoryByDoc[$documentId] ?? 0);
@@ -406,10 +419,6 @@ class TurnaroundTime extends Component
                 }
 
                 $openHop = null;
-            }
-
-            if ((int) $log->action_id === self::ACTION_RECEIVED) {
-                $openHop = ['office' => (int) $log->office_id, 'time' => $log->created_at];
             }
         }
 

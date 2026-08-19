@@ -96,7 +96,7 @@
                         <p class="text-xs uppercase tracking-wide text-sky-500">
                             Average Turnaround
                         </p>
-                        <h3 class="mt-1 text-xl sm:text-2xl font-medium text-sky-600 tabular-nums">
+                        <h3 class="mt-1 text-xl sm:text-2xl font-medium text-sky-600 dark:text-sky-400 tabular-nums">
                             @if ($totals['average'] !== null)
                                 {{ number_format($totals['average'], 1) }}
                                 <span class="text-sm text-gray-500 dark:text-neutral-400 font-normal">
@@ -117,7 +117,7 @@
                         <p class="text-xs uppercase tracking-wide text-emerald-500">
                             Fastest
                         </p>
-                        <h3 class="mt-1 text-xl sm:text-2xl font-medium text-emerald-600 tabular-nums">
+                        <h3 class="mt-1 text-xl sm:text-2xl font-medium text-emerald-600 dark:text-emerald-400 tabular-nums">
                             @if ($totals['fastest'] !== null)
                                 {{ number_format($totals['fastest']) }}
                                 <span class="text-sm text-gray-500 dark:text-neutral-400 font-normal">
@@ -138,7 +138,7 @@
                         <p class="text-xs uppercase tracking-wide text-rose-500">
                             Slowest
                         </p>
-                        <h3 class="mt-1 text-xl sm:text-2xl font-medium text-rose-600 tabular-nums">
+                        <h3 class="mt-1 text-xl sm:text-2xl font-medium text-rose-600 dark:text-rose-400 tabular-nums">
                             @if ($totals['slowest'] !== null)
                                 {{ number_format($totals['slowest']) }}
                                 <span class="text-sm text-gray-500 dark:text-neutral-400 font-normal">
@@ -186,7 +186,7 @@
                                         </th>
                                         <th scope="col" class="px-6 py-3 text-center">
                                             <button type="button" wire:click="sortBy('avg')"
-                                                class="inline-flex items-center gap-x-1 text-xs font-semibold uppercase text-sky-500 hover:text-sky-600">
+                                                class="inline-flex items-center gap-x-1 text-xs font-semibold uppercase text-sky-500 hover:text-sky-600 dark:hover:text-sky-300">
                                                 Avg Dwell (Days)
                                                 @if ($sortColumn === 'avg')
                                                     <span>{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>
@@ -197,7 +197,7 @@
                                         </th>
                                         <th scope="col" class="px-6 py-3 text-center">
                                             <button type="button" wire:click="sortBy('min')"
-                                                class="inline-flex items-center gap-x-1 text-xs font-semibold uppercase text-emerald-500 hover:text-emerald-600">
+                                                class="inline-flex items-center gap-x-1 text-xs font-semibold uppercase text-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-300">
                                                 Min
                                                 @if ($sortColumn === 'min')
                                                     <span>{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>
@@ -208,7 +208,7 @@
                                         </th>
                                         <th scope="col" class="px-6 py-3 text-center">
                                             <button type="button" wire:click="sortBy('max')"
-                                                class="inline-flex items-center gap-x-1 text-xs font-semibold uppercase text-rose-500 hover:text-rose-600">
+                                                class="inline-flex items-center gap-x-1 text-xs font-semibold uppercase text-rose-500 hover:text-rose-600 dark:hover:text-rose-300">
                                                 Max
                                                 @if ($sortColumn === 'max')
                                                     <span>{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>
@@ -237,17 +237,17 @@
                                                 </button>
                                             </td>
                                             <td class="size-px whitespace-nowrap text-center">
-                                                <div class="px-6 py-4 font-semibold text-sky-600 tabular-nums">
+                                                <div class="px-6 py-4 font-semibold text-sky-600 dark:text-sky-400 tabular-nums">
                                                     {{ $office['avg'] !== null ? number_format($office['avg'], 1) : '—' }}
                                                 </div>
                                             </td>
                                             <td class="size-px whitespace-nowrap text-center">
-                                                <div class="px-6 py-4 text-emerald-600 tabular-nums">
+                                                <div class="px-6 py-4 text-emerald-600 dark:text-emerald-400 tabular-nums">
                                                     {{ $office['min'] !== null ? number_format($office['min']) : '—' }}
                                                 </div>
                                             </td>
                                             <td class="size-px whitespace-nowrap text-center">
-                                                <div class="px-6 py-4 text-rose-600 tabular-nums">
+                                                <div class="px-6 py-4 text-rose-600 dark:text-rose-400 tabular-nums">
                                                     {{ $office['max'] !== null ? number_format($office['max']) : '—' }}
                                                 </div>
                                             </td>
@@ -279,7 +279,7 @@
                                                                                 <th class="px-4 py-2 text-start">Document Type</th>
                                                                                 <th class="px-4 py-2 text-center">
                                                                                     <button type="button" wire:click="sortDetailBy('avg')"
-                                                                                        class="inline-flex items-center gap-x-1 uppercase text-sky-500 hover:text-sky-600">
+                                                                                        class="inline-flex items-center gap-x-1 uppercase text-sky-500 hover:text-sky-600 dark:hover:text-sky-300">
                                                                                         Avg Dwell (Days)
                                                                                         @if ($detailSortColumn === 'avg')
                                                                                             <span>{{ $detailSortDirection === 'asc' ? '↑' : '↓' }}</span>
@@ -290,7 +290,7 @@
                                                                                 </th>
                                                                                 <th class="px-4 py-2 text-center">
                                                                                     <button type="button" wire:click="sortDetailBy('min')"
-                                                                                        class="inline-flex items-center gap-x-1 uppercase text-emerald-500 hover:text-emerald-600">
+                                                                                        class="inline-flex items-center gap-x-1 uppercase text-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-300">
                                                                                         Min
                                                                                         @if ($detailSortColumn === 'min')
                                                                                             <span>{{ $detailSortDirection === 'asc' ? '↑' : '↓' }}</span>
@@ -301,7 +301,7 @@
                                                                                 </th>
                                                                                 <th class="px-4 py-2 text-center">
                                                                                     <button type="button" wire:click="sortDetailBy('max')"
-                                                                                        class="inline-flex items-center gap-x-1 uppercase text-rose-500 hover:text-rose-600">
+                                                                                        class="inline-flex items-center gap-x-1 uppercase text-rose-500 hover:text-rose-600 dark:hover:text-rose-300">
                                                                                         Max
                                                                                         @if ($detailSortColumn === 'max')
                                                                                             <span>{{ $detailSortDirection === 'asc' ? '↑' : '↓' }}</span>
@@ -319,13 +319,13 @@
                                                                                     <td class="px-4 py-2 whitespace-nowrap font-medium text-gray-800 dark:text-neutral-200">
                                                                                         {{ $cat['name'] }}
                                                                                     </td>
-                                                                                    <td class="px-4 py-2 whitespace-nowrap text-center font-semibold text-sky-600 tabular-nums">
+                                                                                    <td class="px-4 py-2 whitespace-nowrap text-center font-semibold text-sky-600 dark:text-sky-400 tabular-nums">
                                                                                         {{ $cat['avg'] !== null ? number_format($cat['avg'], 1) : '—' }}
                                                                                     </td>
-                                                                                    <td class="px-4 py-2 whitespace-nowrap text-center text-emerald-600 tabular-nums">
+                                                                                    <td class="px-4 py-2 whitespace-nowrap text-center text-emerald-600 dark:text-emerald-400 tabular-nums">
                                                                                         {{ $cat['min'] !== null ? number_format($cat['min']) : '—' }}
                                                                                     </td>
-                                                                                    <td class="px-4 py-2 whitespace-nowrap text-center text-rose-600 tabular-nums">
+                                                                                    <td class="px-4 py-2 whitespace-nowrap text-center text-rose-600 dark:text-rose-400 tabular-nums">
                                                                                         {{ $cat['max'] !== null ? number_format($cat['max']) : '—' }}
                                                                                     </td>
                                                                                 </tr>

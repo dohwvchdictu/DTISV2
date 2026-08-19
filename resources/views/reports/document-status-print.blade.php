@@ -186,29 +186,28 @@
             <div class="section-title">Overall Summary</div>
             <div class="cards-grid">
                 <div class="card">
-                    <div class="card-title">For Receiving</div>
-                    <div class="card-value">{{ number_format($reportData['overall']['incoming']) }}</div>
+                    <div class="card-title">Received</div>
+                    <div class="card-value">{{ number_format($reportData['overall']['received']) }}</div>
                 </div>
-                
+
+                <div class="card">
+                    <div class="card-title">Completed</div>
+                    <div class="card-value">{{ number_format($reportData['overall']['completed']) }}</div>
+                </div>
+
                 <div class="card">
                     <div class="card-title">Pending</div>
                     <div class="card-value">{{ number_format($reportData['overall']['pending']) }}</div>
                 </div>
-                
+
                 <div class="card">
-                    <div class="card-title">Processed</div>
-                    <div class="card-value">{{ number_format($reportData['overall']['processed']) }}</div>
+                    <div class="card-title">Overdue</div>
+                    <div class="card-value">{{ number_format($reportData['overall']['overdue']) }}</div>
                 </div>
-                
+
                 <div class="card">
-                    <div class="card-title">Acted Upon</div>
-                    <div class="card-value">
-                        @php
-                            $total = $reportData['overall']['incoming'] + $reportData['overall']['pending'] + $reportData['overall']['processed'];
-                            $percentage = $reportData['overall']['processed'] && $total > 0 ? ($reportData['overall']['processed'] / $total) * 100 : 0;
-                        @endphp
-                        {{ number_format($percentage, 2) }}%
-                    </div>
+                    <div class="card-title">Completion Rate</div>
+                    <div class="card-value">{{ $reportData['overall']['rate'] === null ? '—' : number_format($reportData['overall']['rate'], 2) . '%' }}</div>
                 </div>
             </div>
         </div>
@@ -222,20 +221,22 @@
                 <thead>
                     <tr>
                         <th>Office</th>
-                        <th class="text-center">Incoming</th>
+                        <th class="text-center">Received</th>
+                        <th class="text-center">Completed</th>
                         <th class="text-center">Pending</th>
-                        <th class="text-center">Processed</th>
-                        <th class="text-center">Percentage</th>
+                        <th class="text-center">Overdue</th>
+                        <th class="text-center">Completion Rate</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach($reportData['offices'] as $officeData)
                     <tr>
                         <td>{{ $officeData['office']['officeName'] }}</td>
-                        <td class="text-center">{{ number_format($officeData['incoming']) }}</td>
+                        <td class="text-center">{{ number_format($officeData['received']) }}</td>
+                        <td class="text-center">{{ number_format($officeData['completed']) }}</td>
                         <td class="text-center">{{ number_format($officeData['pending']) }}</td>
-                        <td class="text-center">{{ number_format($officeData['processed']) }}</td>
-                        <td class="text-center">{{ number_format($officeData['percentage'], 2) }}%</td>
+                        <td class="text-center">{{ number_format($officeData['overdue']) }}</td>
+                        <td class="text-center">{{ $officeData['rate'] === null ? '—' : number_format($officeData['rate'], 2) . '%' }}</td>
                     </tr>
                     @endforeach
                 </tbody>

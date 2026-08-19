@@ -65,7 +65,7 @@ class DocumentTimeline
             'id' => self::get($log, 'id'),
             'action' => self::get($action, 'name'),
             'color' => self::get($action, 'color'),
-            'created_at' => $createdAt ? Carbon::parse($createdAt) : null,
+            'created_at' => self::localTime($createdAt),
             'description' => self::get($log, 'description'),
             'remarks' => self::get($log, 'remarks'),
             'office_id' => self::get($log, 'office_id'),
@@ -74,6 +74,21 @@ class DocumentTimeline
             'user_id' => self::get($log, 'user_id'),
             'user_name' => self::get($user, 'name'),
         ];
+    }
+
+    /**
+     * Timestamps reach this class two ways: as Carbon casts off a Log model,
+     * already in the app timezone, and as strings off $log->toArray(), which
+     * Eloquent serializes to UTC. Pinning both to the app timezone keeps the
+     * search modal showing the same wall clock as the detail pages.
+     */
+    private static function localTime($value): ?Carbon
+    {
+        if (!$value) {
+            return null;
+        }
+
+        return Carbon::parse($value)->timezone(config('app.timezone'));
     }
 
     /**

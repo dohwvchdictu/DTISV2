@@ -46,7 +46,7 @@
                         </a>
                     </li>
 
-                    <li class="hs-accordion" id="account-accordion" data-hs-accordion-always-open>
+                    <li class="hs-accordion active" id="account-accordion" data-hs-accordion-always-open>
                         <button type="button"
                             class="hs-accordion-toggle w-full text-start flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:text-neutral-200"
                             aria-expanded="true" aria-controls="account-accordion-child" data-title="New Document">
@@ -98,7 +98,7 @@
                         </div>
                     </li>
 
-                    <li class="hs-accordion" id="inbox-accordion" data-hs-accordion-always-open>
+                    <li class="hs-accordion active" id="inbox-accordion" data-hs-accordion-always-open>
                         <button type="button"
                             class="hs-accordion-toggle w-full text-start flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:text-neutral-200"
                             aria-expanded="true" aria-controls="inbox-accordion-child" data-title="Inbox">
@@ -202,7 +202,7 @@
                         </div>
                     </li>
 
-                    <li class="hs-accordion" id="status-accordion" data-hs-accordion-always-open>
+                    <li class="hs-accordion active" id="status-accordion" data-hs-accordion-always-open>
                         <button type="button"
                             class="hs-accordion-toggle w-full text-start flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:text-neutral-200"
                             aria-expanded="true" aria-controls="status-accordion-child" data-title="Status">
@@ -347,7 +347,7 @@
                         </div>
                     </li>
 
-                    <li class="hs-accordion" id="reports-accordion" data-hs-accordion-always-open>
+                    <li class="hs-accordion active" id="reports-accordion" data-hs-accordion-always-open>
                         <button type="button"
                             class="hs-accordion-toggle w-full text-start flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:focus:bg-neutral-700 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:text-neutral-200"
                             aria-expanded="true" aria-controls="reports-accordion-child" data-title="Reports">

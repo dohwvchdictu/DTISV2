@@ -56,6 +56,19 @@ class DocumentStatus extends Component
         $this->endDate = Carbon::now()->format('Y-m-d');
     }
 
+    /**
+     * Applies the date range the user picked.
+     *
+     * The inputs are bound with a deferred wire:model, so this request is the
+     * first time the new dates reach the server; re-rendering with them is the
+     * whole job. Previously each keystroke fired its own request and re-walked
+     * the log trail, and a half-typed year would query a nonsense range.
+     */
+    public function applyFilter()
+    {
+        $this->resetPage();
+    }
+
     public function checkApiConnection()
     {
         /** API */

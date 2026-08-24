@@ -27,7 +27,10 @@
         @media (min-width: 1024px) {
             body.sidebar-collapsed #hs-application-sidebar { width: 64px; }
             body.sidebar-collapsed .lg\:ps-64 { padding-inline-start: 64px; }
-            body.sidebar-collapsed #hs-application-sidebar .hs-accordion-content { display: none; }
+            /* !important: Preline's accordion sets an inline display:block when a group is
+               opened, which would otherwise override this rule and leave the submenu
+               icons showing in the collapsed rail. */
+            body.sidebar-collapsed #hs-application-sidebar .hs-accordion-content { display: none !important; }
             body.sidebar-collapsed #hs-application-sidebar nav a,
             body.sidebar-collapsed #hs-application-sidebar nav button,
             body.sidebar-collapsed #sidebar-collapse-toggle {
@@ -95,16 +98,47 @@
             }
         }, true);
 
-        /* Keep the sidebar's scroll position across wire:navigate page swaps */
-        let sidebarScrollTop = 0;
-        document.addEventListener('livewire:navigating', function () {
+        /* Keep the sidebar's scroll position across page changes. sessionStorage rather than
+           a JS variable, because $this->redirect(...) from a Livewire action and a plain F5
+           both do a full page load, which would discard an in-memory value. */
+        const SIDEBAR_SCROLL_KEY = 'sidebarScrollTop';
+
+        function saveSidebarScroll() {
             const nav = document.getElementById('sidebar-scroll');
-            if (nav) sidebarScrollTop = nav.scrollTop;
-        });
-        document.addEventListener('livewire:navigated', function () {
+            if (nav) sessionStorage.setItem(SIDEBAR_SCROLL_KEY, nav.scrollTop);
+        }
+
+        function restoreSidebarScroll() {
             const nav = document.getElementById('sidebar-scroll');
-            if (nav) nav.scrollTop = sidebarScrollTop;
-        });
+            if (!nav) return;
+            const stored = sessionStorage.getItem(SIDEBAR_SCROLL_KEY);
+            /* rAF so this lands after Livewire's own scroll restore and Preline's re-init. */
+            requestAnimationFrame(function () {
+                /* Stored offset is only the fallback for pages with no sidebar entry of
+                   their own; an active item takes over and gets centred below. */
+                if (stored !== null) nav.scrollTop = Number(stored);
+
+                /* `bg-emerald-600` is the active-link marker in sidebar.blade.php. */
+                let active = nav.querySelector('a.bg-emerald-600');
+                if (!active) return;
+                /* Collapsed rail hides child links, so reveal the owning group icon instead. */
+                if (!active.getClientRects().length) active = active.closest('li.hs-accordion');
+                if (!active) return;
+
+                /* Centre the active item in the nav's viewport. Adjust nav.scrollTop
+                   rather than scrollIntoView(), which would also scroll the page behind
+                   this fixed sidebar. The browser clamps the value at both ends, so items
+                   near the top/bottom simply sit as close to centre as they can. */
+                const navBox = nav.getBoundingClientRect();
+                const box = active.getBoundingClientRect();
+                nav.scrollTop += (box.top + box.height / 2) - (navBox.top + navBox.height / 2);
+            });
+        }
+
+        document.addEventListener('livewire:navigating', saveSidebarScroll);
+        window.addEventListener('pagehide', saveSidebarScroll);
+        document.addEventListener('DOMContentLoaded', restoreSidebarScroll);
+        document.addEventListener('livewire:navigated', restoreSidebarScroll);
 
         /* Tooltip hints for the collapsed sidebar: while collapsed, hovering an
            icon shows its label (from data-title) next to it. Delegated on

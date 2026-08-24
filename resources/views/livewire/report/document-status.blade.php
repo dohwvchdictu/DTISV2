@@ -170,7 +170,7 @@
 
                         <div class="grow">
                             <div class="flex items-center gap-x-1.5 min-w-0">
-                                <p class="text-[10px] lg:text-xs uppercase tracking-wide whitespace-nowrap truncate text-red-600 dark:text-red-400">
+                                <p class="text-[10px] lg:text-xs uppercase tracking-wide whitespace-nowrap truncate text-amber-600 dark:text-amber-400">
                                     Pending
                                 </p>
                                 <div class="hs-tooltip hidden sm:block shrink-0">
@@ -218,7 +218,7 @@
 
                         <div class="grow">
                             <div class="flex items-center gap-x-1.5 min-w-0">
-                                <p class="text-[10px] lg:text-xs uppercase tracking-wide whitespace-nowrap truncate text-orange-600 dark:text-orange-400">
+                                <p class="text-[10px] lg:text-xs uppercase tracking-wide whitespace-nowrap truncate text-red-600 dark:text-red-400">
                                     Overdue
                                 </p>
                                 <div class="hs-tooltip hidden sm:block shrink-0">
@@ -324,40 +324,60 @@
                                     </p>
                                 </div>
                                 <div>
+                                    {{--
+                                        Applied by the Filter button rather than on change - wire:model is
+                                        deferred in Livewire 3, so both dates reach the server together on
+                                        click instead of each one re-walking the logs on its own. The print
+                                        link is built from the same server-side dates, so it can only ever
+                                        print the range the table is showing.
+                                    --}}
                                     <div class="flex flex-wrap gap-2 items-center">
                                         <div class="min-w-[130px]">
                                             <label for="startDate" class="sr-only">Start Date</label>
-                                            <div class="relative">
-                                                <input type="date" wire:model.live.debounce.2500ms="startDate"
-                                                    name='startDate'
-                                                    class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5 dark:bg-neutral-800 dark:border-neutral-600 dark:placeholder-neutral-400 dark:text-neutral-200 dark:[color-scheme:dark] dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                                                    placeholder="Select date">
-                                            </div>
+                                            <input type="date" wire:model="startDate" name="startDate"
+                                                class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-neutral-800 dark:border-neutral-600 dark:placeholder-neutral-400 dark:text-neutral-200 dark:[color-scheme:dark] dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                                placeholder="Select date">
                                         </div>
                                         <div class="min-w-[130px]">
-                                            <label for="EndDate" class="sr-only">End Date</label>
-                                            <div class="relative">
-                                                <input type="date" wire:model.live.debounce.2500ms="endDate"
-                                                    name="endDate"
-                                                    class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5 dark:bg-neutral-800 dark:border-neutral-600 dark:placeholder-neutral-400 dark:text-neutral-200 dark:[color-scheme:dark] dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                                                    placeholder="Select date">
-                                            </div>
+                                            <label for="endDate" class="sr-only">End Date</label>
+                                            <input type="date" wire:model="endDate" name="endDate"
+                                                class="bg-neutral-50 border border-gray-200 text-gray-600 text-sm shadow-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-neutral-800 dark:border-neutral-600 dark:placeholder-neutral-400 dark:text-neutral-200 dark:[color-scheme:dark] dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                                placeholder="Select date">
                                         </div>
-                                        <div class="min-w-[130px]">
-                                            <a href="{{ route('print.document.status', ['startDate' => $startDate, 'endDate' => $endDate]) }}"
-                                                target="_blank"
+                                        <div class="shrink-0 flex items-center gap-x-2">
+                                            <button type="button" wire:click="applyFilter"
                                                 class="py-2.5 px-4 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none">
                                                 <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg"
                                                     width="24" height="24" viewBox="0 0 24 24" fill="none"
                                                     stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                                     stroke-linejoin="round">
-                                                    <polyline points="6,9 6,2 18,2 18,9"></polyline>
-                                                    <path
-                                                        d="M6,18H4a2,2,0,0,1-2-2V11a2,2,0,0,1,2-2H20a2,2,0,0,1,2,2v5a2,2,0,0,1-2,2H18">
-                                                    </path>
-                                                    <rect x="6" y="14" width="12" height="8"></rect>
+                                                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
                                                 </svg>
-                                                Print Report
+                                                <span wire:loading.remove wire:target="applyFilter">Filter</span>
+                                                <span wire:loading wire:target="applyFilter">Loading...</span>
+                                            </button>
+
+                                            {{-- Icon-only, so it keeps the Filter button as the one primary
+                                                 action; yellow is the print colour used on document detail. --}}
+                                            <a href="{{ route('print.document.status', ['startDate' => $startDate, 'endDate' => $endDate]) }}"
+                                                target="_blank" aria-label="Print Report"
+                                                class="py-2.5 px-3 inline-flex items-center rounded-lg border border-transparent bg-yellow-600 text-white hover:bg-yellow-700 focus:outline-none focus:bg-yellow-700 disabled:opacity-50 disabled:pointer-events-none">
+                                                <div class="hs-tooltip inline-block">
+                                                    <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg"
+                                                        width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                                        stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                                        stroke-linejoin="round">
+                                                        <path
+                                                            d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                                                        <path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6" />
+                                                        <rect x="6" y="14" width="12" height="8" rx="1" />
+                                                    </svg>
+                                                    <span
+                                                        class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible opacity-0 transition-opacity inline-block absolute invisible z-10 py-1 px-2 bg-gray-900 text-xs font-medium text-white rounded shadow-sm dark:bg-neutral-700"
+                                                        role="tooltip">
+                                                        Print Report
+                                                    </span>
+                                                </div>
                                             </a>
                                         </div>
                                     </div>
@@ -412,7 +432,7 @@
                                         </th>
 
                                         <th scope="col" class="px-6 py-3 text-start">
-                                            <a class="group inline-flex items-center gap-x-2 text-xs font-semibold uppercase text-red-600 hover:text-red-500 focus:outline-none focus:text-gray-500 dark:text-red-400 dark:hover:text-red-300 dark:focus:text-red-300"
+                                            <a class="group inline-flex items-center gap-x-2 text-xs font-semibold uppercase text-amber-600 hover:text-amber-500 focus:outline-none focus:text-gray-500 dark:text-amber-400 dark:hover:text-amber-300 dark:focus:text-amber-300"
                                                 href="#">
                                                 Pending
                                                 <svg class="shrink-0 size-3.5 text-gray-800 dark:text-neutral-200"
@@ -426,7 +446,7 @@
                                         </th>
 
                                         <th scope="col" class="px-6 py-3 text-start">
-                                            <a class="group inline-flex items-center gap-x-2 text-xs font-semibold uppercase text-orange-600 hover:text-orange-500 focus:outline-none focus:text-gray-500 dark:text-orange-400 dark:hover:text-orange-300 dark:focus:text-orange-300"
+                                            <a class="group inline-flex items-center gap-x-2 text-xs font-semibold uppercase text-red-600 hover:text-red-500 focus:outline-none focus:text-gray-500 dark:text-red-400 dark:hover:text-red-300 dark:focus:text-red-300"
                                                 href="#">
                                                 Overdue
                                                 <svg class="shrink-0 size-3.5 text-gray-800 dark:text-neutral-200"
@@ -483,14 +503,15 @@
                                             </td>
                                             <td class="size-px whitespace-nowrap">
                                                 <span class="block relative z-10">
-                                                    <div class="px-6 flex text-red-600 dark:text-red-400 gap-x-1">
+                                                    <div class="px-6 flex text-amber-600 dark:text-amber-400 gap-x-1">
                                                         {{ number_format($pendingByOffice[$office['id']] ?? 0) }}
                                                     </div>
                                                 </span>
                                             </td>
                                             <td class="size-px whitespace-nowrap">
                                                 <span class="block relative z-10">
-                                                    <div class="px-6 flex gap-x-1 {{ ($overdue = $overdueByOffice[$office['id']] ?? 0) > 0 ? 'font-semibold text-orange-600 dark:text-orange-400' : 'text-gray-400 dark:text-neutral-500' }}">
+                                                    {{-- Emphasised only when there is something to act on. --}}
+                                                    <div class="px-6 flex gap-x-1 {{ ($overdue = $overdueByOffice[$office['id']] ?? 0) > 0 ? 'font-semibold text-red-600 dark:text-red-400' : 'text-gray-400 dark:text-neutral-500' }}">
                                                         {{ number_format($overdue) }}
                                                     </div>
                                                 </span>

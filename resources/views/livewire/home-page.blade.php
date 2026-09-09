@@ -27,20 +27,34 @@
                  * One definition per card. `group` picks the icon: the workflow
                  * cards say what the office must do next, the deadline cards cut
                  * the same documents by how much time is left.
+                 *
+                 * The colour says which of those two questions a card answers.
+                 * Workflow cards are cool (indigo, sky) — a state, not a warning.
+                 * Deadline cards climb one warm ramp, yellow to orange to red, so
+                 * urgency reads from the colour alone without reading the label.
+                 * Nothing warm appears outside that ramp, or "For Action" would
+                 * look like a deadline it has no part in.
+                 *
+                 * Light-mode shades are the 700s, not the 500s: the label is 12px
+                 * uppercase, and yellow-500 on white sits near 2:1 contrast. The
+                 * tile only carries an icon, so it can take the lighter tint —
+                 * the same 100 / 500-at-20% pair the status badges use elsewhere.
                  */
                 $actionCards = [
                     [
                         'key' => 'for_action',
                         'label' => 'For Action',
                         'group' => 'workflow',
-                        'accent' => 'text-amber-500 dark:text-amber-500',
+                        'accent' => 'text-indigo-700 dark:text-indigo-400',
+                        'tile' => 'bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400',
                         'tooltip' => 'Documents waiting to be received by your office (For Receiving and Returned).',
                     ],
                     [
                         'key' => 'pending',
                         'label' => 'Pending',
                         'group' => 'workflow',
-                        'accent' => 'text-sky-500 dark:text-sky-500',
+                        'accent' => 'text-sky-700 dark:text-sky-400',
+                        'tile' => 'bg-sky-100 text-sky-600 dark:bg-sky-500/20 dark:text-sky-400',
                         'tooltip' =>
                             'Documents already received and still in process at your office (On Process and Endorsed).',
                     ],
@@ -48,21 +62,24 @@
                         'key' => 'due_soon',
                         'label' => 'Due Soon',
                         'group' => 'deadline',
-                        'accent' => 'text-yellow-500 dark:text-yellow-500',
+                        'accent' => 'text-yellow-700 dark:text-yellow-400',
+                        'tile' => 'bg-yellow-100 text-yellow-600 dark:bg-yellow-500/20 dark:text-yellow-400',
                         'tooltip' => 'Deadline falls within the next 3 working days.',
                     ],
                     [
                         'key' => 'due_today',
                         'label' => 'Due Today',
                         'group' => 'deadline',
-                        'accent' => 'text-orange-500 dark:text-orange-500',
+                        'accent' => 'text-orange-700 dark:text-orange-400',
+                        'tile' => 'bg-orange-100 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400',
                         'tooltip' => 'Deadline is today. Act on these before the day ends.',
                     ],
                     [
                         'key' => 'overdue',
                         'label' => 'Overdue',
                         'group' => 'deadline',
-                        'accent' => 'text-red-600 dark:text-red-500',
+                        'accent' => 'text-red-700 dark:text-red-400',
+                        'tile' => 'bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400',
                         'tooltip' => 'Past the required days and still not acted upon.',
                     ],
                 ];
@@ -76,22 +93,22 @@
                         class="flex flex-col bg-white border shadow-sm rounded-xl dark:bg-neutral-900 dark:border-neutral-800">
                         <div class="p-4 md:p-5 flex gap-x-4">
                             <div
-                                class="shrink-0 flex justify-center items-center size-[46px] bg-gray-100 rounded-lg dark:bg-neutral-800">
+                                class="shrink-0 flex justify-center items-center size-[46px] rounded-lg {{ $card['tile'] }}">
                                 @if ($card['group'] === 'workflow')
-                                    <svg class="shrink-0 size-5 text-gray-600 dark:text-neutral-400"
+                                    <svg class="lucide lucide-file-input shrink-0 size-5"
                                         xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
                                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                        stroke-linejoin="round" class="lucide lucide-file-input">
+                                        stroke-linejoin="round">
                                         <path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4" />
                                         <path d="M14 2v4a2 2 0 0 0 2 2h4" />
                                         <path d="M2 15h10" />
                                         <path d="m9 18 3-3-3-3" />
                                     </svg>
                                 @else
-                                    <svg class="shrink-0 size-5 text-gray-600 dark:text-neutral-400"
+                                    <svg class="lucide lucide-clock shrink-0 size-5"
                                         xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
                                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                        stroke-linejoin="round" class="lucide lucide-clock">
+                                        stroke-linejoin="round">
                                         <circle cx="12" cy="12" r="10" />
                                         <polyline points="12 6 12 12 16 14" />
                                     </svg>

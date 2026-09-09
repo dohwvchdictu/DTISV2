@@ -124,24 +124,49 @@
                         <!-- End Col -->
 
                         @if($showCitizenProcedure === true)
-                        <div class="sm:col-span-2" wire:show="showCitizenProcedure">
-                            <label for="af-account-full-name"
+                        <div class="sm:col-span-2" wire:key="charter-procedure-label">
+                            <label for="citizen_charter_id"
                                 class="inline-block text-sm text-gray-700 mt-2.5 font-semibold dark:text-neutral-200">
                                 Charter Procedure
                             </label>
                         </div>
                         <!-- End Col -->
 
-                        <div class="sm:col-span-10" wire:show="showCitizenProcedure">
-                            <div class="max-w-sm space-y-3">
+                        {{-- This block is injected by a Livewire update, after the page-load
+                             autoInit() has already run, so the select is initialised here by
+                             hand - otherwise its class="hidden" would leave nothing on screen. --}}
+                        <div class="sm:col-span-10" wire:key="charter-procedure-select" x-init="$nextTick(() => {
+                                if (window.HSSelect && typeof window.HSSelect.autoInit === 'function') {
+                                    window.HSSelect.autoInit();
+                                } else if (window.HSStaticMethods && typeof window.HSStaticMethods.autoInit === 'function') {
+                                    window.HSStaticMethods.autoInit();
+                                }
+                            })">
+                            {{-- Same searchable Preline select as the document category below:
+                                 wire:ignore keeps Livewire off the markup Preline builds around the
+                                 select, and the option list is fixed so nothing here needs morphing. --}}
+                            <div class="max-w-sm space-y-3" wire:ignore>
                                 <!-- Select -->
                                 <select wire:model='citizen_charter_id' id="citizen_charter_id"
-                                    name="citizen_charter_id"
-                                    class="py-3 px-4 pe-9 block w-full border-gray-200 shadow rounded-lg text-sm text-slate-600 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
-                                    <option value="">Select Citizen Charter</option>
-                                    @foreach ($citizen_charters as $charter)
+                                    name="citizen_charter_id" data-hs-select='{
+                                    "hasSearch": true,
+                                    "searchPlaceholder": "Search...",
+                                    "searchClasses": "block w-full text-sm border-gray-200 rounded-lg focus:border-blue-500 focus:ring-blue-500 before:absolute before:inset-0 before:z-[1] dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 py-2 px-3",
+                                    "searchWrapperClasses": "bg-white p-2 -mx-1 sticky top-0 dark:bg-neutral-800",
+                                    "placeholder": "Select Charter Procedure",
+                                    "toggleTag": "<button type=\"button\" aria-expanded=\"false\"><span class=\"me-2\" data-icon></span><span class=\"text-gray-800 dark:text-neutral-200 \" data-title></span></button>",
+                                    "toggleClasses": "hs-select-disabled:pointer-events-none hs-select-disabled:opacity-50 relative shadow text-gray-700 py-3 ps-4 pe-9 flex gap-x-2 text-nowrap w-full cursor-pointer bg-white border border-gray-200 rounded-lg text-start text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:focus:outline-none dark:focus:ring-1 dark:focus:ring-neutral-600",
+                                    "dropdownClasses": "mt-2 max-h-72 pb-1 px-1 space-y-0.5 z-20 w-full bg-white border border-gray-200 rounded-lg text-sm overflow-hidden overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-track]:bg-neutral-700 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500 dark:bg-neutral-800 dark:border-neutral-700",
+                                    "optionClasses": "py-2 px-4 w-full text-sm text-slate-600 cursor-pointer hover:bg-gray-100 rounded-lg focus:outline-none focus:bg-gray-100 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:text-neutral-200 dark:focus:bg-neutral-700",
+                                    "optionTemplate": "<div><div class=\"flex items-center\"><div class=\"me-2\" data-icon></div><div class=\"text-gray-800 dark:text-neutral-200 \" data-title></div></div></div>",
+                                    "extraMarkup": "<div class=\"absolute top-1/2 end-3 -translate-y-1/2\"><svg class=\"shrink-0 size-3.5 text-gray-500 dark:text-neutral-500 \" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m7 15 5 5 5-5\"/><path d=\"m7 9 5-5 5 5\"/></svg></div>"
+                                }' class="hidden">
+                                    <option value="">Choose</option>
+                                    @forelse ($citizen_charters as $charter)
                                     <option value="{{ $charter->id }}"> {{ $charter->name }}</option>
-                                    @endforeach
+                                    @empty
+                                    <option value=""> No records found. </option>
+                                    @endforelse
                                 </select>
                                 <!-- End Select -->
                             </div>

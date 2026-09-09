@@ -234,7 +234,9 @@
                                         <span
                                             class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible opacity-0 transition-opacity inline-block absolute invisible z-10 py-1 px-2 bg-gray-900 text-xs font-medium text-white rounded shadow-sm dark:bg-neutral-700"
                                             role="tooltip">
-                                            Pending documents held by the same office for more than 3 business days.
+                                            Pending documents past their deadline — the date created plus the
+                                            required days of their citizen charter, or of their document type
+                                            when they have no charter. Charged to the office now holding them.
                                         </span>
                                     </div>
                                 </div>

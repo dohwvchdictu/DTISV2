@@ -2,44 +2,56 @@
 
 namespace App\Livewire;
 
-use App\Models\Category;
-use App\Models\Document;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Jantinnerezo\LivewireAlert\LivewireAlert;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
 class HomePage extends Component
 {
+    /** mount() alerts when the session carries no office; without this the call itself crashed. */
+    use LivewireAlert;
+
     #[Title('Dashboard | Document Tracking Information System')]
+
+    /** Awaiting receipt by the holding office. */
+    private const FOR_ACTION_STATUSES = ['For Receiving', 'Returned'];
+
+    /** Received and still in process at the holding office. */
+    private const PENDING_STATUSES = ['On Process', 'Endorsed'];
+
+    /** Working days of lead time that count as "Due Soon"; today is its own card. */
+    private const DUE_SOON_DAYS = 3;
+
+    /** Fallback when neither the citizen charter nor the category sets required_days. */
+    private const DEFAULT_REQUIRED_DAYS = 20;
 
     /** Constants */
     public $user = [];
     public $office;
-    public $purchaseRequests_array = [];
-    public $payments_array = [];
-    public $categories_array = [];
 
-    /** Status */
-    public $incomings = 0;
-    public $pendings = 0;
-    public $processed = 0;
-    public $percentage;
-
-    /** Type */
-    public $documents = 0;
-    public $purchaseOrders = 0;
-    public $payments = 0;
-    public $bundles = 0;
-
-    /** Filter Date Variables */
-    public $startDate;
-    public $endDate;
+    /**
+     * Action & deadline monitoring across the whole system — every office, every
+     * originator. Deliberately not date-filtered either: a date range would hide
+     * the oldest documents, which are precisely the overdue ones these cards
+     * exist to surface.
+     */
+    public $actionCounts = [
+        'for_action' => 0,
+        'pending' => 0,
+        'due_soon' => 0,
+        'due_today' => 0,
+        'overdue' => 0,
+        'on_track' => 0,
+        'total' => 0,
+    ];
 
     public function mount()
     {
         /** User Information */
         $this->user = session('user', []);
-        
+
         // Check if user has office information
         if (!isset($this->user['office']['id'])) {
             // Handle missing office data gracefully
@@ -47,79 +59,110 @@ class HomePage extends Component
             $this->alert('error', 'User office information not found. Please login again.');
             return;
         }
-        
+
         $this->office = $this->user['office']['id'];
         /** End User Information */
+    }
 
-        /** Filter Records last 30 Days */
-        $this->startDate = Carbon::now()->subMonths(1)->format('Y-m-d');
-        $this->endDate = Carbon::now()->format('Y-m-d');
+    /**
+     * Counts for the action & deadline cards, over every document in the system
+     * — no office, originator or date scoping of any kind.
+     *
+     * Two views of one queue: "For Action" and "Pending" split it by what the
+     * holding office must do next, while Due Soon / Due Today / Overdue cut the
+     * same documents by how much time is left. A document therefore sits in one
+     * card of each pair, and each pair sums to the whole queue.
+     *
+     * A document's deadline is its date created plus the required days of its
+     * citizen charter, or of its document type when it has no charter — the same
+     * basis the External Requests report already uses, so both screens agree.
+     *
+     * Scope notes:
+     *
+     * - Only open documents count. The five cards are about work still owed, and
+     *   a Closed document has no action pending and no deadline left to meet, so
+     *   it belongs to none of them.
+     * - Bundled children are excluded. They are received, forwarded and closed
+     *   with their parent bundle, so counting them too would report the same
+     *   piece of work twice.
+     *
+     * System-wide, this covers far too many rows to walk one model at a time, so
+     * the database groups them by status, deadline commitment and creation date
+     * first. Every document created on the same day under the same commitment
+     * shares one deadline, which is why the grouping is lossless — it collapses
+     * tens of thousands of rows into a few hundred, and the working-day
+     * arithmetic PHP has to do runs once per group instead of once per document.
+     */
+    private function deadlineCounts(): array
+    {
+        $counts = [
+            'for_action' => 0,
+            'pending' => 0,
+            'due_soon' => 0,
+            'due_today' => 0,
+            'overdue' => 0,
+            'on_track' => 0,
+            'total' => 0,
+        ];
 
-        /** Purchase request & Payments */
-        $this->categories_array = Category::where(function ($query) {
-            $query->where('name', 'like', '%' . 'Payment' . '%')
-                ->orWhere('name', 'like', '%' . 'Purchase' . '%');
-        })->pluck('id')->toArray();
+        /**
+         * The charter's required days win when it has a usable value, else the
+         * category's, else the default. A non-positive value counts as unset: a
+         * zero-day commitment would mark a document overdue the moment it was
+         * encoded.
+         */
+        $requiredDays = 'case'
+            . ' when citizen_charters.required_days > 0 then citizen_charters.required_days'
+            . ' when categories.required_days > 0 then categories.required_days'
+            . ' else ' . self::DEFAULT_REQUIRED_DAYS
+            . ' end';
 
-        /** Type of Documents */
-        $purchaseRequests_obj = Category::where('name', 'like', '%' . 'Purchase Request' . '%')->select('id')->get();
-        foreach ($purchaseRequests_obj->toArray() as $value) {
-            $this->purchaseRequests_array[] = $value['id'];
+        $groups = DB::table('documents')
+            ->leftJoin('citizen_charters', 'citizen_charters.id', '=', 'documents.citizen_charter_id')
+            ->leftJoin('categories', 'categories.id', '=', 'documents.category_id')
+            ->whereNull('documents.bundle_id')
+            ->whereIn('documents.status', array_merge(self::FOR_ACTION_STATUSES, self::PENDING_STATUSES))
+            ->groupBy('documents.status', DB::raw($requiredDays), DB::raw('date(documents.created_at)'))
+            ->select([
+                'documents.status',
+                DB::raw($requiredDays . ' as required_days'),
+                DB::raw('date(documents.created_at) as created_date'),
+                DB::raw('count(*) as documents'),
+            ])
+            ->get();
+
+        $today = Carbon::today();
+
+        foreach ($groups as $group) {
+            $dueDate = Carbon::parse($group->created_date)->startOfDay()->addWeekdays((int) $group->required_days);
+
+            /** Signed working days to the deadline: >0 left, <0 overdue */
+            $remaining = (int) $today->diffInWeekdays($dueDate, false);
+
+            $documents = (int) $group->documents;
+
+            $counts[in_array($group->status, self::FOR_ACTION_STATUSES, true) ? 'for_action' : 'pending'] += $documents;
+
+            if ($remaining < 0) {
+                $counts['overdue'] += $documents;
+            } elseif ($remaining === 0) {
+                $counts['due_today'] += $documents;
+            } elseif ($remaining <= self::DUE_SOON_DAYS) {
+                $counts['due_soon'] += $documents;
+            } else {
+                $counts['on_track'] += $documents;
+            }
+
+            $counts['total'] += $documents;
         }
 
-        $payments_obj = Category::where('name', 'like', '%' . 'Payment' . '%')->select('id')->get();
-        foreach ($payments_obj->toArray() as $value) {
-            $this->payments_array[] = $value['id'];
-        }
+        return $counts;
     }
 
     public function render()
     {
-        /** Status of Documents */
-        $this->incomings = Document::where('assigned_to', $this->office)->whereNull('bundle_id')->whereIn('status', ['For Receiving', 'Returned'])
-            ->when($this->startDate, function ($query) {
-                $query->whereBetween('created_at', [Carbon::parse($this->startDate), Carbon::parse($this->endDate)->addDay()]);
-            })->count();
-        $this->pendings = Document::where('assigned_to', $this->office)->whereNull('bundle_id')->whereIn('status', ['On Process', 'Endorsed'])->when($this->startDate, function ($query) {
-            $query->whereBetween('created_at', [Carbon::parse($this->startDate), Carbon::parse($this->endDate)->addDay()]);
-        })->count();
-        $this->processed = Document::whereHas('logs', function ($query) {
-            $query->where('assigned_to', $this->office)->whereIn('action_id', [3, 5]);
-        })->when($this->startDate, function ($query) {
-            $query->whereBetween('created_at', [Carbon::parse($this->startDate), Carbon::parse($this->endDate)->addDay()]);
-        })->count();
-
-        $total = $this->incomings + $this->pendings + $this->processed;
-        $this->percentage = $this->processed ? ($this->processed / $total) * 100 : 0;
-
-        /** Documents Disaggregation */
-        $this->documents = Document::where('office_id', $this->office)
-            ->when($this->categories_array, function ($query) {
-                $query->whereNotIn('category_id', $this->categories_array);
-            })
-            ->when($this->startDate, function ($query) {
-                $query->whereBetween('created_at', [Carbon::parse($this->startDate), Carbon::parse($this->endDate)->addDay()]);
-            })->count();
-        $this->purchaseOrders = Document::where('office_id', $this->office)
-            ->when($this->purchaseRequests_array, function ($query) {
-                $query->whereIn('category_id', $this->purchaseRequests_array);
-            })
-            ->when($this->startDate, function ($query) {
-                $query->whereBetween('created_at', [Carbon::parse($this->startDate), Carbon::parse($this->endDate)->addDay()]);
-            })
-            ->count();
-        $this->payments = Document::where('office_id', $this->office)
-            ->when($this->payments_array, function ($query) {
-                $query->whereIn('category_id', $this->payments_array);
-            })
-            ->when($this->startDate, function ($query) {
-                $query->whereBetween('created_at', [Carbon::parse($this->startDate), Carbon::parse($this->endDate)->addDay()]);
-            })
-            ->get()->count();
-        $this->bundles = Document::where('office_id', $this->office)->where('is_bundle', 1)
-            ->when($this->startDate, function ($query) {
-                $query->whereBetween('created_at', [Carbon::parse($this->startDate), Carbon::parse($this->endDate)->addDay()]);
-            })->count();
+        /** Action & Deadline Monitoring */
+        $this->actionCounts = $this->deadlineCounts();
 
         return view('livewire.home-page');
     }

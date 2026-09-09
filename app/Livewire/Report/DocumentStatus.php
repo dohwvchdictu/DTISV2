@@ -4,7 +4,6 @@ namespace App\Livewire\Report;
 
 use App\Models\Document;
 use App\Services\ApiService;
-use App\Support\BusinessDays;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
@@ -31,8 +30,8 @@ class DocumentStatus extends Component
     private const ACTION_CLOSED = 5;
     private const ACTIONS_COMPLETED = [self::ACTION_FORWARDED, self::ACTION_CLOSED];
 
-    /** A pending document is overdue once it has sat this long at one office. */
-    private const OVERDUE_AFTER_DAYS = 3;
+    /** Fallback when neither the citizen charter nor the category sets required_days. */
+    private const DEFAULT_REQUIRED_DAYS = 20;
 
     /** Constant Variables */
     /** Office directory kept protected so it is not serialized into the Livewire snapshot; reloaded from cache in boot(). */
@@ -214,44 +213,71 @@ class DocumentStatus extends Component
     }
 
     /**
-     * Pending documents that have sat too long at the office now holding them.
+     * Pending documents that have passed the deadline their service commitment
+     * set, counted against the office now holding them.
      *
      * Overdue is a strict subset of the Pending column — same status and same
-     * date window — narrowed to those whose most recent receipt at the current
-     * office is more than OVERDUE_AFTER_DAYS business days old. Age is measured
-     * from the receipt rather than from creation, because the question is how
-     * long *this* office has held it, not how old the document is.
+     * date window — narrowed to those whose deadline has passed. The deadline is
+     * the created date plus the required days of the document's citizen charter,
+     * or of its category when it has no charter: the same basis the dashboard
+     * and the External Requests report already use, so all three screens agree
+     * on what "overdue" means.
      *
-     * Weekends are excluded, matching the Turnaround Time report, so a document
-     * received on Friday is not overdue until the following Wednesday.
+     * The clock runs from creation, not from the current office's receipt,
+     * because required_days is an end-to-end commitment for the whole document.
+     * Giving each office in the route its own full charter clock would reset the
+     * deadline at every hand-off and leave almost nothing overdue. What varies
+     * per office is only *who answers for it* — the document is charged to
+     * whoever is holding it when the deadline passes.
      *
-     * Business days cannot be expressed in portable SQL, so one grouped query
-     * streams the candidate receipts and the filtering happens here. Pending is
-     * a small slice of the table, so this stays cheap.
+     * Weekends are excluded, holidays are not.
+     *
+     * Working-day arithmetic cannot be expressed in portable SQL, so the query
+     * groups by office, commitment and creation date first — every document in
+     * a group shares one deadline, so the collapse is lossless — and PHP does
+     * the date maths once per group rather than once per document.
      */
     private function overdueByOffice($start, $end)
     {
-        $receipts = DB::table('logs')
-            ->join('documents', 'documents.id', '=', 'logs.document_id')
+        /**
+         * The charter's required days win when it has a usable value, else the
+         * category's, else the default. A non-positive value counts as unset: a
+         * zero-day commitment would mark a document overdue the moment it was
+         * encoded.
+         */
+        $requiredDays = 'case'
+            . ' when citizen_charters.required_days > 0 then citizen_charters.required_days'
+            . ' when categories.required_days > 0 then categories.required_days'
+            . ' else ' . self::DEFAULT_REQUIRED_DAYS
+            . ' end';
+
+        $groups = DB::table('documents')
+            ->leftJoin('citizen_charters', 'citizen_charters.id', '=', 'documents.citizen_charter_id')
+            ->leftJoin('categories', 'categories.id', '=', 'documents.category_id')
             ->where('documents.status', 'On Process')
             ->whereBetween('documents.created_at', [$start, $end])
-            ->where('logs.action_id', self::ACTION_RECEIVED)
-            /** Only receipts logged by the office currently holding the document. */
-            ->whereColumn('logs.assigned_to', 'documents.assigned_to')
-            ->groupBy('logs.document_id', 'documents.assigned_to')
-            ->selectRaw('logs.document_id, documents.assigned_to, MAX(logs.created_at) as received_at')
-            ->cursor();
+            ->groupBy('documents.assigned_to', DB::raw($requiredDays), DB::raw('date(documents.created_at)'))
+            ->select([
+                'documents.assigned_to',
+                DB::raw($requiredDays . ' as required_days'),
+                DB::raw('date(documents.created_at) as created_date'),
+                DB::raw('count(*) as documents'),
+            ])
+            ->get();
 
-        $now = Carbon::now();
+        $today = Carbon::today();
         $overdue = [];
 
-        foreach ($receipts as $receipt) {
-            if (BusinessDays::between($receipt->received_at, $now) <= self::OVERDUE_AFTER_DAYS) {
+        foreach ($groups as $group) {
+            $dueDate = Carbon::parse($group->created_date)->startOfDay()->addWeekdays((int) $group->required_days);
+
+            /** Signed working days to the deadline: >0 left, <0 overdue. */
+            if ((int) $today->diffInWeekdays($dueDate, false) >= 0) {
                 continue;
             }
 
-            $officeId = $receipt->assigned_to;
-            $overdue[$officeId] = ($overdue[$officeId] ?? 0) + 1;
+            $officeId = $group->assigned_to;
+            $overdue[$officeId] = ($overdue[$officeId] ?? 0) + (int) $group->documents;
         }
 
         return collect($overdue);

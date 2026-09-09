@@ -36,7 +36,7 @@
             <div class="mb-5 pb-5 flex justify-between items-center border-b border-gray-200 dark:border-neutral-700">
                 <div>
                     <h2 class="text-2xl font-semibold text-emerald-600 dark:text-neutral-200">{{
-                        $document->category->name }}</h2>
+                        $document->category->name ?? 'Uncategorised' }}</h2>
                     <span
                         class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium bg-gray-50 dark:bg-neutral-700 text-gray-800 dark:text-neutral-200">
                         Control No. {{

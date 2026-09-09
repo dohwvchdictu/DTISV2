@@ -103,7 +103,7 @@ class IncomingDetail extends Component
         $this->id = $this->document->id;
         $this->parent_bundle = $this->document->id;
         $this->control_no = $this->document->control_no;
-        $this->type = $this->document->category->name;
+        $this->type = $this->document->category->name ?? 'Uncategorised';
 
         $this->pendings = Document::where('assigned_to', $this->office)->where('status', 'On Process')->whereNull('bundle_id')->orderBy('created_at', 'DESC')->get();
         $this->documents_attached = Document::where('assigned_to', $this->office)->whereIn('status', ['For Receiving', 'Returned'])->where('bundle_id', $this->parent_bundle)->orderBy('created_at', 'DESC')->get();

@@ -141,7 +141,13 @@ class MyDocumentsTable extends Component
                 $query->whereIn('status', $this->selected_filter);
             })
             ->when($this->categories_array, function ($query) {
-                $query->whereNotIn('category_id', $this->categories_array);
+                $query->where(function ($q) {
+                    /** NULL NOT IN (...) is never true in SQL, so uncategorised
+                     *  documents - Citizen's Charter transactions - need saying
+                     *  explicitly or they drop off this list entirely */
+                    $q->whereNotIn('category_id', $this->categories_array)
+                        ->orWhereNull('category_id');
+                });
             })
             /** Bounds applied independently so one blank input still filters sanely */
             ->when($this->startDate, function ($query) {
@@ -167,7 +173,10 @@ class MyDocumentsTable extends Component
             ->where('office_id', $this->office)
             ->whereIn('status', ['Created', 'For Receiving'])
             ->when($this->categories_array, function ($query) {
-                $query->whereNotIn('category_id', $this->categories_array);
+                $query->where(function ($q) {
+                    $q->whereNotIn('category_id', $this->categories_array)
+                        ->orWhereNull('category_id');
+                });
             });
     }
 

@@ -81,7 +81,7 @@
                             <div class="max-w-sm space-y-3">
                                 <select wire:model="source" id="source" name="source"
                                     class="py-3 px-4 pe-9 block w-full border-gray-200 shadow rounded-lg text-sm text-gray-700 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
-                                    <option>Select Source</option>
+                                    <option value="">Select Source</option>
                                     <option value="internal">Internal</option>
                                     <option value="external">External</option>
                                 </select>
@@ -149,52 +149,10 @@
                         @endif
                         <!-- End Col -->
 
-                        <div class="sm:col-span-2">
-                            <label for="category_id"
-                                class="inline-block text-sm text-gray-700 mt-2.5 font-semibold dark:text-neutral-200">
-                                Document Type
-                            </label>
-                            <span
-                                class="inline-flex items-center gap-x-1.5 py-1.5 rounded-full font-medium text-red-500">*</span>
-                        </div>
-                        <!-- End Col -->
-
-                        <div class="sm:col-span-10">
-                            <div class="max-w-sm space-y-3" wire:ignore>
-                                <div class="flex gap-x-6">
-                                    <div class="flex">
-                                        <input type="radio" name="selectedType" wire:key='type-radio-group-1'
-                                            wire:model.live='selectedType'
-                                            class="shrink-0 mt-0.5 size-5 border-gray-200 rounded-full text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:checked:bg-blue-500 dark:checked:border-blue-500 dark:focus:ring-offset-gray-800"
-                                            id="type-radio-group-1" value="All">
-                                        <label for="type-radio-group-1"
-                                            class="text-sm text-gray-500 ms-2 dark:text-neutral-400">All</label>
-                                    </div>
-
-                                    <div class="flex">
-                                        <input type="radio" name="selectedType" wire:key='type-radio-group-2'
-                                            wire:model.live='selectedType'
-                                            class="shrink-0 mt-0.5 size-5 border-gray-200 rounded-full text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:checked:bg-blue-500 dark:checked:border-blue-500 dark:focus:ring-offset-gray-800"
-                                            id="type-radio-group-2" value="Purchase">
-                                        <label for="type-radio-group-2"
-                                            class="text-sm text-gray-500 ms-2 dark:text-neutral-400">Purchase
-                                            Request</label>
-                                    </div>
-
-                                    <div class="flex">
-                                        <input type="radio" name="selectedType" wire:key='type-radio-group-3'
-                                            wire:model.live='selectedType'
-                                            class="shrink-0 mt-0.5 size-5 border-gray-200 rounded-full text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:checked:bg-blue-500 dark:checked:border-blue-500 dark:focus:ring-offset-gray-800"
-                                            id="type-radio-group-3" value="Payment">
-                                        <label for="type-radio-group-3"
-                                            class="text-sm text-gray-500 ms-2 dark:text-neutral-400">Payment</label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- End Col -->
-
-                        <div class="sm:col-span-2">
+                        {{-- A charter transaction is classified by its charter procedure, so
+                             the category is hidden and not required for it. --}}
+                        @if(!$showCitizenProcedure)
+                        <div class="sm:col-span-2" wire:key="document-category-label">
                             <label for="category_id"
                                 class="inline-block text-sm text-gray-700 mt-2.5 font-semibold dark:text-neutral-200">
                                 Document Category
@@ -204,10 +162,13 @@
                         </div>
                         <!-- End Col -->
 
-                        <div class="sm:col-span-10">
-                            <div class="max-w-sm space-y-3">
+                        <div class="sm:col-span-10" wire:key="document-category-select">
+                            {{-- wire:ignore keeps Livewire off the markup Preline builds around the
+                                 select; the option list is fixed now, so nothing here needs morphing.
+                                 The live binding is what refreshes the subject guidance below. --}}
+                            <div class="max-w-sm space-y-3" wire:ignore>
                                 <!-- Select -->
-                                <select wire:model='category_id' id="category_id" name="category_id" data-hs-select='{
+                                <select wire:model.live='category_id' id="category_id" name="category_id" data-hs-select='{
                                     "hasSearch": true,
                                     "searchPlaceholder": "Search...",
                                     "searchClasses": "block w-full text-sm border-gray-200 rounded-lg focus:border-blue-500 focus:ring-blue-500 before:absolute before:inset-0 before:z-[1] dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 py-2 px-3",
@@ -221,7 +182,7 @@
                                     "extraMarkup": "<div class=\"absolute top-1/2 end-3 -translate-y-1/2\"><svg class=\"shrink-0 size-3.5 text-gray-500 dark:text-neutral-500 \" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m7 15 5 5 5-5\"/><path d=\"m7 9 5-5 5 5\"/></svg></div>"
                                 }' class="hidden">
                                     <option value="">Choose</option>
-                                    @forelse ($this->categories as $category)
+                                    @forelse ($categories as $category)
                                     <option value="{{ $category->id }}"> {{ $category->name }}</option>
                                     @empty
                                     <option value=""> No records found. </option>
@@ -229,6 +190,7 @@
                                 </select>
                             </div>
                         </div>
+                        @endif
                         <!-- End Col -->
 
                         <div class="sm:col-span-2">

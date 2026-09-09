@@ -58,7 +58,7 @@
                     <td>SOURCE</td>
                     <th>{{ Str::title($document->source) }}</th>
                     <td>CATEGORY</td>
-                    <th colspan="2">{{ $document->category->name }}</th>
+                    <th colspan="2">{{ $document->category->name ?? '—' }}</th>
                 </tr>
                 @if ($document->citizen_charter_id)
                     <tr>

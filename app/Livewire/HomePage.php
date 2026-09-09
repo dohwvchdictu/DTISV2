@@ -8,12 +8,11 @@ use Jantinnerezo\LivewireAlert\LivewireAlert;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
+#[Title('Dashboard | Document Tracking Information System')]
 class HomePage extends Component
 {
     /** mount() alerts when the session carries no office; without this the call itself crashed. */
     use LivewireAlert;
-
-    #[Title('Dashboard | Document Tracking Information System')]
 
     /** Awaiting receipt by the holding office. */
     private const FOR_ACTION_STATUSES = ['For Receiving', 'Returned'];

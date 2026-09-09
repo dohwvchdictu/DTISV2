@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Document;
 use App\Models\Log;
-use App\Support\BusinessDays;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -21,8 +20,8 @@ class MiscController extends Controller
     private const ACTION_CLOSED = 5;
     private const ACTIONS_COMPLETED = [self::ACTION_FORWARDED, self::ACTION_CLOSED];
 
-    /** A pending document is overdue once it has sat this long at one office. */
-    private const OVERDUE_AFTER_DAYS = 3;
+    /** Fallback when neither the citizen charter nor the category sets required_days. */
+    private const DEFAULT_REQUIRED_DAYS = 20;
 
     public $user = [];
     public $id;
@@ -345,33 +344,46 @@ class MiscController extends Controller
     }
 
     /**
-     * Pending documents that have sat more than OVERDUE_AFTER_DAYS business days
-     * at the office now holding them. A strict subset of the Pending column.
-     * Mirrors DocumentStatus::overdueByOffice().
+     * Pending documents past the deadline their service commitment set, charged
+     * to the office now holding them. A strict subset of the Pending column.
+     * Mirrors DocumentStatus::overdueByOffice() — see the notes there on why the
+     * clock runs from creation rather than from the current office's receipt.
      */
     private function overdueDocumentsByOffice($rangeStart, $rangeEnd)
     {
-        $receipts = DB::table('logs')
-            ->join('documents', 'documents.id', '=', 'logs.document_id')
+        $requiredDays = 'case'
+            . ' when citizen_charters.required_days > 0 then citizen_charters.required_days'
+            . ' when categories.required_days > 0 then categories.required_days'
+            . ' else ' . self::DEFAULT_REQUIRED_DAYS
+            . ' end';
+
+        $groups = DB::table('documents')
+            ->leftJoin('citizen_charters', 'citizen_charters.id', '=', 'documents.citizen_charter_id')
+            ->leftJoin('categories', 'categories.id', '=', 'documents.category_id')
             ->where('documents.status', 'On Process')
             ->whereBetween('documents.created_at', [$rangeStart, $rangeEnd])
-            ->where('logs.action_id', self::ACTION_RECEIVED)
-            /** Only receipts logged by the office currently holding the document. */
-            ->whereColumn('logs.assigned_to', 'documents.assigned_to')
-            ->groupBy('logs.document_id', 'documents.assigned_to')
-            ->selectRaw('logs.document_id, documents.assigned_to, MAX(logs.created_at) as received_at')
-            ->cursor();
+            ->groupBy('documents.assigned_to', DB::raw($requiredDays), DB::raw('date(documents.created_at)'))
+            ->select([
+                'documents.assigned_to',
+                DB::raw($requiredDays . ' as required_days'),
+                DB::raw('date(documents.created_at) as created_date'),
+                DB::raw('count(*) as documents'),
+            ])
+            ->get();
 
-        $now = \Carbon\Carbon::now();
+        $today = \Carbon\Carbon::today();
         $overdue = [];
 
-        foreach ($receipts as $receipt) {
-            if (BusinessDays::between($receipt->received_at, $now) <= self::OVERDUE_AFTER_DAYS) {
+        foreach ($groups as $group) {
+            $dueDate = \Carbon\Carbon::parse($group->created_date)->startOfDay()->addWeekdays((int) $group->required_days);
+
+            /** Signed working days to the deadline: >0 left, <0 overdue. */
+            if ((int) $today->diffInWeekdays($dueDate, false) >= 0) {
                 continue;
             }
 
-            $officeId = $receipt->assigned_to;
-            $overdue[$officeId] = ($overdue[$officeId] ?? 0) + 1;
+            $officeId = $group->assigned_to;
+            $overdue[$officeId] = ($overdue[$officeId] ?? 0) + (int) $group->documents;
         }
 
         return collect($overdue);

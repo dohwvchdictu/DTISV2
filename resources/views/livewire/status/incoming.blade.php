@@ -407,7 +407,7 @@
                                             <span class="block p-6">
                                                 <span
                                                     class="block text-sm font-semibold text-gray-800 dark:text-neutral-200">{{
-                                                    $document->category->name }}</span>
+                                                    $document->category->name ?? 'Uncategorised' }}</span>
                                                 <span class="block text-sm text-gray-500 dark:text-neutral-500 break-words">{{
                                                     $document->subject }}</span>
                                                 <div class="flex gap-x-1 my-2">

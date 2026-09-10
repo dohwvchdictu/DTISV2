@@ -129,7 +129,7 @@
                                             </a>
                                         </td>
                                         <td class="px-3 py-2 lg:px-6 lg:py-4 text-xs lg:text-sm text-gray-700 dark:text-neutral-300 max-w-[140px] lg:max-w-xs">
-                                            <div class="font-medium text-xs text-gray-500 dark:text-neutral-400 truncate">{{ $doc->category->name ?? '—' }}</div>
+                                            <div class="font-medium text-xs text-gray-500 dark:text-neutral-400 truncate">{{ $doc->classification }}</div>
                                             <div class="mt-0.5 line-clamp-2">{{ $doc->subject ?? '—' }}</div>
                                         </td>
                                         <td class="px-3 py-2 lg:px-6 lg:py-4 text-xs lg:text-sm">

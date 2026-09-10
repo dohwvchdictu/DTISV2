@@ -109,7 +109,7 @@ class DocumentDetail extends Component
         $this->document = Document::firstWhere('control_no', $control_no);
         $this->id = $this->document->id;
         $this->control_no = $this->document->control_no;
-        $this->type = $this->document->category->name ?? 'Uncategorised';
+        $this->type = $this->document->classification;
         $this->subject = $this->document->subject;
 
         $this->pendings = Document::where('assigned_to', $this->office)->where('status', 'On Process')->whereNull('bundle_id')->orderBy('created_at', 'DESC')->get();

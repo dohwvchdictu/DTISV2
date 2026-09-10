@@ -250,7 +250,7 @@ class Endorsed extends Component
         $order = array_flip($selection);
 
         return $this->eligibilityQuery()
-            ->with('category')
+            ->with(['category', 'citizencharter'])
             ->whereIn('id', $selection)
             ->get()
             ->sortByDesc(fn ($document) => $order[$document->id] ?? -1)

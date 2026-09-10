@@ -121,57 +121,105 @@
 {{-- End of Forward --}}
 
 {{-- Timeline --}}
+{{--
+    Mirrors the global search tracking modal (livewire/document-tracking.blade.php)
+    so a routing trail reads the same wherever it is opened from.
+
+    Note: this file is included after the attached-document loops in
+    document-detail.blade.php, which reuse `$document` as their loop variable and
+    leave it pointing at the last attachment. Reach for `$this->document` here.
+--}}
 <div wire:ignore.self id="document-timeline-modal"
-    class="hs-overlay hidden size-full fixed top-0 start-0 z-[80] overflow-x-hidden overflow-y-auto pointer-events-none"
+    class="hs-overlay hidden size-full fixed top-0 start-0 z-[80] overflow-x-hidden overflow-y-auto"
     role="dialog" tabindex="-1" aria-labelledby="document-timeline-modal-label">
     <div
-        class="hs-overlay-open:mt-7 hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all lg:max-w-4xl lg:w-full m-3 lg:mx-auto h-[calc(100%-3.5rem)] min-h-[calc(100%-3.5rem)] flex items-center">
+        class="hs-overlay-open:mt-7 hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all sm:max-w-4xl sm:w-full m-3 sm:mx-auto">
         <div
-            class="w-full max-h-full overflow-hidden flex flex-col bg-white border shadow-sm rounded-xl pointer-events-auto dark:bg-neutral-800 dark:border-neutral-700 dark:shadow-neutral-700/70">
+            class="flex flex-col bg-white border shadow-sm rounded-xl pointer-events-auto dark:bg-neutral-800 dark:border-neutral-700 dark:shadow-neutral-700/70">
+            @php
+                $timelineRows = $this->timelineRows($logs);
+                $currentLocation = $this->timelineLocation($timelineRows);
+            @endphp
+
+            {{-- Header --}}
             <div class="flex justify-between items-center py-3 px-4 border-b dark:border-neutral-700">
-                <div class="mb-2">
-                    <h2 class="text-xl font-bold text-emerald-700 dark:text-neutral-200">
-                        Tracking Details
-                    </h2>
-                    <span class="text-sm text-gray-600 dark:text-neutral-400 mb-4">
-                        {{ $control_no }}
-                    </span>
-                </div>
                 <div>
-                    <span class="text-sm px-4 py-2 rounded-lg bg-gray-100 dark:bg-neutral-700 text-gray-600 dark:text-neutral-400 mr-3">
-                        <em>{{'Calculated Turnaround Time: '. $turnaround_time . ' ' . $this->suffixTurnaroundTime()
-                            }}</em>
-                    </span>
-                    <button type="button"
-                        class="size-8 inline-flex justify-center items-center gap-x-2 rounded-full border border-transparent bg-gray-100 text-gray-800 hover:bg-gray-200 focus:outline-none focus:bg-gray-200 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-neutral-400 dark:focus:bg-neutral-600"
-                        aria-label="Close" data-hs-overlay="#document-timeline-modal">
-                        <span class="sr-only">Close</span>
-                        <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M18 6 6 18"></path>
-                            <path d="m6 6 12 12"></path>
-                        </svg>
-                    </button>
+                    <h3 id="document-timeline-modal-label"
+                        class="font-bold text-emerald-700 text-lg dark:text-white">
+                        Document Tracking
+                    </h3>
+                    <p class="text-sm text-gray-600 dark:text-neutral-400">
+                        {{ $this->document->control_no ?? 'N/A' }}
+                        @isset($turnaround_time)
+                            <span class="text-gray-400 dark:text-neutral-500">
+                                · {{ $turnaround_time }} {{ $this->suffixTurnaroundTime() }}
+                            </span>
+                        @endisset
+                    </p>
+                    @if($currentLocation)
+                        {{-- Saves the reader inferring the current holder from the newest entry. --}}
+                        <p class="mt-1 text-xs text-gray-500 dark:text-neutral-400">
+                            <span class="font-medium">Currently:</span> {{ $currentLocation }}
+                            <span class="{{ $this->timelineStatusColor($this->document->status) }}">
+                                · {{ $this->document->status ?? 'N/A' }}
+                            </span>
+                        </p>
+                    @endif
+                </div>
+                <button type="button"
+                    class="size-8 inline-flex justify-center items-center gap-x-2 rounded-full border border-transparent bg-gray-100 text-gray-800 hover:bg-gray-200 focus:outline-none focus:bg-gray-200 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-neutral-400 dark:focus:bg-neutral-600"
+                    aria-label="Close" data-hs-overlay="#document-timeline-modal">
+                    <span class="sr-only">Close</span>
+                    <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 6 6 18"></path>
+                        <path d="m6 6 12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            {{-- Document Details --}}
+            <div class="p-4 border-b dark:border-neutral-700 bg-gray-50 dark:bg-neutral-900">
+                <div class="mb-2">
+                    <p class="text-xs text-gray-500 dark:text-neutral-400 uppercase">Procedure / Category</p>
+                    <p class="text-md text-gray-800 dark:text-neutral-200 break-words">
+                        {{ $this->document->classification ?? 'N/A' }}
+                    </p>
+                </div>
+                <div class="mb-2">
+                    <p class="text-xs text-gray-500 dark:text-neutral-400 uppercase">Status</p>
+                    <p class="text-md font-medium {{ $this->timelineStatusColor($this->document->status) }} break-words">
+                        {{ $this->document->status ?? 'N/A' }}
+                    </p>
+                </div>
+                <div class="mt-2">
+                    <p class="text-xs text-gray-500 dark:text-neutral-400 uppercase">Subject</p>
+                    <p class="text-md text-gray-800 dark:text-neutral-200 break-words">
+                        {{ $this->document->subject ?? 'N/A' }}
+                    </p>
                 </div>
             </div>
-            <div class="p-4 overflow-y-auto">
-                <div class="space-y-4">
-                    <!-- Timeline -->
-                    <div>
-                        @php($timelineRows = $this->timelineRows($logs))
-                        @if (count($timelineRows))
-                        <x-document-timeline :rows="$timelineRows" />
-                        @else
-                        <div class="mt-2 text-center bg-gray-50 border border-gray-200 text-sm text-gray-600 rounded-lg p-4 dark:bg-white/10 dark:border-white/10 dark:text-neutral-400"
-                            role="alert" tabindex="-1" aria-labelledby="hs-soft-color-secondary-label">
-                            <span id="hs-soft-color-secondary-label" class="font-bold">Result:</span> No logs were found
-                            for this document!
-                        </div>
-                        @endif
-                        <!-- End Timeline -->
+
+            {{-- Tracking Timeline --}}
+            <div class="p-4 overflow-y-auto max-h-[500px]">
+                @if (count($timelineRows) > 0)
+                    <x-document-timeline :rows="$timelineRows" />
+                @else
+                    {{-- No Tracking Data --}}
+                    <div class="text-center py-8">
+                        <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-neutral-500" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <h3 class="mt-2 text-sm font-semibold text-gray-900 dark:text-white">No tracking data
+                        </h3>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-neutral-400">
+                            No tracking information available for this document
+                        </p>
                     </div>
-                </div>
+                @endif
 
                 {{-- Modal Loading --}}
                 <div wire:loading>
@@ -183,6 +231,15 @@
                     </div>
                 </div>
                 {{-- End of Modal Loading --}}
+            </div>
+
+            {{-- Footer --}}
+            <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t dark:border-neutral-700">
+                <button type="button"
+                    class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 focus:outline-none focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"
+                    data-hs-overlay="#document-timeline-modal">
+                    Close
+                </button>
             </div>
         </div>
     </div>

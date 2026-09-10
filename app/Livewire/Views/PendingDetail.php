@@ -125,7 +125,7 @@ class PendingDetail extends Component
         $this->document_to_close = $this->document->id;
         $this->parent_bundle = $this->document->id;
         $this->control_no = $this->document->control_no;
-        $this->type = $this->document->category->name ?? 'Uncategorised';
+        $this->type = $this->document->classification;
 
         $this->pendings = Document::where('assigned_to', $this->office)->where('status', 'On Process')->whereNull('bundle_id')->orderBy('created_at', 'DESC')->get();
         $this->documents_attached = Document::where('assigned_to', $this->office)->where('status','On Process')->where('bundle_id', $this->parent_bundle)->orderBy('created_at', 'DESC')->get();

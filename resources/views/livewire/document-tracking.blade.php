@@ -52,9 +52,9 @@
                 {{-- Document Details --}}
                 <div class="p-4 border-b dark:border-neutral-700 bg-gray-50 dark:bg-neutral-900">
                     <div class="mb-2">
-                        <p class="text-xs text-gray-500 dark:text-neutral-400 uppercase">Category</p>
+                        <p class="text-xs text-gray-500 dark:text-neutral-400 uppercase">Procedure / Category</p>
                         <p class="text-md text-gray-800 dark:text-neutral-200 break-words">
-                            {{ $document['category']['name'] ?? 'N/A' }}
+                            {{ $document['classification'] ?? $document['category']['name'] ?? 'N/A' }}
                         </p>
                     </div>
                     <div class="mb-2">

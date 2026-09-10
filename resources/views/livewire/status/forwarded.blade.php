@@ -325,7 +325,7 @@
                                             <span class="block p-6">
                                                 <span
                                                     class="block text-sm font-semibold text-gray-800 dark:text-neutral-200">{{
-                                                    $document->category->name ?? 'Uncategorised' }}</span>
+                                                    $document->classification }}</span>
                                                 <span class="block text-sm text-gray-500 dark:text-neutral-500 break-words">{{
                                                     $document->subject }}</span>
                                                 <div class="flex gap-x-1 my-2">
@@ -333,11 +333,11 @@
                                                         class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium {{ $document->source == 'internal' ? 'bg-emerald-100 text-gray-800 dark:bg-emerald-500/20 dark:text-neutral-200' : 'bg-red-100 text-gray-800 dark:bg-red-500/20 dark:text-neutral-200'}} ">
                                                         {{ Str::title($document->source) }}
                                                     </span>
-                                                    @if($document->citizen_charter_id)
+                                                    @if($document->citizen_charter_id && $document->category_id)
                                                     <span
                                                         class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium bg-gray-100 dark:bg-neutral-700 text-gray-800 dark:text-neutral-200">
                                                         {{
-                                                            \App\Models\CitizenCharter::find($document->citizen_charter_id)->name
+                                                            $document->citizencharter->name
                                                         }}
                                                     </span>
                                                     @endif

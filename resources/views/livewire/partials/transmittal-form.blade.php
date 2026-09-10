@@ -63,7 +63,7 @@
                 @if ($document->citizen_charter_id)
                     <tr>
                         <td>CITIZEN CHARTER</td>
-                        <th colspan="4">{{ \App\Models\CitizenCharter::find($document->citizen_charter_id)->name }}
+                        <th colspan="4">{{ $document->citizencharter->name }}
                         </th>
                     </tr>
                 @endif

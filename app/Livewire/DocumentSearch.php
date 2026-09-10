@@ -31,7 +31,7 @@ class DocumentSearch extends Component
         $this->isLoading = true;
         
         try {
-            $results = Document::with('category')
+            $results = Document::with(['category', 'citizencharter'])
                 ->where('subject', 'like', '%' . $this->searchQuery . '%')
                 ->orWhere('control_no', 'like', '%' . $this->searchQuery . '%')
                 ->orderBy('created_at', 'desc')

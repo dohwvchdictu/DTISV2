@@ -153,7 +153,7 @@ class MiscController extends Controller
 
         $documents = [];
         if (!empty($selectedItems)) {
-            $documents = Document::with(['category', 'logs' => function ($query) {
+            $documents = Document::with(['category', 'citizencharter', 'logs' => function ($query) {
                 $query->with(['action', 'user'])->orderBy('created_at', 'asc');
             }])
                 ->whereIn('id', $selectedItems)
@@ -174,7 +174,7 @@ class MiscController extends Controller
                 'assigned_to' => $document->assigned_to,
                 'control_no' => $document->control_no,
                 'subject' => $document->subject,
-                'category' => $document->category->name ?? 'N/A',
+                'category' => $document->classification,
                 'created_at' => $document->created_at,
                 'status' => $document->status,
                 'logs' => $document->logs

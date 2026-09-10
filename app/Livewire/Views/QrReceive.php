@@ -31,7 +31,7 @@ class QrReceive extends Component
         $this->user   = session('user');
         $this->office = $this->user['office']['id'];
 
-        $doc = Document::with('category')->where('control_no', $control_no)->first();
+        $doc = Document::with(['category', 'citizencharter'])->where('control_no', $control_no)->first();
 
         if (! $doc) {
             $this->state = 'not_found';

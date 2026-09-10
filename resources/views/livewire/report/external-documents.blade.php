@@ -169,7 +169,7 @@
                                                 {{ $document->subject }}
                                             </td>
                                             <td class="px-4 py-4 align-top text-gray-800 dark:text-neutral-200 min-w-[150px]">
-                                                {{ $document->category->name ?? '—' }}
+                                                {{ $document->classification }}
                                             </td>
                                             <td class="px-4 py-4 align-top text-gray-800 dark:text-neutral-200 min-w-[150px]">
                                                 {{ $this->getOfficeShortName($document->office_id) }} /

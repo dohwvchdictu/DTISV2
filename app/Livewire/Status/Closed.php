@@ -178,7 +178,7 @@ class Closed extends Component
             // Eager load logs + category to prevent N+1 queries.
             // ASC so ->first() on the loaded relation returns the earliest matching
             // log — the same record the old per-row query (no order) displayed.
-            ->with(['category', 'logs' => function ($query) {
+            ->with(['category', 'citizencharter', 'logs' => function ($query) {
                 $query->where('assigned_to', $this->office)
                     ->where('action_id', 5)
                     ->orderBy('created_at', 'ASC');

@@ -36,7 +36,7 @@
             <div class="mb-5 pb-5 flex justify-between items-center border-b border-gray-200 dark:border-neutral-700">
                 <div>
                     <h2 class="text-2xl font-semibold text-emerald-600 dark:text-neutral-200">{{
-                        $document->category->name ?? 'Uncategorised' }}</h2>
+                        $document->classification }}</h2>
                     <span
                         class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium bg-gray-50 dark:bg-neutral-700 text-gray-800 dark:text-neutral-200">
                         Control No. {{
@@ -146,11 +146,11 @@
                                     class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium {{ $document->source == 'internal' ? 'bg-emerald-100 text-gray-800 dark:bg-emerald-500/20 dark:text-neutral-200' : 'bg-red-100 text-gray-800 dark:bg-red-500/20 dark:text-neutral-200'}} ">
                                     {{ Str::title($document->source) }}
                                 </span>
-                                @if($document->citizen_charter_id)
+                                @if($document->citizen_charter_id && $document->category_id)
                                 <span
                                     class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium bg-gray-50 dark:bg-neutral-700 text-gray-800 dark:text-neutral-200">
                                     {{
-                                    \App\Models\CitizenCharter::find($document->citizen_charter_id)->name
+                                    $document->citizencharter->name
                                     }}
                                 </span>
                                 @endif
@@ -167,7 +167,7 @@
                                 <span
                                     class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium bg-gray-50 dark:bg-neutral-700 text-gray-800 dark:text-neutral-200">
                                     {{
-                                    \App\Models\CitizenCharter::find($document->citizen_charter_id)->required_days
+                                    $document->citizencharter->required_days
                                     }} Days
                                 </span>
                                 @endif

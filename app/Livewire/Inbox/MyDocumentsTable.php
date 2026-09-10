@@ -237,7 +237,7 @@ class MyDocumentsTable extends Component
         $order = array_flip($selection);
 
         return $this->eligibilityQuery()
-            ->with('category')
+            ->with(['category', 'citizencharter'])
             ->whereIn('id', $selection)
             ->get()
             ->sortByDesc(fn ($document) => $order[$document->id] ?? -1)
@@ -676,7 +676,7 @@ class MyDocumentsTable extends Component
     public function render()
     {
         $documents = $this->baseQuery()
-            ->with('category')
+            ->with(['category', 'citizencharter'])
             ->orderBy('created_at', 'DESC')
             ->paginate(10);
 

@@ -96,7 +96,7 @@ class RoutingLogbook extends Component
 
         $documentIds = $logs->pluck('document_id')->filter()->unique();
 
-        $docs = Document::with('category')
+        $docs = Document::with(['category', 'citizencharter'])
             ->whereIn('id', $documentIds)
             ->get()
             ->keyBy('id');

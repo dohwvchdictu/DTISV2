@@ -71,8 +71,8 @@
                             <dd class="text-gray-800 dark:text-neutral-200">{{ $document->subject }}</dd>
                         </dl>
                         <dl class="flex flex-col sm:flex-row gap-x-3 text-sm">
-                            <dt class="min-w-36 max-w-[200px] text-gray-500 dark:text-neutral-500">Category:</dt>
-                            <dd class="text-gray-800 dark:text-neutral-200">{{ $document->category->name ?? 'Uncategorised' }}</dd>
+                            <dt class="min-w-36 max-w-[200px] text-gray-500 dark:text-neutral-500">Procedure / Category:</dt>
+                            <dd class="text-gray-800 dark:text-neutral-200">{{ $document->classification }}</dd>
                         </dl>
                     </div>
                     <div class="px-6 pb-6 flex justify-end">
@@ -137,8 +137,8 @@
                             <dd class="text-gray-800 dark:text-neutral-200">{{ $document->subject }}</dd>
                         </dl>
                         <dl class="flex flex-col sm:flex-row gap-x-3 text-sm">
-                            <dt class="min-w-36 max-w-[200px] text-gray-500 dark:text-neutral-500">Category:</dt>
-                            <dd class="text-gray-800 dark:text-neutral-200">{{ $document->category->name ?? 'Uncategorised' }}</dd>
+                            <dt class="min-w-36 max-w-[200px] text-gray-500 dark:text-neutral-500">Procedure / Category:</dt>
+                            <dd class="text-gray-800 dark:text-neutral-200">{{ $document->classification }}</dd>
                         </dl>
                     </div>
                     <div class="px-6 pb-6 flex justify-end">
@@ -177,8 +177,8 @@
                             <dd class="font-medium text-gray-800 dark:text-neutral-200">{{ $document->subject }}</dd>
                         </dl>
                         <dl class="flex flex-col sm:flex-row gap-x-3 text-sm">
-                            <dt class="min-w-36 max-w-[200px] text-gray-500 dark:text-neutral-500">Category:</dt>
-                            <dd class="text-gray-800 dark:text-neutral-200">{{ $document->category->name ?? 'Uncategorised' }}</dd>
+                            <dt class="min-w-36 max-w-[200px] text-gray-500 dark:text-neutral-500">Procedure / Category:</dt>
+                            <dd class="text-gray-800 dark:text-neutral-200">{{ $document->classification }}</dd>
                         </dl>
                         <dl class="flex flex-col sm:flex-row gap-x-3 text-sm">
                             <dt class="min-w-36 max-w-[200px] text-gray-500 dark:text-neutral-500">Received by:</dt>
@@ -219,7 +219,7 @@
                     <div class="px-6 py-4 grid gap-3 md:flex md:justify-between md:items-center border-b border-gray-200 dark:border-neutral-700">
                         <div>
                             <h2 class="text-xl font-bold text-emerald-700 dark:text-neutral-200">
-                                {{ $document->category->name ?? 'Uncategorised' }}
+                                {{ $document->classification }}
                             </h2>
                             <span class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium bg-gray-50 dark:bg-neutral-700 text-gray-800 dark:text-neutral-200">
                                 Control No. {{ $document->control_no }}

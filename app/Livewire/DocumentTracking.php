@@ -77,7 +77,7 @@ class DocumentTracking extends Component
     public function loadTrackingData()
     {
         try {
-            $document = Document::with(['category', 'logs' => function ($query) {
+            $document = Document::with(['category', 'citizencharter', 'logs' => function ($query) {
                 $query->with(['user', 'action'])
                     ->orderBy('created_at', 'desc')
                     ->orderBy('id', 'desc'); // tiebreaker for entries sharing a timestamp (Forwarded + For Receiving)
@@ -89,6 +89,14 @@ class DocumentTracking extends Component
             // relation; backfill it so the modal renders on its own.
             if ($document && !isset($this->document['category'])) {
                 $this->document['category'] = $document->category?->toArray();
+            }
+
+            /** The one-line answer to "what is this document", carried across as a
+             *  plain string because this modal works off a flattened array and so
+             *  cannot reach the model's accessor. A charter transaction has no
+             *  category, and would otherwise read N/A here. */
+            if ($document) {
+                $this->document['classification'] = $document->classification;
             }
 
             if ($document && $document->logs) {

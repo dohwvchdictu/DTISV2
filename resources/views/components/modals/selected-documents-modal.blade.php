@@ -67,7 +67,7 @@
                                         {{ $selected->subject }}
                                     </p>
                                     <p class="mt-0.5 text-xs text-gray-500 dark:text-neutral-500">
-                                        {{ $selected->category->name ?? 'Uncategorised' }}
+                                        {{ $selected->classification }}
                                         &middot;
                                         {{ $selected->created_at?->format('d M Y') }}
                                     </p>

@@ -362,7 +362,7 @@ class DocumentDetail extends Component
                 'user_id' => $this->user['id'],
                 'office_id' => $this->office,
                 'assigned_to' => $this->office,
-                'description' => "Document has been attached to Bundle of " . $bundle->category->name . " (" . $bundle->control_no . ")."
+                'description' => "Document has been attached to Bundle of " . $bundle->classification . " (" . $bundle->control_no . ")."
             ]);
         }
 
@@ -404,7 +404,7 @@ class DocumentDetail extends Component
             'user_id' => $this->user['id'],
             'office_id' => $this->office,
             'assigned_to' => $this->office,
-            'description' => "Document has been removed to Bundle of " . $bundle->category->name . " (" . $bundle->control_no . ")."
+            'description' => "Document has been removed to Bundle of " . $bundle->classification . " (" . $bundle->control_no . ")."
         ]);
 
         $document->update([

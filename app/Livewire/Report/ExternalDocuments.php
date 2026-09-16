@@ -121,10 +121,11 @@ class ExternalDocuments extends Component
     }
 
     /**
-     * Working-day countdown to a document's deadline, based on its category's
-     * required days. Documents without a category default to 20 days. The
-     * deadline is the created date plus that many working days (Mon–Fri;
-     * weekends excluded, holidays not accounted for).
+     * Working-day countdown to a document's deadline, based on its prescribed
+     * timeline: the charter's required days, else the category's, else the
+     * default (see Document::requiredDays). The deadline is the created date
+     * plus that many working days (Mon–Fri; weekends excluded, holidays not
+     * accounted for).
      *
      * The signed `remaining` is the number of working days left (negative when
      * overdue, null when already closed) and drives the state used for the
@@ -137,7 +138,7 @@ class ExternalDocuments extends Component
      */
     public function trackingStatus(Document $document): array
     {
-        $requiredDays = (int) ($document->category->required_days ?? 20);
+        $requiredDays = $document->required_days;
 
         $dueDate = $document->created_at->copy()->startOfDay()->addWeekdays($requiredDays);
         $today = Carbon::today();
@@ -216,7 +217,7 @@ class ExternalDocuments extends Component
 
     public function render()
     {
-        $documents = Document::with(['logs', 'category'])
+        $documents = Document::with(['logs', 'category', 'citizencharter'])
             ->where('source', 'external')
             ->where('office_id', $this->office)
             ->whereDate('created_at', '>=', $this->startDate)

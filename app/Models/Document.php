@@ -53,4 +53,45 @@ class Document extends Model
             fn () => $this->category?->name ?? $this->citizencharter?->name ?? '—'
         );
     }
+
+    /** Fallback when neither the citizen charter nor the category sets required_days. */
+    public const DEFAULT_REQUIRED_DAYS = 20;
+
+    /**
+     * The prescribed timeline, in working days, that a document's deadline is
+     * counted from.
+     *
+     * The charter's required days win when it has a usable value, else the
+     * category's, else the default. A non-positive value counts as unset: a
+     * zero-day commitment would mark a document overdue the moment it was
+     * encoded.
+     *
+     * Charter-first, unlike `classification`, because the timeline is a service
+     * commitment the office is answerable for, not a label. Documents encoded
+     * before the charter form dropped the category select carry both, and for
+     * those the charter is the promise that was actually made to the citizen.
+     *
+     * This mirrors the SQL `CASE` used by HomePage, Report\DocumentStatus and
+     * MiscController, which aggregate too many rows to hydrate models. Keep the
+     * two in step.
+     *
+     * Reads through the relations, so eager-load `category` and `citizencharter`
+     * on anything that renders a list of these.
+     */
+    protected function requiredDays(): Attribute
+    {
+        return Attribute::get(function () {
+            $charterDays = (int) ($this->citizencharter?->required_days ?? 0);
+            if ($charterDays > 0) {
+                return $charterDays;
+            }
+
+            $categoryDays = (int) ($this->category?->required_days ?? 0);
+            if ($categoryDays > 0) {
+                return $categoryDays;
+            }
+
+            return self::DEFAULT_REQUIRED_DAYS;
+        });
+    }
 }

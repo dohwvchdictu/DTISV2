@@ -163,14 +163,12 @@
                                 Required Days:
                             </dt>
                             <dd class="text-gray-800 dark:text-neutral-200">
-                                @if($document->citizen_charter_id)
                                 <span
                                     class="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-xs font-medium bg-gray-50 dark:bg-neutral-700 text-gray-800 dark:text-neutral-200">
                                     {{
-                                    $document->citizencharter->required_days
+                                    $document->required_days
                                     }} Days
                                 </span>
-                                @endif
                             </dd>
 
                         </dl>

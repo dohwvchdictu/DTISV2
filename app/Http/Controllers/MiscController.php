@@ -97,7 +97,8 @@ class MiscController extends Controller
         $office = $user['office']['officeName'] ?? '';
         /** End User Information */
 
-        $document = Document::where('control_no', $control_no)->first();
+        /** Both relations are eager-loaded because the form prints `classification`. */
+        $document = Document::with(['category', 'citizencharter'])->where('control_no', $control_no)->first();
         $log = Log::where('document_id', $document->id)->where('action_id', 7)->first();
         $this->destination = $log->assigned_to ?? null;
         $destination = $this->lookUpOffice($this->destination);
@@ -205,8 +206,9 @@ class MiscController extends Controller
         // Pre-aggregate the counts in grouped queries instead of running several
         // count queries per office (~150 queries). Mirrors the on-screen report
         // in App\Livewire\Report\DocumentStatus; keep the two in step.
-        $rangeStart = \Carbon\Carbon::parse($startDate)->addDay(1);
-        $rangeEnd = \Carbon\Carbon::parse($endDate)->addDay(1);
+        /** Inclusive of both selected days — see App\Livewire\Report\DocumentStatus. */
+        $rangeStart = \Carbon\Carbon::parse($startDate)->startOfDay();
+        $rangeEnd = \Carbon\Carbon::parse($endDate)->addDay()->startOfDay();
 
         $pendingByOffice = Document::where('status', 'On Process')
             ->whereBetween('created_at', [$rangeStart, $rangeEnd])
@@ -402,37 +404,37 @@ class MiscController extends Controller
 
         // Load offices data
         $this->mount();
-        
+
+        /**
+         * The selected range, inclusive of both days the user picked, and shared by
+         * every query below so the summary cards and the per-office table cannot
+         * disagree. This matches the on-screen report in
+         * App\Livewire\Report\ExternalDocuments, which filters on the date part of
+         * created_at — previously the printed copy shifted the whole window forward
+         * a day and quietly reported different totals than the screen it was
+         * printed from.
+         */
+        $rangeStart = \Carbon\Carbon::parse($startDate)->startOfDay();
+        $rangeEnd = \Carbon\Carbon::parse($endDate)->addDay()->startOfDay();
+
         // Generate overall statistics for external documents
         $reportData['overall'] = [
             'incoming' => Document::where('source', 'external')
                 ->whereIn('status', ['For Receiving', 'Returned'])
-                ->whereBetween('created_at', [
-                    \Carbon\Carbon::parse($startDate)->addDay(1),
-                    \Carbon\Carbon::parse($endDate)->addDay(1)
-                ])->count(),
+                ->whereBetween('created_at', [$rangeStart, $rangeEnd])->count(),
             'pending' => Document::where('source', 'external')
                 ->whereIn('status', ['On Process'])
-                ->whereBetween('created_at', [
-                    \Carbon\Carbon::parse($startDate)->addDay(1),
-                    \Carbon\Carbon::parse($endDate)->addDay(1)
-                ])->count(),
+                ->whereBetween('created_at', [$rangeStart, $rangeEnd])->count(),
             'processed' => Document::where('source', 'external')
                 ->whereNull('bundle_id')
                 ->whereHas('logs', function ($query) {
                     $query->whereIn('action_id', [3, 5]);
                 })
-                ->whereBetween('created_at', [
-                    \Carbon\Carbon::parse($startDate)->addDay(1),
-                    \Carbon\Carbon::parse($endDate)->addDay(1)
-                ])->count(),
+                ->whereBetween('created_at', [$rangeStart, $rangeEnd])->count(),
         ];
 
         // Generate office-wise data for external documents. Pre-aggregate the
         // counts in three grouped queries instead of 3 count queries per office.
-        $rangeStart = \Carbon\Carbon::parse($startDate)->addDay(1);
-        $rangeEnd = \Carbon\Carbon::parse($endDate)->addDay(1);
-
         $incomingByOffice = Document::where('source', 'external')
             ->whereIn('status', ['For Receiving', 'Returned'])
             ->whereBetween('created_at', [$rangeStart, $rangeEnd])

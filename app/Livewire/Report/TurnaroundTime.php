@@ -45,6 +45,9 @@ class TurnaroundTime extends Component
     private const ACTION_CLOSED = 5;
     private const HOP_BOUNDARIES = [self::ACTION_RECEIVED, self::ACTION_FORWARDED, self::ACTION_CLOSED];
 
+    /** Bucket key for a document with neither a category nor a charter procedure. */
+    private const CLASSIFICATION_NONE = 'x';
+
     /** Constant Variables */
     /** Office directory kept protected so it is not serialized into the Livewire snapshot; reloaded from cache in boot(). */
     protected $offices = [];
@@ -323,9 +326,10 @@ class TurnaroundTime extends Component
     }
 
     /**
-     * Per-category breakdown for a single office: one row per document category,
-     * summarising the dwell of the completed hops at that office. Loaded on demand
-     * when a row is expanded and cached under office + filters.
+     * Per-type breakdown for a single office: one row per document category or
+     * charter procedure, summarising the dwell of the completed hops at that
+     * office. Loaded on demand when a row is expanded and cached under
+     * office + filters.
      */
     private function officeDetail(int $officeId): array
     {
@@ -336,7 +340,9 @@ class TurnaroundTime extends Component
             'end' => $this->applied['endDate'] ?? $this->endDate,
         ]));
 
-        return Cache::remember('turnaround_detail_v3_' . $signature, now()->addMinutes(5), function () use ($officeId) {
+        /** v4: the bucket key changed from a bare category id to a classification
+         *  key, so cached v3 payloads cannot be reused. */
+        return Cache::remember('turnaround_detail_v4_' . $signature, now()->addMinutes(5), function () use ($officeId) {
             return $this->walkOfficeDetail($officeId);
         });
     }
@@ -363,8 +369,18 @@ class TurnaroundTime extends Component
             return ['categories' => [], 'completed' => 0];
         }
 
-        /** document_id => category_id, so each hop can be attributed to a type. */
-        $categoryByDoc = Document::whereIn('id', $documentIds)->pluck('category_id', 'id');
+        /**
+         * document_id => classification key, so each hop can be attributed to a
+         * type. A Citizen's Charter transaction has no category and is attributed
+         * to its charter procedure instead; the charter only stands in where the
+         * category is absent, mirroring Document::classification. Prefixed so a
+         * category id and a charter id of the same number cannot collide.
+         */
+        $classificationByDoc = Document::whereIn('id', $documentIds)
+            ->get(['id', 'category_id', 'citizen_charter_id'])
+            ->mapWithKeys(fn ($document) => [
+                $document->id => $this->classificationKey($document->category_id, $document->citizen_charter_id),
+            ]);
 
         $logs = DB::table('logs')
             ->whereIn('document_id', $documentIds)
@@ -404,17 +420,17 @@ class TurnaroundTime extends Component
             /** Forwarded or Closed ends the window; only credit the office being detailed. */
             if ($openHop !== null) {
                 if ($openHop['office'] === $officeId) {
-                    $categoryId = (int) ($categoryByDoc[$documentId] ?? 0);
+                    $key = $classificationByDoc[$documentId] ?? self::CLASSIFICATION_NONE;
                     $days = $this->businessDays($openHop['time'], $log->created_at);
 
-                    if (!isset($categories[$categoryId])) {
-                        $categories[$categoryId] = ['count' => 0, 'sum' => 0, 'min' => $days, 'max' => $days];
+                    if (!isset($categories[$key])) {
+                        $categories[$key] = ['count' => 0, 'sum' => 0, 'min' => $days, 'max' => $days];
                     }
 
-                    $categories[$categoryId]['count']++;
-                    $categories[$categoryId]['sum'] += $days;
-                    $categories[$categoryId]['min'] = min($categories[$categoryId]['min'], $days);
-                    $categories[$categoryId]['max'] = max($categories[$categoryId]['max'], $days);
+                    $categories[$key]['count']++;
+                    $categories[$key]['sum'] += $days;
+                    $categories[$key]['min'] = min($categories[$key]['min'], $days);
+                    $categories[$key]['max'] = max($categories[$key]['max'], $days);
                     $completed++;
                 }
 
@@ -423,6 +439,50 @@ class TurnaroundTime extends Component
         }
 
         return ['categories' => $categories, 'completed' => $completed];
+    }
+
+    /**
+     * How a document is grouped in the per-type breakdown: its category when it has
+     * one, else the charter procedure that classifies it. Category-first, mirroring
+     * Document::classification, so the documents encoded before the charter form
+     * dropped the category select keep grouping the way they always have.
+     */
+    private function classificationKey($categoryId, $charterId): string
+    {
+        if ($categoryId) {
+            return 'c:' . $categoryId;
+        }
+
+        if ($charterId) {
+            return 'p:' . $charterId;
+        }
+
+        return self::CLASSIFICATION_NONE;
+    }
+
+    /**
+     * Turn the bucket keys back into the names shown in the expanded table.
+     * Both lookups are needed: a category row and a charter row can appear side by
+     * side for the same office.
+     */
+    private function classificationNames(array $keys): array
+    {
+        $categoryNames = \App\Models\Category::pluck('name', 'id');
+        $charterNames = \App\Models\CitizenCharter::pluck('name', 'id');
+
+        $resolved = [];
+
+        foreach ($keys as $key) {
+            [$kind, $id] = array_pad(explode(':', $key, 2), 2, null);
+
+            $resolved[$key] = match ($kind) {
+                'c' => $categoryNames[$id] ?? 'Uncategorized',
+                'p' => $charterNames[$id] ?? 'Uncategorized',
+                default => 'Uncategorized',
+            };
+        }
+
+        return $resolved;
     }
 
     /**
@@ -521,17 +581,17 @@ class TurnaroundTime extends Component
             ['path' => Paginator::resolveCurrentPath(), 'pageName' => 'page']
         );
 
-        /** Lazy-load the expanded office's per-category breakdown, if any. */
+        /** Lazy-load the expanded office's per-type breakdown, if any. */
         $detail = null;
         if ($this->expandedOffice !== null) {
             $result = $this->officeDetail($this->expandedOffice);
 
-            $names = \App\Models\Category::pluck('name', 'id');
+            $names = $this->classificationNames(array_keys($result['categories']));
 
             $categoryRows = collect($result['categories'])
-                ->map(function ($stats, $categoryId) use ($names) {
+                ->map(function ($stats, $key) use ($names) {
                     return [
-                        'name' => $names[$categoryId] ?? 'Uncategorized',
+                        'name' => $names[$key] ?? 'Uncategorized',
                         'documents' => $stats['count'],
                         'avg' => $stats['count'] ? round($stats['sum'] / $stats['count'], 1) : null,
                         'min' => $stats['min'],

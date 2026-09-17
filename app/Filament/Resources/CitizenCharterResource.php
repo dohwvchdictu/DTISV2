@@ -85,17 +85,20 @@ class CitizenCharterResource extends Resource
             ->filters([
                 //
             ])
+            /**
+             * A procedure is retired by clearing "Active", never deleted. Documents
+             * reference it by id with no foreign key behind them, so deleting one
+             * still in use orphans every document classified under it - the charter
+             * name simply disappears from the lists, the transmittal form and the
+             * reports. Deactivating keeps the history readable and already drops the
+             * procedure from the New Document dropdown, which filters on is_active.
+             */
             ->actions([
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\EditAction::make(),
-                    Tables\Actions\DeleteAction::make()
                 ]),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ]);
+            ->bulkActions([]);
     }
 
     public static function getRelations(): array

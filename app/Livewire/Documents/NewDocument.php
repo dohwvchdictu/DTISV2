@@ -71,7 +71,11 @@ class NewDocument extends Component
                 'user' => 'required',
                 'is_arta' => 'nullable',
                 'is_bundle' => 'nullable',
-                'citizen_charter_id' => 'nullable'
+                /** The charter procedure is the charter transaction's only
+                 *  classification, so it has to be there - the category select is
+                 *  hidden and force-nulled below, and a document with neither
+                 *  reads as nothing at all and falls back to the default timeline. */
+                'citizen_charter_id' => $this->isCharterTransaction() ? 'required' : 'nullable'
             ], [], [
                 /** Named as the form labels them, so the toast reads back to the
                  *  field the user has to go and fix */

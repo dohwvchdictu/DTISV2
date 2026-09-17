@@ -37,7 +37,6 @@ class Forwarded extends Component
     public $selectAll = false;
     public $assignedTo;
     public $endorsedTo;
-    public $categories_array = [];
 
     /** Track Document  Variables */
     public $logs = [];

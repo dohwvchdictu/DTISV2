@@ -3,6 +3,7 @@
 namespace App\Livewire\Report;
 
 use App\Models\Category;
+use App\Models\CitizenCharter;
 use App\Models\Document;
 use App\Services\ApiService;
 use Carbon\Carbon;
@@ -115,23 +116,32 @@ class PerUnit extends Component
     }
 
     /**
-     * Per-category document counts as a flat list ordered Purchase Request,
+     * Per-type document counts as a flat list ordered Purchase Request,
      * then Payment, then General — highest count first within each group.
      * Each entry carries its group so the view can put the count in the
      * matching summary column.
+     *
+     * A Citizen's Charter transaction has no category, so it is counted under the
+     * charter procedure that classifies it and each procedure earns its own row.
+     * The charter only stands in where the category is absent, mirroring
+     * Document::classification — documents encoded before the charter form dropped
+     * the category select carry both, and they keep counting under their category.
      */
     private function categoryBreakdown(): array
     {
         $names = Category::pluck('name', 'id');
+        $charterNames = CitizenCharter::pluck('name', 'id');
 
         $buckets = ['purchase_requests' => [], 'payments' => [], 'general' => []];
 
         $this->filteredDocuments()
-            ->selectRaw('category_id, COUNT(*) as total')
-            ->groupBy('category_id')
+            ->selectRaw('category_id, CASE WHEN category_id IS NULL THEN citizen_charter_id END AS charter_id, COUNT(*) as total')
+            ->groupBy('category_id', 'charter_id')
             ->orderByDesc('total')
             ->get()
-            ->each(function ($row) use ($names, &$buckets) {
+            ->each(function ($row) use ($names, $charterNames, &$buckets) {
+                /** A charter row has no category_id, so it matches neither list and
+                 *  falls through to General on its own. */
                 if (in_array($row->category_id, $this->purchaseRequestCategoryIds)) {
                     $bucket = 'purchase_requests';
                 } elseif (in_array($row->category_id, $this->paymentCategoryIds)) {
@@ -141,7 +151,7 @@ class PerUnit extends Component
                 }
 
                 $buckets[$bucket][] = [
-                    'name' => $names[$row->category_id] ?? 'Uncategorized',
+                    'name' => $names[$row->category_id] ?? $charterNames[$row->charter_id] ?? 'Uncategorized',
                     'bucket' => $bucket,
                     'count' => (int) $row->total,
                 ];

@@ -57,13 +57,16 @@
                 <tr>
                     <td>SOURCE</td>
                     <th>{{ Str::title($document->source) }}</th>
-                    <td>CATEGORY</td>
-                    <th colspan="2">{{ $document->category->name ?? '—' }}</th>
+                    <td>PROCEDURE / CATEGORY</td>
+                    <th colspan="2">{{ $document->classification }}</th>
                 </tr>
-                @if ($document->citizen_charter_id)
+                {{-- Only worth its own row where the document carries both: a charter
+                     transaction has no category, so the procedure is already the line
+                     above and would just be printed twice. --}}
+                @if ($document->citizen_charter_id && $document->category_id)
                     <tr>
                         <td>CITIZEN CHARTER</td>
-                        <th colspan="4">{{ $document->citizencharter->name }}
+                        <th colspan="4">{{ $document->citizencharter?->name }}
                         </th>
                     </tr>
                 @endif

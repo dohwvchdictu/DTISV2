@@ -97,7 +97,8 @@ class MiscController extends Controller
         $office = $user['office']['officeName'] ?? '';
         /** End User Information */
 
-        $document = Document::where('control_no', $control_no)->first();
+        /** Both relations are eager-loaded because the form prints `classification`. */
+        $document = Document::with(['category', 'citizencharter'])->where('control_no', $control_no)->first();
         $log = Log::where('document_id', $document->id)->where('action_id', 7)->first();
         $this->destination = $log->assigned_to ?? null;
         $destination = $this->lookUpOffice($this->destination);

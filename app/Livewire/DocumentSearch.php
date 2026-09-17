@@ -38,7 +38,16 @@ class DocumentSearch extends Component
                 ->limit(50)
                 ->get();
             
-            $this->searchResults = $results->toArray();
+            /** The results are flattened to arrays for the Livewire snapshot, which
+             *  drops the model's accessors, so "what is this document" is carried
+             *  across as a plain string. A charter transaction has no category and
+             *  would otherwise read N/A in the list. */
+            $this->searchResults = $results->map(function ($document) {
+                $row = $document->toArray();
+                $row['classification'] = $document->classification;
+
+                return $row;
+            })->all();
         } catch (\Exception $e) {
             $this->searchResults = [];
             session()->flash('error', 'Search failed: ' . $e->getMessage());

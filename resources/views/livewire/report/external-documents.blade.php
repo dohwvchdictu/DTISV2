@@ -110,7 +110,7 @@
                                         </th>
                                         <th scope="col"
                                             class="px-4 py-3 text-start text-xs font-semibold uppercase text-gray-800 dark:text-neutral-200">
-                                            Document Type
+                                            Procedure / Category
                                         </th>
                                         <th scope="col"
                                             class="px-4 py-3 text-start text-xs font-semibold uppercase text-gray-800 dark:text-neutral-200">

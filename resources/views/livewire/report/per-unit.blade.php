@@ -158,7 +158,7 @@
         </div>
         {{-- End of Grand Total Cards --}}
 
-        {{-- Documents Per Type Table --}}
+        {{-- Documents Per Procedure / Category Table --}}
         <div class="max-w-full px-2 sm:px-6 lg:px-2 mx-auto">
             <!-- Card -->
             <div class="flex flex-col">
@@ -171,7 +171,7 @@
                                 class="px-6 py-4 grid gap-3 md:flex md:justify-between md:items-center border-gray-200 dark:border-neutral-700">
                                 <div>
                                     <h2 class="text-xl font-bold text-emerald-700 dark:text-neutral-200">
-                                        Documents Per Type
+                                        Documents Per Procedure / Category
                                     </h2>
                                 </div>
                             </div>
@@ -184,7 +184,7 @@
                                         <th scope="col" class="px-6 py-3 text-start">
                                             <span
                                                 class="text-xs font-semibold uppercase text-gray-800 dark:text-neutral-200">
-                                                Document Type
+                                                Procedure / Category
                                             </span>
                                         </th>
                                         <th scope="col" class="px-6 py-3 text-center">
@@ -235,6 +235,6 @@
                 </div>
             </div>
         </div>
-        {{-- End of Documents Per Type Table --}}
+        {{-- End of Documents Per Procedure / Category Table --}}
     </div>
 </div>

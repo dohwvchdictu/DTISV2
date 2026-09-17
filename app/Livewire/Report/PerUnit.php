@@ -46,8 +46,16 @@ class PerUnit extends Component
         $this->startDate = Carbon::now()->startOfYear()->format('Y-m-d');
         $this->endDate = Carbon::now()->format('Y-m-d');
 
-        $this->purchaseRequestCategoryIds = Category::where('name', 'like', 'Purchase Request%')->pluck('id')->toArray();
-        $this->paymentCategoryIds = Category::where('name', 'like', 'Payment%')->pluck('id')->toArray();
+        /**
+         * Matched the same way the inboxes match, so this report and the screens
+         * users actually work from agree on what a purchase request is. Inbox\
+         * MyPurchaseRequests and Inbox\MyPayments select on '%Purchase%' and
+         * '%Payment%'; anchoring these to the front of the name instead put
+         * categories like "Purchase Order / Contract" under General here while the
+         * inbox filed them as purchase requests. Keep the patterns in step.
+         */
+        $this->purchaseRequestCategoryIds = Category::where('name', 'like', '%Purchase%')->pluck('id')->toArray();
+        $this->paymentCategoryIds = Category::where('name', 'like', '%Payment%')->pluck('id')->toArray();
 
         $this->applyFilters();
     }

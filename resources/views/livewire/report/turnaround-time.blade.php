@@ -276,7 +276,7 @@
                                                                     <table class="min-w-full divide-y divide-gray-200 dark:divide-neutral-700">
                                                                         <thead class="bg-white dark:bg-neutral-900">
                                                                             <tr class="text-xs font-semibold uppercase text-gray-500 dark:text-neutral-400">
-                                                                                <th class="px-4 py-2 text-start">Document Type</th>
+                                                                                <th class="px-4 py-2 text-start">Procedure / Category</th>
                                                                                 <th class="px-4 py-2 text-center">
                                                                                     <button type="button" wire:click="sortDetailBy('avg')"
                                                                                         class="inline-flex items-center gap-x-1 uppercase text-sky-500 hover:text-sky-600 dark:hover:text-sky-300">

@@ -307,8 +307,17 @@ class DocumentStatus extends Component
 
     public function render()
     {
-        $start = Carbon::parse($this->startDate)->addDays(1);
-        $end = Carbon::parse($this->endDate)->addDays(1);
+        /**
+         * The selected range, inclusive of both days the user picked: from the
+         * start of startDate up to (but not including) the day after endDate.
+         *
+         * Shifting the start forward as well used to drop the whole of the first
+         * selected day and pull in the day after the last one. The same window is
+         * used by PerUnit, TurnaroundTime and the External Requests report, and
+         * MiscController mirrors it for the printed copy — keep the four in step.
+         */
+        $start = Carbon::parse($this->startDate)->startOfDay();
+        $end = Carbon::parse($this->endDate)->addDay()->startOfDay();
 
         /**
          * Pre-aggregate the per-office counts in grouped queries instead of the

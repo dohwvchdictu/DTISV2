@@ -20,9 +20,6 @@ class MiscController extends Controller
     private const ACTION_CLOSED = 5;
     private const ACTIONS_COMPLETED = [self::ACTION_FORWARDED, self::ACTION_CLOSED];
 
-    /** Fallback when neither the citizen charter nor the category sets required_days. */
-    private const DEFAULT_REQUIRED_DAYS = 20;
-
     public $user = [];
     public $id;
     public $assigned_to;
@@ -210,15 +207,13 @@ class MiscController extends Controller
         $rangeStart = \Carbon\Carbon::parse($startDate)->startOfDay();
         $rangeEnd = \Carbon\Carbon::parse($endDate)->addDay()->startOfDay();
 
-        // All four columns come from the custody-window walk: the rate is exactly
-        // Completed / Received, and Pending and Overdue are the still-open
-        // receipts split by deadline, so Completed + Pending + Overdue = Received
-        // (less any document another office took over).
+        // All three columns come from the custody-window walk: the rate is exactly
+        // Completed / Received, and Pending is Received − Completed, so
+        // Completed + Pending = Received.
         $windows = $this->completionWindows($rangeStart, $rangeEnd);
         $receivedByOffice = $windows['started'];
         $completedByOffice = $windows['finished'];
         $pendingByOffice = $windows['pending'];
-        $overdueByOffice = $windows['overdue'];
 
         // Generate overall statistics
         $overallReceived = $receivedByOffice->sum();
@@ -228,7 +223,6 @@ class MiscController extends Controller
             'pending' => $pendingByOffice->sum(),
             'received' => $overallReceived,
             'completed' => $overallCompleted,
-            'overdue' => $overdueByOffice->sum(),
             'rate' => $this->completionRate($overallReceived, $overallCompleted),
         ];
 
@@ -248,7 +242,6 @@ class MiscController extends Controller
                 'pending' => $pendingByOffice[$office['id']] ?? 0,
                 'received' => $received,
                 'completed' => $completed,
-                'overdue' => $overdueByOffice[$office['id']] ?? 0,
                 'rate' => $this->completionRate($received, $completed),
             ];
         }
@@ -282,26 +275,14 @@ class MiscController extends Controller
      * inside the period count, and one still counts as finished if it closed
      * after the period ended. No upper bound on the query for that reason.
      *
-     * A window still open when the document's trail ends, with the document
-     * still "On Process" with that same office today, is Overdue if its
-     * deadline (created date + required days, weekdays only) has passed and
-     * Pending otherwise, so Completed + Pending + Overdue = Received.
+     * Pending is every received window not yet finished (Received − Completed),
+     * so Completed + Pending = Received.
      *
      * Mirrors DocumentStatus::walkCompletionWindows(); keep the two in step.
      */
     private function completionWindows($rangeStart, $rangeEnd): array
     {
-        // Charter's required days, else category's, else the default; non-positive counts as unset.
-        $requiredDays = 'case'
-            . ' when citizen_charters.required_days > 0 then citizen_charters.required_days'
-            . ' when categories.required_days > 0 then categories.required_days'
-            . ' else ' . self::DEFAULT_REQUIRED_DAYS
-            . ' end';
-
         $logs = DB::table('logs')
-            ->leftJoin('documents', 'documents.id', '=', 'logs.document_id')
-            ->leftJoin('citizen_charters', 'citizen_charters.id', '=', 'documents.citizen_charter_id')
-            ->leftJoin('categories', 'categories.id', '=', 'documents.category_id')
             ->whereIn('logs.action_id', array_merge([self::ACTION_RECEIVED], self::ACTIONS_COMPLETED))
             ->where('logs.created_at', '>=', $rangeStart)
             ->orderBy('logs.document_id')
@@ -311,68 +292,23 @@ class MiscController extends Controller
                 'logs.document_id',
                 'logs.assigned_to',
                 'logs.action_id',
-                'logs.created_at',
-                'documents.status as document_status',
-                'documents.assigned_to as document_holder',
-                DB::raw('date(documents.created_at) as document_created_date'),
-                DB::raw($requiredDays . ' as required_days')
+                'logs.created_at'
             )
             ->cursor();
 
         $endAt = $rangeEnd->toDateTimeString();
-        $today = \Carbon\Carbon::today();
 
         $started = [];
         $finished = [];
-        $pending = [];
-        $overdue = [];
         $currentDoc = null;
         $openWindow = null;
-        $document = null;
-        $pastDeadline = [];
-
-        // Files the previous document's still-open window under Pending or Overdue if that office still holds it.
-        $settle = function () use (&$openWindow, &$document, &$pending, &$overdue, &$pastDeadline, $today) {
-            if ($openWindow === null
-                || !$openWindow['in']
-                || $document === null
-                || $document['status'] !== 'On Process'
-                || $document['holder'] !== $openWindow['office']) {
-                return;
-            }
-
-            $key = $document['created_date'] . '|' . $document['required_days'];
-
-            if (!isset($pastDeadline[$key])) {
-                $dueDate = \Carbon\Carbon::parse($document['created_date'])->startOfDay()->addWeekdays($document['required_days']);
-
-                // Signed working days to the deadline: >=0 still on time, <0 overdue.
-                $pastDeadline[$key] = (int) $today->diffInWeekdays($dueDate, false) < 0;
-            }
-
-            $office = $openWindow['office'];
-
-            if ($pastDeadline[$key]) {
-                $overdue[$office] = ($overdue[$office] ?? 0) + 1;
-            } else {
-                $pending[$office] = ($pending[$office] ?? 0) + 1;
-            }
-        };
 
         foreach ($logs as $log) {
             $documentId = (int) $log->document_id;
 
             if ($documentId !== $currentDoc) {
-                $settle();
-
                 $currentDoc = $documentId;
                 $openWindow = null;
-                $document = [
-                    'status' => $log->document_status,
-                    'holder' => $log->document_holder === null ? null : (int) $log->document_holder,
-                    'created_date' => $log->document_created_date,
-                    'required_days' => (int) $log->required_days,
-                ];
             }
 
             if ((int) $log->action_id === self::ACTION_RECEIVED) {
@@ -402,14 +338,16 @@ class MiscController extends Controller
             }
         }
 
-        // The last document's trail has no following row to trigger it.
-        $settle();
+        // Received − Completed; finished is a subset of started, so never negative.
+        $pending = [];
+        foreach ($started as $officeId => $count) {
+            $pending[$officeId] = $count - ($finished[$officeId] ?? 0);
+        }
 
         return [
             'started' => collect($started),
             'finished' => collect($finished),
             'pending' => collect($pending),
-            'overdue' => collect($overdue),
         ];
     }
 

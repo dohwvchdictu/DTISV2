@@ -201,11 +201,6 @@
                 </div>
 
                 <div class="card">
-                    <div class="card-title">Overdue</div>
-                    <div class="card-value">{{ number_format($reportData['overall']['overdue']) }}</div>
-                </div>
-
-                <div class="card">
                     <div class="card-title">Completion Rate</div>
                     <div class="card-value">{{ $reportData['overall']['rate'] === null ? '—' : number_format($reportData['overall']['rate'], 2) . '%' }}</div>
                 </div>
@@ -224,7 +219,6 @@
                         <th class="text-center">Received</th>
                         <th class="text-center">Completed</th>
                         <th class="text-center">Pending</th>
-                        <th class="text-center">Overdue</th>
                         <th class="text-center">Completion Rate</th>
                     </tr>
                 </thead>
@@ -235,7 +229,6 @@
                         <td class="text-center">{{ number_format($officeData['received']) }}</td>
                         <td class="text-center">{{ number_format($officeData['completed']) }}</td>
                         <td class="text-center">{{ number_format($officeData['pending']) }}</td>
-                        <td class="text-center">{{ number_format($officeData['overdue']) }}</td>
                         <td class="text-center">{{ $officeData['rate'] === null ? '—' : number_format($officeData['rate'], 2) . '%' }}</td>
                     </tr>
                     @endforeach

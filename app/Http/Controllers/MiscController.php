@@ -210,18 +210,14 @@ class MiscController extends Controller
         $rangeStart = \Carbon\Carbon::parse($startDate)->startOfDay();
         $rangeEnd = \Carbon\Carbon::parse($endDate)->addDay()->startOfDay();
 
-        $pendingByOffice = Document::where('status', 'On Process')
-            ->whereBetween('created_at', [$rangeStart, $rangeEnd])
-            ->selectRaw('assigned_to, COUNT(*) as aggregate')
-            ->groupBy('assigned_to')
-            ->pluck('aggregate', 'assigned_to');
-
-        // Received and Completed both come from the custody-window walk rather
-        // than two independent COUNT(*)s, so Completed can never exceed Received
-        // and the printed rate is exactly Completed / Received.
+        // Received, Completed and Pending all come from the custody-window walk
+        // rather than independent COUNT(*)s, so Completed can never exceed
+        // Received, the printed rate is exactly Completed / Received, and Pending
+        // is dated by when the office received the document, matching Received.
         $windows = $this->completionWindows($rangeStart, $rangeEnd);
         $receivedByOffice = $windows['started'];
         $completedByOffice = $windows['finished'];
+        $pendingByOffice = $windows['pending'];
 
         $overdueByOffice = $this->overdueDocumentsByOffice($rangeStart, $rangeEnd);
 
@@ -287,32 +283,60 @@ class MiscController extends Controller
      * inside the period count, and one still counts as finished if it closed
      * after the period ended. No upper bound on the query for that reason.
      *
+     * Pending is a window still open when the document's trail ends, where the
+     * document is still "On Process" with that same office today.
+     *
      * Mirrors DocumentStatus::walkCompletionWindows(); keep the two in step.
      */
     private function completionWindows($rangeStart, $rangeEnd): array
     {
         $logs = DB::table('logs')
-            ->whereIn('action_id', array_merge([self::ACTION_RECEIVED], self::ACTIONS_COMPLETED))
-            ->where('created_at', '>=', $rangeStart)
-            ->orderBy('document_id')
-            ->orderBy('created_at')
-            ->orderBy('id')
-            ->select('document_id', 'assigned_to', 'action_id', 'created_at')
+            ->leftJoin('documents', 'documents.id', '=', 'logs.document_id')
+            ->whereIn('logs.action_id', array_merge([self::ACTION_RECEIVED], self::ACTIONS_COMPLETED))
+            ->where('logs.created_at', '>=', $rangeStart)
+            ->orderBy('logs.document_id')
+            ->orderBy('logs.created_at')
+            ->orderBy('logs.id')
+            ->select(
+                'logs.document_id',
+                'logs.assigned_to',
+                'logs.action_id',
+                'logs.created_at',
+                'documents.status as document_status',
+                'documents.assigned_to as document_holder'
+            )
             ->cursor();
 
         $endAt = $rangeEnd->toDateTimeString();
 
         $started = [];
         $finished = [];
+        $pending = [];
         $currentDoc = null;
         $openWindow = null;
+        $documentStatus = null;
+        $documentHolder = null;
+
+        // Counts the previous document's still-open window as pending if that office still holds it.
+        $settle = function () use (&$openWindow, &$documentStatus, &$documentHolder, &$pending) {
+            if ($openWindow !== null
+                && $openWindow['in']
+                && $documentStatus === 'On Process'
+                && $documentHolder === $openWindow['office']) {
+                $pending[$openWindow['office']] = ($pending[$openWindow['office']] ?? 0) + 1;
+            }
+        };
 
         foreach ($logs as $log) {
             $documentId = (int) $log->document_id;
 
             if ($documentId !== $currentDoc) {
+                $settle();
+
                 $currentDoc = $documentId;
                 $openWindow = null;
+                $documentStatus = $log->document_status;
+                $documentHolder = $log->document_holder === null ? null : (int) $log->document_holder;
             }
 
             if ((int) $log->action_id === self::ACTION_RECEIVED) {
@@ -342,7 +366,10 @@ class MiscController extends Controller
             }
         }
 
-        return ['started' => collect($started), 'finished' => collect($finished)];
+        // The last document's trail has no following row to trigger it.
+        $settle();
+
+        return ['started' => collect($started), 'finished' => collect($finished), 'pending' => collect($pending)];
     }
 
     /**

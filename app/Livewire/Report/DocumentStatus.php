@@ -120,8 +120,8 @@ class DocumentStatus extends Component
      * Per-office custody windows for the period, cached because the date inputs
      * are live-bound and every keystroke would otherwise re-walk the logs.
      *
-     * Returns ['started' => collection, 'finished' => collection], both keyed by
-     * office id.
+     * Returns ['started' => collection, 'finished' => collection,
+     * 'pending' => collection], all keyed by office id.
      */
     private function completionWindows($start, $end): array
     {
@@ -130,7 +130,8 @@ class DocumentStatus extends Component
             'end' => $end->toDateTimeString(),
         ]));
 
-        return Cache::remember('document_status_windows_' . $signature, now()->addMinutes(5), function () use ($start, $end) {
+        /** Key bumped to v2 when 'pending' was added, so entries cached without it are never read. */
+        return Cache::remember('document_status_windows_v2_' . $signature, now()->addMinutes(5), function () use ($start, $end) {
             return $this->walkCompletionWindows($start, $end);
         });
     }
@@ -145,6 +146,12 @@ class DocumentStatus extends Component
      * period has since been dealt with, so a document received on the last day
      * of the range is not marked unfinished simply for being recent.
      *
+     * Pending is the window that is still open when the document's trail ends:
+     * received by the office inside the period, never forwarded or closed since,
+     * and the document is still "On Process" with that same office today. A
+     * window abandoned by another office's receipt is neither finished nor
+     * pending — the document is no longer this office's to hold.
+     *
      * There is deliberately no upper bound on the query: the closing log may sit
      * past the period end. Rows stream through a cursor as lightweight stdClass
      * to keep memory flat.
@@ -152,12 +159,20 @@ class DocumentStatus extends Component
     private function walkCompletionWindows($start, $end): array
     {
         $logs = DB::table('logs')
-            ->whereIn('action_id', array_merge([self::ACTION_RECEIVED], self::ACTIONS_COMPLETED))
-            ->where('created_at', '>=', $start)
-            ->orderBy('document_id')
-            ->orderBy('created_at')
-            ->orderBy('id')
-            ->select('document_id', 'assigned_to', 'action_id', 'created_at')
+            ->leftJoin('documents', 'documents.id', '=', 'logs.document_id')
+            ->whereIn('logs.action_id', array_merge([self::ACTION_RECEIVED], self::ACTIONS_COMPLETED))
+            ->where('logs.created_at', '>=', $start)
+            ->orderBy('logs.document_id')
+            ->orderBy('logs.created_at')
+            ->orderBy('logs.id')
+            ->select(
+                'logs.document_id',
+                'logs.assigned_to',
+                'logs.action_id',
+                'logs.created_at',
+                'documents.status as document_status',
+                'documents.assigned_to as document_holder'
+            )
             ->cursor();
 
         /** Both sides are 'Y-m-d H:i:s', so a string compare avoids parsing every row. */
@@ -165,15 +180,32 @@ class DocumentStatus extends Component
 
         $started = [];
         $finished = [];
+        $pending = [];
         $currentDoc = null;
         $openWindow = null;
+        $documentStatus = null;
+        $documentHolder = null;
+
+        /** Counts the previous document's still-open window as pending if that office still holds it. */
+        $settle = function () use (&$openWindow, &$documentStatus, &$documentHolder, &$pending) {
+            if ($openWindow !== null
+                && $openWindow['in']
+                && $documentStatus === 'On Process'
+                && $documentHolder === $openWindow['office']) {
+                $pending[$openWindow['office']] = ($pending[$openWindow['office']] ?? 0) + 1;
+            }
+        };
 
         foreach ($logs as $log) {
             $documentId = (int) $log->document_id;
 
             if ($documentId !== $currentDoc) {
+                $settle();
+
                 $currentDoc = $documentId;
                 $openWindow = null;
+                $documentStatus = $log->document_status;
+                $documentHolder = $log->document_holder === null ? null : (int) $log->document_holder;
             }
 
             if ((int) $log->action_id === self::ACTION_RECEIVED) {
@@ -209,15 +241,20 @@ class DocumentStatus extends Component
             }
         }
 
-        return ['started' => collect($started), 'finished' => collect($finished)];
+        /** The last document's trail has no following row to trigger it. */
+        $settle();
+
+        return ['started' => collect($started), 'finished' => collect($finished), 'pending' => collect($pending)];
     }
 
     /**
      * Pending documents that have passed the deadline their service commitment
      * set, counted against the office now holding them.
      *
-     * Overdue is a strict subset of the Pending column — same status and same
-     * date window — narrowed to those whose deadline has passed. The deadline is
+     * Overdue counts "On Process" documents created in the date window whose
+     * deadline has passed. Note it is dated by creation while the Pending column
+     * is dated by the office's receipt, so it is no longer a strict subset of
+     * Pending and can occasionally exceed it for an office. The deadline is
      * the created date plus the required days of the document's citizen charter,
      * or of its category when it has no charter: the same basis the dashboard
      * and the External Requests report already use, so all three screens agree
@@ -288,16 +325,14 @@ class DocumentStatus extends Component
      * own query inline in the blade; they are computed here so the cards and the
      * table columns cannot disagree about what they are counting.
      */
-    private function overallTotals($start, $end, $receivedByOffice, $completedByOffice, $overdueByOffice): array
+    private function overallTotals($receivedByOffice, $completedByOffice, $pendingByOffice, $overdueByOffice): array
     {
         /** Summed from the same per-office windows the table shows, so the cards reconcile. */
         $received = $receivedByOffice->sum();
         $completed = $completedByOffice->sum();
 
         return [
-            'pending' => Document::where('status', 'On Process')
-                ->whereBetween('created_at', [$start, $end])
-                ->count(),
+            'pending' => $pendingByOffice->sum(),
             'received' => $received,
             'completed' => $completed,
             'overdue' => $overdueByOffice->sum(),
@@ -320,25 +355,20 @@ class DocumentStatus extends Component
         $end = Carbon::parse($this->endDate)->addDay()->startOfDay();
 
         /**
-         * Pre-aggregate the per-office counts in grouped queries instead of the
-         * blade running several count queries per office (~150 queries). The
-         * blade now looks each office up by id from these keyed collections.
-         */
-        $pendingByOffice = Document::query()
-            ->where('status', 'On Process')
-            ->whereBetween('created_at', [$start, $end])
-            ->selectRaw('assigned_to, COUNT(*) as aggregate')
-            ->groupBy('assigned_to')
-            ->pluck('aggregate', 'assigned_to');
-
-        /**
-         * Received and Completed both come from the custody-window walk rather
-         * than from two independent COUNT(*)s, so Completed can never exceed
-         * Received and the displayed rate is exactly Completed / Received.
+         * Pre-aggregate the per-office counts instead of the blade running
+         * several count queries per office (~150 queries). The blade looks each
+         * office up by id from these keyed collections.
+         *
+         * Received, Completed and Pending all come from the custody-window walk
+         * rather than independent COUNT(*)s, so Completed can never exceed
+         * Received, the displayed rate is exactly Completed / Received, and
+         * Pending is dated by when the office received the document (not when
+         * it was created), matching Received.
          */
         $windows = $this->completionWindows($start, $end);
         $receivedByOffice = $windows['started'];
         $completedByOffice = $windows['finished'];
+        $pendingByOffice = $windows['pending'];
 
         $overdueByOffice = $this->overdueByOffice($start, $end);
 
@@ -352,7 +382,7 @@ class DocumentStatus extends Component
             'completedByOffice' => $completedByOffice,
             'receivedByOffice' => $receivedByOffice,
             'overdueByOffice' => $overdueByOffice,
-            'totals' => $this->overallTotals($start, $end, $receivedByOffice, $completedByOffice, $overdueByOffice),
+            'totals' => $this->overallTotals($receivedByOffice, $completedByOffice, $pendingByOffice, $overdueByOffice),
         ]);
     }
 }

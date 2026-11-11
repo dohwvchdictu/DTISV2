@@ -45,9 +45,11 @@
             <!-- End Header Grid -->
 
             <!-- Grid -->
-            {{-- Five stat cards, always on a single row. The icon is dropped and the
-                 figures step down on narrow viewports so the row never wraps. --}}
-            <div class="grid grid-cols-5 gap-2 sm:gap-3 xl:gap-6">
+            {{-- Four stat cards, always on a single row. The icon is dropped and the
+                 figures step down on narrow viewports so the row never wraps.
+                 Columns are set inline because grid-cols-4 is not in the compiled
+                 Tailwind build; it would only take effect after an asset rebuild. --}}
+            <div class="grid gap-2 sm:gap-3 xl:gap-6" style="grid-template-columns: repeat(4, minmax(0, 1fr));">
                 <!-- Card -->
                 <div
                     class="flex flex-col bg-white border shadow-sm rounded-xl dark:bg-neutral-900 dark:border-neutral-800">
@@ -186,8 +188,8 @@
                                         <span
                                             class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible opacity-0 transition-opacity inline-block absolute invisible z-10 py-1 px-2 bg-gray-900 text-xs font-medium text-white rounded shadow-sm dark:bg-neutral-700"
                                             role="tooltip">
-                                            Documents received in this period that are still being processed
-                                            and are not yet past their deadline.
+                                            Documents received in this period that have not yet been forwarded
+                                            or closed — Received minus Completed.
                                         </span>
                                     </div>
                                 </div>
@@ -195,57 +197,6 @@
                             <div class="mt-1 flex items-center gap-x-2">
                                 <h3 class="text-base sm:text-lg xl:text-2xl font-medium text-gray-800 dark:text-neutral-200">
                                     {{ number_format($totals['pending']) }}
-                                </h3>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <!-- End Card -->
-
-                <!-- Card -->
-                <div
-                    class="flex flex-col bg-white border shadow-sm rounded-xl dark:bg-neutral-900 dark:border-neutral-800">
-                    <div class="p-3 xl:p-5 flex gap-x-2 xl:gap-x-4">
-                        <div
-                            class="hidden xl:flex shrink-0 justify-center items-center size-[46px] bg-gray-100 rounded-lg dark:bg-neutral-800">
-                            <svg class="shrink-0 size-5 text-gray-600 dark:text-neutral-400"
-                                xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
-                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                stroke-linejoin="round" class="lucide lucide-clock-alert">
-                                <circle cx="12" cy="12" r="10" />
-                                <polyline points="12 6 12 12 15 14" />
-                            </svg>
-                        </div>
-
-                        <div class="grow">
-                            <div class="flex items-center gap-x-1.5 min-w-0">
-                                <p class="text-[10px] lg:text-xs uppercase tracking-wide whitespace-nowrap truncate text-red-600 dark:text-red-400">
-                                    Overdue
-                                </p>
-                                <div class="hs-tooltip hidden sm:block shrink-0">
-                                    <div class="hs-tooltip-toggle">
-                                        <svg class="shrink-0 size-4 text-gray-500 dark:text-neutral-400"
-                                            xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                            stroke-linecap="round" stroke-linejoin="round">
-                                            <circle cx="12" cy="12" r="10" />
-                                            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-                                            <path d="M12 17h.01" />
-                                        </svg>
-                                        <span
-                                            class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible opacity-0 transition-opacity inline-block absolute invisible z-10 py-1 px-2 bg-gray-900 text-xs font-medium text-white rounded shadow-sm dark:bg-neutral-700"
-                                            role="tooltip">
-                                            Documents received in this period that are still being processed
-                                            and are past their deadline — the date created plus the required
-                                            days of their citizen charter, or of their document type when they
-                                            have no charter. Not included in Pending.
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="mt-1 flex items-center gap-x-2">
-                                <h3 class="text-base sm:text-lg xl:text-2xl font-medium text-gray-800 dark:text-neutral-200">
-                                    {{ number_format($totals['overdue']) }}
                                 </h3>
                             </div>
                         </div>
@@ -450,20 +401,6 @@
                                         </th>
 
                                         <th scope="col" class="px-6 py-3 text-start">
-                                            <a class="group inline-flex items-center gap-x-2 text-xs font-semibold uppercase text-red-600 hover:text-red-500 focus:outline-none focus:text-gray-500 dark:text-red-400 dark:hover:text-red-300 dark:focus:text-red-300"
-                                                href="#">
-                                                Overdue
-                                                <svg class="shrink-0 size-3.5 text-gray-800 dark:text-neutral-200"
-                                                    xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                                                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <path d="m7 15 5 5 5-5" />
-                                                    <path d="m7 9 5-5 5 5" />
-                                                </svg>
-                                            </a>
-                                        </th>
-
-                                        <th scope="col" class="px-6 py-3 text-start">
                                             <a class="group inline-flex items-center gap-x-2 text-xs font-semibold uppercase text-gray-800 hover:text-gray-500 focus:outline-none focus:text-gray-500 dark:text-neutral-200 dark:hover:text-white dark:focus:text-white"
                                                 href="#">
                                                 Completion Rate
@@ -514,14 +451,6 @@
                                             </td>
                                             <td class="size-px whitespace-nowrap">
                                                 <span class="block relative z-10">
-                                                    {{-- Emphasised only when there is something to act on. --}}
-                                                    <div class="px-6 flex gap-x-1 {{ ($overdue = $overdueByOffice[$office['id']] ?? 0) > 0 ? 'font-semibold text-red-600 dark:text-red-400' : 'text-gray-400 dark:text-neutral-500' }}">
-                                                        {{ number_format($overdue) }}
-                                                    </div>
-                                                </span>
-                                            </td>
-                                            <td class="size-px whitespace-nowrap">
-                                                <span class="block relative z-10">
                                                     <div class="px-6 flex gap-x-1 text-gray-800 dark:text-neutral-200">
                                                         @php
                                                             $rate = $this->completionRate($received, $completed);
@@ -533,7 +462,7 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td class="text-center py-5 font-bold text-lg text-gray-800 dark:text-neutral-200" colspan="6">No records
+                                            <td class="text-center py-5 font-bold text-lg text-gray-800 dark:text-neutral-200" colspan="5">No records
                                                 found!
                                             </td>
                                         </tr>

@@ -121,19 +121,36 @@ class DocumentStatus extends Component
      * are live-bound and every keystroke would otherwise re-walk the logs.
      *
      * Returns ['started' => collection, 'finished' => collection,
-     * 'pending' => collection], all keyed by office id.
+     * 'pending' => collection, 'overdue' => collection], all keyed by office id.
      */
     private function completionWindows($start, $end): array
     {
         $signature = md5(json_encode([
             'start' => $start->toDateTimeString(),
             'end' => $end->toDateTimeString(),
+            /** Overdue is judged against today, so a cached split must not outlive the day. */
+            'today' => Carbon::today()->toDateString(),
         ]));
 
-        /** Key bumped to v2 when 'pending' was added, so entries cached without it are never read. */
-        return Cache::remember('document_status_windows_v2_' . $signature, now()->addMinutes(5), function () use ($start, $end) {
+        /** Key bumped to v3 when 'overdue' was added, so entries cached without it are never read. */
+        return Cache::remember('document_status_windows_v3_' . $signature, now()->addMinutes(5), function () use ($start, $end) {
             return $this->walkCompletionWindows($start, $end);
         });
+    }
+
+    /**
+     * Required days for a document: the charter's when it has a usable value,
+     * else the category's, else the default. A non-positive value counts as
+     * unset — a zero-day commitment would mark a document overdue the moment it
+     * was encoded. Expects citizen_charters and categories to be joined.
+     */
+    private function requiredDaysSql(): string
+    {
+        return 'case'
+            . ' when citizen_charters.required_days > 0 then citizen_charters.required_days'
+            . ' when categories.required_days > 0 then categories.required_days'
+            . ' else ' . self::DEFAULT_REQUIRED_DAYS
+            . ' end';
     }
 
     /**
@@ -146,11 +163,21 @@ class DocumentStatus extends Component
      * period has since been dealt with, so a document received on the last day
      * of the range is not marked unfinished simply for being recent.
      *
-     * Pending is the window that is still open when the document's trail ends:
-     * received by the office inside the period, never forwarded or closed since,
-     * and the document is still "On Process" with that same office today. A
-     * window abandoned by another office's receipt is neither finished nor
-     * pending — the document is no longer this office's to hold.
+     * A window still open when the document's trail ends — received by the
+     * office inside the period, never forwarded or closed since, and the
+     * document still "On Process" with that same office today — is split by
+     * deadline: Overdue if the deadline has passed, Pending otherwise. The two
+     * never overlap, so Completed + Pending + Overdue = Received, short only of
+     * windows abandoned by another office's receipt (the document is no longer
+     * this office's to hold, so it lands in none of the three).
+     *
+     * The deadline is the document's created date plus its required days (see
+     * requiredDaysSql()), weekends excluded, holidays not. The clock runs from
+     * creation, not from this office's receipt, because required_days is an
+     * end-to-end commitment for the whole document — giving each office its own
+     * full clock would reset the deadline at every hand-off. The date maths is
+     * memoised per (created date, required days), since many documents share a
+     * deadline.
      *
      * There is deliberately no upper bound on the query: the closing log may sit
      * past the period end. Rows stream through a cursor as lightweight stdClass
@@ -160,6 +187,8 @@ class DocumentStatus extends Component
     {
         $logs = DB::table('logs')
             ->leftJoin('documents', 'documents.id', '=', 'logs.document_id')
+            ->leftJoin('citizen_charters', 'citizen_charters.id', '=', 'documents.citizen_charter_id')
+            ->leftJoin('categories', 'categories.id', '=', 'documents.category_id')
             ->whereIn('logs.action_id', array_merge([self::ACTION_RECEIVED], self::ACTIONS_COMPLETED))
             ->where('logs.created_at', '>=', $start)
             ->orderBy('logs.document_id')
@@ -171,28 +200,50 @@ class DocumentStatus extends Component
                 'logs.action_id',
                 'logs.created_at',
                 'documents.status as document_status',
-                'documents.assigned_to as document_holder'
+                'documents.assigned_to as document_holder',
+                DB::raw('date(documents.created_at) as document_created_date'),
+                DB::raw($this->requiredDaysSql() . ' as required_days')
             )
             ->cursor();
 
         /** Both sides are 'Y-m-d H:i:s', so a string compare avoids parsing every row. */
         $endAt = $end->toDateTimeString();
+        $today = Carbon::today();
 
         $started = [];
         $finished = [];
         $pending = [];
+        $overdue = [];
         $currentDoc = null;
         $openWindow = null;
-        $documentStatus = null;
-        $documentHolder = null;
+        $document = null;
+        $pastDeadline = [];
 
-        /** Counts the previous document's still-open window as pending if that office still holds it. */
-        $settle = function () use (&$openWindow, &$documentStatus, &$documentHolder, &$pending) {
-            if ($openWindow !== null
-                && $openWindow['in']
-                && $documentStatus === 'On Process'
-                && $documentHolder === $openWindow['office']) {
-                $pending[$openWindow['office']] = ($pending[$openWindow['office']] ?? 0) + 1;
+        /** Files the previous document's still-open window under Pending or Overdue if that office still holds it. */
+        $settle = function () use (&$openWindow, &$document, &$pending, &$overdue, &$pastDeadline, $today) {
+            if ($openWindow === null
+                || !$openWindow['in']
+                || $document === null
+                || $document['status'] !== 'On Process'
+                || $document['holder'] !== $openWindow['office']) {
+                return;
+            }
+
+            $key = $document['created_date'] . '|' . $document['required_days'];
+
+            if (!isset($pastDeadline[$key])) {
+                $dueDate = Carbon::parse($document['created_date'])->startOfDay()->addWeekdays($document['required_days']);
+
+                /** Signed working days to the deadline: >=0 still on time, <0 overdue. */
+                $pastDeadline[$key] = (int) $today->diffInWeekdays($dueDate, false) < 0;
+            }
+
+            $office = $openWindow['office'];
+
+            if ($pastDeadline[$key]) {
+                $overdue[$office] = ($overdue[$office] ?? 0) + 1;
+            } else {
+                $pending[$office] = ($pending[$office] ?? 0) + 1;
             }
         };
 
@@ -204,8 +255,12 @@ class DocumentStatus extends Component
 
                 $currentDoc = $documentId;
                 $openWindow = null;
-                $documentStatus = $log->document_status;
-                $documentHolder = $log->document_holder === null ? null : (int) $log->document_holder;
+                $document = [
+                    'status' => $log->document_status,
+                    'holder' => $log->document_holder === null ? null : (int) $log->document_holder,
+                    'created_date' => $log->document_created_date,
+                    'required_days' => (int) $log->required_days,
+                ];
             }
 
             if ((int) $log->action_id === self::ACTION_RECEIVED) {
@@ -244,80 +299,12 @@ class DocumentStatus extends Component
         /** The last document's trail has no following row to trigger it. */
         $settle();
 
-        return ['started' => collect($started), 'finished' => collect($finished), 'pending' => collect($pending)];
-    }
-
-    /**
-     * Pending documents that have passed the deadline their service commitment
-     * set, counted against the office now holding them.
-     *
-     * Overdue counts "On Process" documents created in the date window whose
-     * deadline has passed. Note it is dated by creation while the Pending column
-     * is dated by the office's receipt, so it is no longer a strict subset of
-     * Pending and can occasionally exceed it for an office. The deadline is
-     * the created date plus the required days of the document's citizen charter,
-     * or of its category when it has no charter: the same basis the dashboard
-     * and the External Requests report already use, so all three screens agree
-     * on what "overdue" means.
-     *
-     * The clock runs from creation, not from the current office's receipt,
-     * because required_days is an end-to-end commitment for the whole document.
-     * Giving each office in the route its own full charter clock would reset the
-     * deadline at every hand-off and leave almost nothing overdue. What varies
-     * per office is only *who answers for it* — the document is charged to
-     * whoever is holding it when the deadline passes.
-     *
-     * Weekends are excluded, holidays are not.
-     *
-     * Working-day arithmetic cannot be expressed in portable SQL, so the query
-     * groups by office, commitment and creation date first — every document in
-     * a group shares one deadline, so the collapse is lossless — and PHP does
-     * the date maths once per group rather than once per document.
-     */
-    private function overdueByOffice($start, $end)
-    {
-        /**
-         * The charter's required days win when it has a usable value, else the
-         * category's, else the default. A non-positive value counts as unset: a
-         * zero-day commitment would mark a document overdue the moment it was
-         * encoded.
-         */
-        $requiredDays = 'case'
-            . ' when citizen_charters.required_days > 0 then citizen_charters.required_days'
-            . ' when categories.required_days > 0 then categories.required_days'
-            . ' else ' . self::DEFAULT_REQUIRED_DAYS
-            . ' end';
-
-        $groups = DB::table('documents')
-            ->leftJoin('citizen_charters', 'citizen_charters.id', '=', 'documents.citizen_charter_id')
-            ->leftJoin('categories', 'categories.id', '=', 'documents.category_id')
-            ->where('documents.status', 'On Process')
-            ->whereBetween('documents.created_at', [$start, $end])
-            ->groupBy('documents.assigned_to', DB::raw($requiredDays), DB::raw('date(documents.created_at)'))
-            ->select([
-                'documents.assigned_to',
-                DB::raw($requiredDays . ' as required_days'),
-                DB::raw('date(documents.created_at) as created_date'),
-                DB::raw('count(*) as documents'),
-            ])
-            ->get();
-
-        $today = Carbon::today();
-        $overdue = [];
-
-        foreach ($groups as $group) {
-            $dueDate = Carbon::parse($group->created_date)->startOfDay()->addWeekdays((int) $group->required_days);
-
-            /** Signed working days to the deadline: >0 left, <0 overdue. */
-            if ((int) $today->diffInWeekdays($dueDate, false) >= 0) {
-                continue;
-            }
-
-            $officeId = $group->assigned_to;
-            $overdue[$officeId] = ($overdue[$officeId] ?? 0) + (int) $group->documents;
-        }
-
-        return collect($overdue);
+        return [
+            'started' => collect($started),
+            'finished' => collect($finished),
+            'pending' => collect($pending),
+            'overdue' => collect($overdue),
+        ];
     }
 
     /**
@@ -359,18 +346,17 @@ class DocumentStatus extends Component
          * several count queries per office (~150 queries). The blade looks each
          * office up by id from these keyed collections.
          *
-         * Received, Completed and Pending all come from the custody-window walk
-         * rather than independent COUNT(*)s, so Completed can never exceed
-         * Received, the displayed rate is exactly Completed / Received, and
-         * Pending is dated by when the office received the document (not when
-         * it was created), matching Received.
+         * All four columns come from the custody-window walk rather than
+         * independent COUNT(*)s: Completed can never exceed Received, the rate
+         * is exactly Completed / Received, and Pending and Overdue are the
+         * still-open receipts split by deadline, so Completed + Pending +
+         * Overdue = Received (less any document another office took over).
          */
         $windows = $this->completionWindows($start, $end);
         $receivedByOffice = $windows['started'];
         $completedByOffice = $windows['finished'];
         $pendingByOffice = $windows['pending'];
-
-        $overdueByOffice = $this->overdueByOffice($start, $end);
+        $overdueByOffice = $windows['overdue'];
 
         $offices = Arr::sort($this->offices, function (array $value) {
             return $value['officeName'];

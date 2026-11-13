@@ -14,7 +14,7 @@ class ApiService
     {
         $this->client = new Client([
             'base_uri' => config('services.api.base_url'),
-            'timeout'  => 10.0,
+            'timeout' => 10.0,
         ]);
     }
 
@@ -251,7 +251,7 @@ class ApiService
 
         if (is_array($message)) {
             $parts = array_filter(array_map(
-                fn ($part) => is_scalar($part) ? trim((string) $part) : null,
+                fn($part) => is_scalar($part) ? trim((string) $part) : null,
                 $message
             ));
 
@@ -306,7 +306,7 @@ class ApiService
     public function getEmployeesData(): ?array
     {
         return Cache::remember('api.employees', now()->addMinutes(self::DIRECTORY_CACHE_MINUTES), function () {
-            return $this->fetchDirectory('public/get-employees');
+            return $this->fetchDirectory('auth/get-all-employees');
         });
     }
 
@@ -364,7 +364,7 @@ class ApiService
         $officesData ??= $this->getOfficesData();
 
         return collect($officesData['officeList'] ?? [])
-            ->filter(fn ($office) => $office['status'] ?? true)
+            ->filter(fn($office) => $office['status'] ?? true)
             ->sortBy('officeName')
             ->values()
             ->all();
